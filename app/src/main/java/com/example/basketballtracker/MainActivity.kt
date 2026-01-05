@@ -1,7 +1,6 @@
 package com.example.basketballtracker
 
 import LiveGameTabletScreen
-import LiveGameViewModel
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,9 +12,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.room.Room
+import com.example.basketballtracker.core.data.db.AppDatabase
+import com.example.basketballtracker.features.livegame.data.LiveGameRepository
+import com.example.basketballtracker.features.livegame.state.LiveGameViewModel
 import com.example.basketballtracker.ui.theme.BasketballTrackerTheme
 
 class MainActivity : ComponentActivity() {
@@ -41,8 +45,18 @@ class MainActivity : ComponentActivity() {
 
         setContent {
                 BasketballTrackerTheme {
+                    val ctx = LocalContext.current
+
+                    val db = remember {
+                        Room.databaseBuilder(ctx, AppDatabase::class.java, "basketball.db")
+                            .fallbackToDestructiveMigration()
+                            .build()
+                    }
+
+                    val repo = remember { LiveGameRepository(db.eventDao()) }
                     val vm = remember {
                         LiveGameViewModel(
+                            repo = repo,
                             gameId = 1L,
                             players = players,
                             quarterLengthSec = 600
