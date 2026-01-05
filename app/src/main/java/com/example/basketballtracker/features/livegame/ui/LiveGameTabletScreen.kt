@@ -17,7 +17,6 @@ import com.example.basketballtracker.features.livegame.ui.GameClock
 import com.example.basketballtracker.features.livegame.ui.LiveEvent
 import com.example.basketballtracker.features.livegame.ui.formatEvent
 import kotlin.math.max
-import kotlin.math.sign
 
 @Composable
 fun LiveGameTabletScreen(vm: LiveGameViewModel) {
@@ -79,6 +78,9 @@ private fun PlayersPanel(
                     val reb = b?.rebTotal ?: 0
                     val ast = b?.ast ?: 0
                     val tov = b?.tov ?: 0
+                    val fg = b?.let { "${it.fgm}/${it.fga} (${it.fgPct}%)" } ?: "0/0 (0%)"
+                    val tp = b?.let { "${it.threem}/${it.threea} (${it.threePct}%)" } ?: "0/0 (0%)"
+                    val ft = b?.let { "${it.ftm}/${it.fta} (${it.ftPct}%)" } ?: "0/0 (0%)"
 
                     val isSel = id == selectedId
                     ElevatedCard(
@@ -93,6 +95,8 @@ private fun PlayersPanel(
                             Text(name, style = MaterialTheme.typography.titleMedium)
                             Spacer(Modifier.height(4.dp))
                             Text("PTS $pts • REB $reb • AST $ast • TO $tov")
+                            Spacer(Modifier.height(2.dp))
+                            Text("FG $fg • 3PT $tp • FT $ft", style = MaterialTheme.typography.titleSmall)
                         }
                     }
                 }
