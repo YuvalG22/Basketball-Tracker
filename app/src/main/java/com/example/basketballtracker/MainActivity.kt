@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
         windowInsetsController.hide(WindowInsetsCompat.Type.navigationBars())
 
         val players = listOf(
-            1L to "Yuval Ganon",
+            1L to "Yuval",
             2L to "Daniel",
             3L to "Noam",
             4L to "Tom",
