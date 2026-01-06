@@ -2,6 +2,7 @@ package com.example.basketballtracker.features.livegame.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.livegame.*
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
 import com.example.basketballtracker.features.livegame.ui.EventType
@@ -13,7 +14,7 @@ import kotlinx.coroutines.launch
 
 data class LiveUiState(
     val gameId: Long,
-    val players: List<Pair<Long, String>>,
+    val players: List<PlayerEntity>,
     val selectedPlayerId: Long? = null,
     val clock: GameClock,
     val events: List<LiveEvent> = emptyList()
@@ -22,7 +23,7 @@ data class LiveUiState(
 class LiveGameViewModel(
     private val repo: LiveGameRepository,
     gameId: Long,
-    players: List<Pair<Long, String>>,
+    players: List<PlayerEntity>,
     private val quarterLengthSec: Int = 600
 ) : ViewModel() {
 

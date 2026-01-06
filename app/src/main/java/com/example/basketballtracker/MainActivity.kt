@@ -1,6 +1,5 @@
 package com.example.basketballtracker
 
-import LiveGameTabletScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,8 +15,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
+import com.example.basketballtracker.app.navigation.AppNavGraph
 import com.example.basketballtracker.core.data.db.AppDatabase
+import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
 import com.example.basketballtracker.features.livegame.state.LiveGameViewModel
 import com.example.basketballtracker.ui.theme.BasketballTrackerTheme
@@ -28,7 +30,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
         windowInsetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        windowInsetsController.hide(WindowInsetsCompat.Type.navigationBars())
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
 
         val players = listOf(
             1L to "Yuval",
@@ -46,28 +48,24 @@ class MainActivity : ComponentActivity() {
         setContent {
                 BasketballTrackerTheme {
                     val ctx = LocalContext.current
+                    val nav = rememberNavController()
 
                     val db = remember {
                         Room.databaseBuilder(ctx, AppDatabase::class.java, "basketball.db")
-                            .fallbackToDestructiveMigration()
+                            .fallbackToDestructiveMigration(false)
                             .build()
                     }
 
-                    val repo = remember { LiveGameRepository(db.eventDao()) }
-                    val vm = remember {
-                        LiveGameViewModel(
-                            repo = repo,
-                            gameId = 1L,
-                            players = players,
-                            quarterLengthSec = 600
-                        )
-                    }
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
-                    ) {
-                        LiveGameTabletScreen(vm)
-                    }
+                    val gamesRepo = remember { GamesRepository(db.gameDao()) }
+                    val liveRepo = remember { LiveGameRepository(db.eventDao()) }
+
+                    AppNavGraph(
+                        nav = nav,
+                        db = db,
+                        gamesRepo = gamesRepo,
+                        liveRepo = liveRepo,
+                        quarterLengthDefault = 600
+                    )
                 }
             }
         }

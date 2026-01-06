@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.livegame.state.LiveGameViewModel
 import com.example.basketballtracker.features.livegame.ui.PlayerBox
 import com.example.basketballtracker.features.livegame.ui.computeBoxByPlayer
@@ -23,45 +24,50 @@ import kotlin.math.max
 fun LiveGameTabletScreen(vm: LiveGameViewModel) {
     val s by vm.ui.collectAsState()
     val box = remember(s.events) { computeBoxByPlayer(s.events) }
-    val playersById = remember(s.players) { s.players.toMap() }
+    val playersById = remember(s.players) { s.players.associateBy { it.id } }
     val last = s.events.lastOrNull()
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Row(Modifier.fillMaxSize().padding(12.dp).windowInsetsPadding(WindowInsets.systemBars)) {
-            PlayersPanel(
-                players = s.players,
-                selectedId = s.selectedPlayerId,
-                box = box,
-                onSelect = vm::selectPlayer,
-                modifier = Modifier.weight(0.35f).fillMaxHeight()
-            )
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Row(
+                Modifier.fillMaxSize().padding(12.dp).windowInsetsPadding(WindowInsets.systemBars)
+            ) {
+                PlayersPanel(
+                    players = s.players,
+                    selectedId = s.selectedPlayerId,
+                    box = box,
+                    onSelect = vm::selectPlayer,
+                    modifier = Modifier.weight(0.35f).fillMaxHeight()
+                )
 
-            Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(12.dp))
 
-            ActionsPanel(
-                enabled = s.selectedPlayerId != null,
-                onEvent = vm::addEvent,
-                onUndo = vm::undoLast,
-                modifier = Modifier.weight(0.45f).fillMaxHeight()
-            )
+                ActionsPanel(
+                    enabled = s.selectedPlayerId != null,
+                    onEvent = vm::addEvent,
+                    onUndo = vm::undoLast,
+                    modifier = Modifier.weight(0.45f).fillMaxHeight()
+                )
 
-            Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(12.dp))
 
-            GameControlPanel(
-                clock = s.clock,
-                lastEvent = last,
-                playersById = playersById,
-                onToggleClock = vm::toggleClock,
-                onNextQuarter = vm::nextQuarter,
-                onResetQuarter = vm::resetQuarter,
-                modifier = Modifier.weight(0.30f).fillMaxHeight()
-            )
+                GameControlPanel(
+                    clock = s.clock,
+                    lastEvent = last,
+                    playersById = playersById,
+                    onToggleClock = vm::toggleClock,
+                    onNextQuarter = vm::nextQuarter,
+                    onResetQuarter = vm::resetQuarter,
+                    modifier = Modifier.weight(0.30f).fillMaxHeight()
+                )
+            }
         }
-    }
 }
 
 @Composable
 private fun PlayersPanel(
-    players: List<Pair<Long, String>>,
+    players: List<PlayerEntity>,
     selectedId: Long?,
     box: Map<Long, PlayerBox>,
     onSelect: (Long) -> Unit,
@@ -73,8 +79,8 @@ private fun PlayersPanel(
             Spacer(Modifier.height(8.dp))
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(players) { (id, name) ->
-                    val b = box[id]
+                items(players, key = {it.id}) {p ->
+                    val b = box[p.id]
                     val pts = b?.pts ?: 0
                     val reb = b?.rebTotal ?: 0
                     val ast = b?.ast ?: 0
@@ -83,9 +89,9 @@ private fun PlayersPanel(
                     val tp = b?.let { "${it.threem}/${it.threea} (${it.threePct}%)" } ?: "0/0 (0%)"
                     val ft = b?.let { "${it.ftm}/${it.fta} (${it.ftPct}%)" } ?: "0/0 (0%)"
 
-                    val isSel = id == selectedId
+                    val isSel = p.id == selectedId
                     ElevatedCard(
-                        modifier = Modifier.fillMaxWidth().clickable { onSelect(id) },
+                        modifier = Modifier.fillMaxWidth().clickable { onSelect(p.id) },
                         colors = CardDefaults.elevatedCardColors(
                             containerColor = if (isSel)
                                 MaterialTheme.colorScheme.primaryContainer
@@ -93,7 +99,7 @@ private fun PlayersPanel(
                         )
                     ) {
                         Column(Modifier.padding(10.dp)) {
-                            Text(name, style = MaterialTheme.typography.titleMedium)
+                            Text("#${p.number}  ${p.name}", style = MaterialTheme.typography.titleMedium)
                             Spacer(Modifier.height(4.dp))
                             Text("PTS $pts • REB $reb • AST $ast • TO $tov")
                             Spacer(Modifier.height(2.dp))
@@ -174,7 +180,7 @@ private fun ActionsPanel(
 private fun GameControlPanel(
     clock: GameClock,
     lastEvent: LiveEvent?,
-    playersById: Map<Long, String>,
+    playersById: Map<Long, PlayerEntity>,
     onToggleClock: () -> Unit,
     onNextQuarter: () -> Unit,
     onResetQuarter: () -> Unit,
@@ -219,7 +225,7 @@ private fun GameControlPanel(
             val lastText = if (lastEvent == null) {
                 "—"
             } else {
-                val name = lastEvent.playerId?.let { playersById[it] } ?: "Team"
+                val name = lastEvent.playerId?.let { id -> playersById[id]?.name } ?: "Team"
                 val time = String.format("%02d:%02d", lastEvent.clockSecRemaining / 60, lastEvent.clockSecRemaining % 60)
                 "Q${lastEvent.period} $time — $name ${formatEvent(lastEvent.type)}"
             }

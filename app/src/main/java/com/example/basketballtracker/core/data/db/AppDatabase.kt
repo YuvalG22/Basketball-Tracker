@@ -7,7 +7,7 @@ import com.example.basketballtracker.core.data.db.entities.*
 
 @Database(
     entities = [PlayerEntity::class, GameEntity::class, RosterEntity::class, EventEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

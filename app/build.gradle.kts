@@ -43,7 +43,10 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.compose.runtime.saveable)
+    implementation(libs.androidx.compose.remote.creation.core)
     val room_version = "2.8.4"
+    val nav_version = "2.9.6"
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -63,5 +66,5 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
-
+    implementation("androidx.navigation:navigation-compose:${nav_version}")
 }

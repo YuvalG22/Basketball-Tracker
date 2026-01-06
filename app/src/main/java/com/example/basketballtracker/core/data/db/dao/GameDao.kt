@@ -10,4 +10,11 @@ interface GameDao {
 
     @Query("SELECT * FROM games WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): GameEntity?
+
+    @Query("""
+    SELECT id FROM games
+    ORDER BY createdAt DESC
+    LIMIT 1
+""")
+    fun observeLastGameId(): kotlinx.coroutines.flow.Flow<Long?>
 }
