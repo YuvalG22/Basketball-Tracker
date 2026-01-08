@@ -1,23 +1,16 @@
-import androidx.compose.foundation.background
+package com.example.basketballtracker.features.livegame.ui
+
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
-import com.example.basketballtracker.features.livegame.state.LiveGameViewModel
-import com.example.basketballtracker.features.livegame.ui.PlayerBox
-import com.example.basketballtracker.features.livegame.ui.computeBoxByPlayer
-import com.example.basketballtracker.features.livegame.ui.EventType
-import com.example.basketballtracker.features.livegame.ui.GameClock
-import com.example.basketballtracker.features.livegame.ui.LiveEvent
-import com.example.basketballtracker.features.livegame.ui.formatEvent
 import kotlin.math.max
 
 @Composable
@@ -26,60 +19,97 @@ fun LiveGameTabletScreen(vm: LiveGameViewModel) {
     val box = remember(s.events) { computeBoxByPlayer(s.events) }
     val playersById = remember(s.players) { s.players.associateBy { it.id } }
     val last = s.events.lastOrNull()
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
+
+    val onCourtIds = remember(s.events) { computeOnCourtIds(s.events) }
+
+    val onCourtPlayers = remember(s.players, onCourtIds) {
+        s.players.filter { it.id in onCourtIds }
+    }
+    val benchPlayers = remember(s.players, onCourtIds) {
+        s.players.filter { it.id !in onCourtIds }
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Row(
+            Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+                .windowInsetsPadding(WindowInsets.systemBars)
         ) {
-            Row(
-                Modifier.fillMaxSize().padding(12.dp).windowInsetsPadding(WindowInsets.systemBars)
-            ) {
-                PlayersPanel(
-                    players = s.players,
-                    selectedId = s.selectedPlayerId,
-                    box = box,
-                    onSelect = vm::selectPlayer,
-                    modifier = Modifier.weight(0.35f).fillMaxHeight()
-                )
+            PlayersPanel(
+                onCourtPlayers = onCourtPlayers,
+                benchPlayers = benchPlayers,
+                selectedId = s.selectedPlayerId,
+                box = box,
+                secondsPlayedById = s.secondsPlayedById,
+                onSelect = vm::selectPlayer,
+                onSubIn = vm::subIn,
+                onSubOut = vm::subOut,
+                modifier = Modifier
+                    .weight(0.35f)
+                    .fillMaxHeight()
+            )
 
-                Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(12.dp))
 
-                ActionsPanel(
-                    enabled = s.selectedPlayerId != null,
-                    onEvent = vm::addEvent,
-                    onUndo = vm::undoLast,
-                    modifier = Modifier.weight(0.45f).fillMaxHeight()
-                )
+            ActionsPanel(
+                enabled = s.selectedPlayerId != null,
+                onEvent = vm::addEvent,
+                onUndo = vm::undoLast,
+                modifier = Modifier
+                    .weight(0.45f)
+                    .fillMaxHeight()
+            )
 
-                Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(12.dp))
 
-                GameControlPanel(
-                    clock = s.clock,
-                    lastEvent = last,
-                    playersById = playersById,
-                    onToggleClock = vm::toggleClock,
-                    onNextQuarter = vm::nextQuarter,
-                    onResetQuarter = vm::resetQuarter,
-                    modifier = Modifier.weight(0.30f).fillMaxHeight()
-                )
-            }
+            GameControlPanel(
+                opponentName = s.opponentName,
+                roundNumber = s.roundNumber,
+                gameDateEpoch = s.gameDateEpoch,
+                clock = s.clock,
+                lastEvent = last,
+                playersById = playersById,
+                onToggleClock = vm::toggleClock,
+                onNextQuarter = vm::nextQuarter,
+                onResetQuarter = vm::resetQuarter,
+                modifier = Modifier
+                    .weight(0.30f)
+                    .fillMaxHeight()
+            )
         }
+    }
 }
 
 @Composable
 private fun PlayersPanel(
-    players: List<PlayerEntity>,
+    onCourtPlayers: List<PlayerEntity>,
+    benchPlayers: List<PlayerEntity>,
     selectedId: Long?,
     box: Map<Long, PlayerBox>,
+    secondsPlayedById: Map<Long, Int>,
     onSelect: (Long) -> Unit,
+    onSubIn: (Long) -> Unit,
+    onSubOut: (Long) -> Unit,
     modifier: Modifier
 ) {
+    val canSubIn = onCourtPlayers.size < 5
+
     Card(modifier) {
-        Column(Modifier.fillMaxSize().padding(12.dp)) {
-            Text("Players Box Score", style = MaterialTheme.typography.titleLarge)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+        ) {
+
+            Text("On Court (${onCourtPlayers.size}/5)", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(players, key = {it.id}) {p ->
+                items(onCourtPlayers, key = { it.id }) { p ->
                     val b = box[p.id]
                     val pts = b?.pts ?: 0
                     val reb = b?.rebTotal ?: 0
@@ -90,23 +120,83 @@ private fun PlayersPanel(
                     val ft = b?.let { "${it.ftm}/${it.fta} (${it.ftPct}%)" } ?: "0/0 (0%)"
 
                     val isSel = p.id == selectedId
+
                     ElevatedCard(
-                        modifier = Modifier.fillMaxWidth().clickable { onSelect(p.id) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(p.id) },
                         colors = CardDefaults.elevatedCardColors(
-                            containerColor = if (isSel)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface
-                        )
+                            containerColor = if (isSel) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                        ),
                     ) {
-                        Column(Modifier.padding(10.dp)) {
-                            Text("#${p.number}  ${p.name}", style = MaterialTheme.typography.titleMedium)
-                            Spacer(Modifier.height(4.dp))
-                            Text("PTS $pts • REB $reb • AST $ast • TO $tov")
-                            Spacer(Modifier.height(2.dp))
-                            Text("FG $fg • 3PT $tp • FT $ft", style = MaterialTheme.typography.titleSmall)
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.padding(10.dp)) {
+                                Text(
+                                    "#${p.number}  ${p.name}",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                val secPlayed = secondsPlayedById[p.id] ?: 0
+                                val minText = formatMinutes(secPlayed)
+
+                                Text("MIN $minText • PTS $pts • REB $reb • AST $ast")
+                                Spacer(Modifier.height(2.dp))
+                            }
+                            OutlinedButton(onClick = { onSubOut(p.id) }) { Text("OUT") }
                         }
                     }
                 }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Text("Bench (${benchPlayers.size})", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(benchPlayers, key = { it.id }) { p ->
+                    val isSel = p.id == selectedId
+
+                    ElevatedCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(p.id) },
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor = if (isSel) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                "${p.number} ${p.name}",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Button(
+                                onClick = { onSubIn(p.id) },
+                                enabled = canSubIn
+                            ) { Text("IN") }
+                        }
+                    }
+                }
+            }
+
+            if (!canSubIn) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Only 5 players can be on court",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -120,7 +210,11 @@ private fun ActionsPanel(
     modifier: Modifier
 ) {
     Card(modifier) {
-        Column(Modifier.fillMaxSize().padding(12.dp)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+        ) {
             Text("Actions", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(12.dp))
 
@@ -129,7 +223,9 @@ private fun ActionsPanel(
                 Button(
                     onClick = { onEvent(type) },
                     enabled = enabled,
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
                 ) { Text(label) }
             }
 
@@ -156,13 +252,17 @@ private fun ActionsPanel(
             Button(
                 onClick = { onEvent(EventType.PF) },
                 enabled = enabled,
-                modifier = Modifier.fillMaxWidth().height(56.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
             ) { Text("PF (Foul)") }
 
             Spacer(Modifier.height(14.dp))
             OutlinedButton(
                 onClick = onUndo,
-                modifier = Modifier.fillMaxWidth().height(56.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
             ) { Text("UNDO") }
 
             if (!enabled) {
@@ -178,6 +278,9 @@ private fun ActionsPanel(
 
 @Composable
 private fun GameControlPanel(
+    opponentName: String,
+    roundNumber: Int,
+    gameDateEpoch: Long,
     clock: GameClock,
     lastEvent: LiveEvent?,
     playersById: Map<Long, PlayerEntity>,
@@ -187,11 +290,27 @@ private fun GameControlPanel(
     modifier: Modifier
 ) {
     Card(modifier) {
-        Column(Modifier.fillMaxSize()
-            .padding(12.dp)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+        ) {
             Text("Game Info", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(8.dp))
-
+            Spacer(Modifier.height(10.dp))
+            val dateText = remember(gameDateEpoch) {
+                if (gameDateEpoch == 0L) "" else
+                    java.text.SimpleDateFormat("dd/MM/yyyy").format(java.util.Date(gameDateEpoch))
+            }
+            Text("$dateText", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(2.dp))
+            Text("Round $roundNumber", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(2.dp))
+            Text("Opponent: $opponentName", style = MaterialTheme.typography.titleMedium)
+            HorizontalDivider(
+                Modifier.padding(vertical = 10.dp),
+                thickness = 2.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+            )
             Text("Q${clock.period}", style = MaterialTheme.typography.titleLarge)
             val mm = max(0, clock.secRemaining) / 60
             val ss = max(0, clock.secRemaining) % 60
@@ -201,13 +320,17 @@ private fun GameControlPanel(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(
                     onClick = onToggleClock,
-                    modifier = Modifier.weight(1f).height(56.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
                 ) { Text(if (clock.isRunning) "Pause" else "Start") }
 
                 OutlinedButton(
                     onClick = onNextQuarter,
                     enabled = !clock.isRunning,
-                    modifier = Modifier.weight(1f).height(56.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
                 ) { Text("Next Q") }
             }
 
@@ -215,7 +338,9 @@ private fun GameControlPanel(
             OutlinedButton(
                 onClick = onResetQuarter,
                 enabled = !clock.isRunning,
-                modifier = Modifier.fillMaxWidth().height(56.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
             ) { Text("Reset Quarter") }
 
             Spacer(Modifier.height(16.dp))
@@ -226,7 +351,11 @@ private fun GameControlPanel(
                 "—"
             } else {
                 val name = lastEvent.playerId?.let { id -> playersById[id]?.name } ?: "Team"
-                val time = String.format("%02d:%02d", lastEvent.clockSecRemaining / 60, lastEvent.clockSecRemaining % 60)
+                val time = String.format(
+                    "%02d:%02d",
+                    lastEvent.clockSecRemaining / 60,
+                    lastEvent.clockSecRemaining % 60
+                )
                 "Q${lastEvent.period} $time — $name ${formatEvent(lastEvent.type)}"
             }
             Text(lastText, style = MaterialTheme.typography.bodyLarge)

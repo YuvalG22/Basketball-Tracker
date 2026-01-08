@@ -1,4 +1,5 @@
 package com.example.basketballtracker.features.livegame.ui
+import kotlin.math.max
 
 import kotlin.math.roundToInt
 
@@ -8,6 +9,7 @@ enum class EventType {
     THREE_MADE, THREE_MISS,
     REB_OFF, REB_DEF,
     AST, STL, TOV, BLK, PF,
+    SUB_IN, SUB_OUT
 }
 
 data class GameClock(
@@ -83,6 +85,87 @@ fun computeBoxByPlayer(events: List<LiveEvent>): Map<Long, PlayerBox> {
     }
 }
 
+fun computeOnCourtIds(events: List<LiveEvent>): Set<Long> {
+    val onCourt = linkedSetOf<Long>()
+    for (e in events) {
+        val pid = e.playerId ?: continue
+        when (e.type) {
+            EventType.SUB_IN -> onCourt.add(pid)
+            EventType.SUB_OUT -> onCourt.remove(pid)
+            else -> Unit
+        }
+    }
+    return onCourt
+}
+
+fun computeSecondsPlayedByPlayer(
+    events: List<LiveEvent>,
+    quarterLengthSec: Int,
+    currentPeriod: Int,
+    currentClockSecRemaining: Int
+): Map<Long, Int> {
+    // זמן "עכשיו" מאז תחילת המשחק בשניות (elapsed)
+    val nowT = toGameElapsedSec(
+        period = currentPeriod,
+        clockSecRemaining = currentClockSecRemaining,
+        quarterLengthSec = quarterLengthSec
+    )
+
+    // סדר כרונולוגי יציב
+    val sorted = events.sortedWith(
+        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt })
+    )
+
+    val inTime = mutableMapOf<Long, Int>()     // playerId -> tIn
+    val total = mutableMapOf<Long, Int>()      // playerId -> seconds
+
+    for (e in sorted) {
+        val pid = e.playerId ?: continue
+        if (e.type != EventType.SUB_IN && e.type != EventType.SUB_OUT) continue
+
+        val t = toGameElapsedSec(e.period, e.clockSecRemaining, quarterLengthSec)
+
+        when (e.type) {
+            EventType.SUB_IN -> {
+                // אם כבר בפנים, נתעלם (או תחליט שאתה רוצה לתקן)
+                if (!inTime.containsKey(pid)) inTime[pid] = t
+            }
+            EventType.SUB_OUT -> {
+                val tIn = inTime.remove(pid) ?: continue
+                val delta = max(0, t - tIn)
+                total[pid] = (total[pid] ?: 0) + delta
+            }
+            else -> Unit
+        }
+    }
+
+    // כל מי שעוד על המגרש — נסגור עד "עכשיו"
+    for ((pid, tIn) in inTime) {
+        val delta = max(0, nowT - tIn)
+        total[pid] = (total[pid] ?: 0) + delta
+    }
+
+    return total
+}
+
+private fun toGameElapsedSec(
+    period: Int,
+    clockSecRemaining: Int,
+    quarterLengthSec: Int
+): Int {
+    val periodIndex = (period - 1).coerceAtLeast(0)
+    val elapsedInQuarter = quarterLengthSec - clockSecRemaining
+    return periodIndex * quarterLengthSec + elapsedInQuarter
+}
+
+fun formatMinutes(seconds: Int): String {
+    val s = seconds.coerceAtLeast(0)
+    val mm = s / 60
+    val ss = s % 60
+    return String.format("%d", mm)
+}
+
+
 fun formatEvent(t: EventType) = when (t) {
     EventType.FT_MADE -> "FT ✓"
     EventType.FT_MISS -> "FT ✗"
@@ -97,4 +180,6 @@ fun formatEvent(t: EventType) = when (t) {
     EventType.TOV -> "TOV"
     EventType.BLK -> "BLK"
     EventType.PF -> "PF"
+    EventType.SUB_IN -> "IN"
+    EventType.SUB_OUT -> "OUT"
 }

@@ -1,6 +1,5 @@
 package com.example.basketballtracker.app.navigation
 
-import LiveGameTabletScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -15,7 +14,8 @@ import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.home.ui.HomeScreen
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
-import com.example.basketballtracker.features.livegame.state.LiveGameViewModel
+import com.example.basketballtracker.features.livegame.ui.LiveGameTabletScreen
+import com.example.basketballtracker.features.livegame.ui.LiveGameViewModel
 import com.example.basketballtracker.features.newgame.ui.NewGameScreen
 import com.example.basketballtracker.features.players.data.PlayersRepository
 import kotlinx.coroutines.flow.first
@@ -78,6 +78,7 @@ fun AppNavGraph(
             val vm = remember(gameId, rosterPlayers) {
                 LiveGameViewModel(
                     repo = liveRepo,
+                    gamesRepo = gamesRepo,
                     gameId = gameId,
                     players = rosterPlayers,
                     quarterLengthSec = quarterLengthDefault

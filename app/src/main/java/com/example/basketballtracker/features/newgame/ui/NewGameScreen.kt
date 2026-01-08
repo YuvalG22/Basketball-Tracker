@@ -26,7 +26,10 @@ fun NewGameScreen(
     val scope = rememberCoroutineScope()
 
     var opponent by rememberSaveable { mutableStateOf("") }
-    var quarterLen by rememberSaveable { mutableStateOf(defaultQuarterLengthSec) }
+    var quarterLen by rememberSaveable { mutableIntStateOf(defaultQuarterLengthSec) }
+    var roundText by rememberSaveable { mutableStateOf("") }
+
+    val gameDateEpoch = remember { System.currentTimeMillis() }
 
     val players by playersRepo.observePlayers().collectAsState(initial = emptyList())
     var selectedIds by rememberSaveable { mutableStateOf(setOf<Long>()) }
@@ -44,6 +47,14 @@ fun NewGameScreen(
                 value = opponent,
                 onValueChange = { opponent = it },
                 label = { Text("Opponent") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = roundText,
+                onValueChange = { roundText = it.filter { ch -> ch.isDigit() }.take(3) },
+                label = { Text("Round") },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -95,11 +106,12 @@ fun NewGameScreen(
             Button(
                 enabled = canStart,
                 onClick = {
+                    val round = roundText.toIntOrNull() ?: 0
                     val opp = opponent.trim().ifEmpty { "Unknown" }
                     val ids = selectedIds.toList()
 
                     scope.launch {
-                        val gameId = gamesRepo.createGame(opp, quarterLen)
+                        val gameId = gamesRepo.createGame(opp, round, gameDateEpoch, quarterLen)
 
                         rosterDao.insertAll(ids.map { pid ->
                             RosterEntity(gameId = gameId, playerId = pid)

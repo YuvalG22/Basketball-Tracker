@@ -6,14 +6,18 @@ import kotlinx.coroutines.flow.Flow
 
 class GamesRepository(private val gameDao: GameDao) {
     fun observeLastGameId(): Flow<Long?> = gameDao.observeLastGameId()
-    suspend fun createGame(opponentName: String, quarterLengthSec: Int): Long {
+    suspend fun createGame(opponentName: String, roundNumber: Int, gameDateEpoch: Long, quarterLengthSec: Int): Long {
         return gameDao.insert(
             GameEntity(
                 opponentName = opponentName,
+                roundNumber = roundNumber,
+                gameDateEpoch = gameDateEpoch,
                 createdAt = System.currentTimeMillis(),
                 quarterLengthSec = quarterLengthSec,
                 quartersCount = 4
             )
         )
     }
+
+    suspend fun getById(id: Long): GameEntity? = gameDao.getById(id)
 }

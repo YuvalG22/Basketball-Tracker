@@ -7,6 +7,8 @@ import androidx.room.PrimaryKey
 data class GameEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val opponentName: String,
+    val roundNumber: Int,
+    val gameDateEpoch: Long,
     val createdAt: Long,
     val quarterLengthSec: Int = 600,
     val quartersCount: Int = 4
