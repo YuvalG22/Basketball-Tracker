@@ -13,11 +13,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.features.games.data.GamesRepository
+import com.example.basketballtracker.features.livegame.data.LiveGameRepository
 import com.example.basketballtracker.ui.theme.Surface
+import fixQuarterBoundarySubs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -51,7 +56,6 @@ fun HomeScreen(
                 onClick = { onPlayers() },
                 modifier = Modifier.height(64.dp),
             ) { Text("Manage Roster", style = MaterialTheme.typography.titleMedium) }
-
             // OutlinedButton(...){ Text("Games History") }
         }
     }

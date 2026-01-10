@@ -14,7 +14,7 @@ import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import kotlin.math.max
 
 @Composable
-fun LiveGameTabletScreen(vm: LiveGameViewModel) {
+fun LiveGameTabletScreen(vm: LiveGameViewModel, onEndGameNavigate: () -> Unit) {
     val s by vm.ui.collectAsState()
     val box = remember(s.events) { computeBoxByPlayer(s.events) }
     val playersById = remember(s.players) { s.players.associateBy { it.id } }
@@ -43,6 +43,7 @@ fun LiveGameTabletScreen(vm: LiveGameViewModel) {
                 onCourtPlayers = onCourtPlayers,
                 benchPlayers = benchPlayers,
                 selectedId = s.selectedPlayerId,
+                isEnded = s.isEnded,
                 box = box,
                 secondsPlayedById = s.secondsPlayedById,
                 onSelect = vm::selectPlayer,
@@ -56,7 +57,7 @@ fun LiveGameTabletScreen(vm: LiveGameViewModel) {
             Spacer(Modifier.width(12.dp))
 
             ActionsPanel(
-                enabled = s.selectedPlayerId != null,
+                enabled = s.selectedPlayerId != null && !s.isEnded,
                 onEvent = vm::addEvent,
                 onUndo = vm::undoLast,
                 modifier = Modifier
@@ -73,6 +74,8 @@ fun LiveGameTabletScreen(vm: LiveGameViewModel) {
                 clock = s.clock,
                 lastEvent = last,
                 playersById = playersById,
+                isEnded = s.isEnded,          // ✅
+                onEndGame = onEndGameNavigate,
                 onToggleClock = vm::toggleClock,
                 onNextQuarter = vm::nextQuarter,
                 onResetQuarter = vm::resetQuarter,
@@ -89,6 +92,7 @@ private fun PlayersPanel(
     onCourtPlayers: List<PlayerEntity>,
     benchPlayers: List<PlayerEntity>,
     selectedId: Long?,
+    isEnded: Boolean,
     box: Map<Long, PlayerBox>,
     secondsPlayedById: Map<Long, Int>,
     onSelect: (Long) -> Unit,
@@ -149,7 +153,7 @@ private fun PlayersPanel(
                                 Text("MIN $minText • PTS $pts • REB $reb • AST $ast")
                                 Spacer(Modifier.height(2.dp))
                             }
-                            OutlinedButton(onClick = { onSubOut(p.id) }) { Text("OUT") }
+                            OutlinedButton(onClick = { onSubOut(p.id) }, enabled = !isEnded) { Text("OUT") }
                         }
                     }
                 }
@@ -162,7 +166,12 @@ private fun PlayersPanel(
             LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(benchPlayers, key = { it.id }) { p ->
                     val isSel = p.id == selectedId
-
+                    val b = box[p.id]
+                    val pts = b?.pts ?: 0
+                    val reb = b?.rebTotal ?: 0
+                    val ast = b?.ast ?: 0
+                    val secPlayed = secondsPlayedById[p.id] ?: 0
+                    val minText = formatMinutes(secPlayed)
                     ElevatedCard(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -178,14 +187,18 @@ private fun PlayersPanel(
                                 .padding(10.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                "${p.number} ${p.name}",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Button(
-                                onClick = { onSubIn(p.id) },
-                                enabled = canSubIn
-                            ) { Text("IN") }
+                            Column(Modifier.padding(10.dp)) {
+                                Text(
+                                    "${p.number} ${p.name}",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text("MIN $minText • PTS $pts • REB $reb • AST $ast")
+                            }
+                                Button(
+                                    onClick = { onSubIn(p.id) },
+                                    enabled = canSubIn && !isEnded
+                                ) { Text("IN") }
                         }
                     }
                 }
@@ -284,6 +297,8 @@ private fun GameControlPanel(
     clock: GameClock,
     lastEvent: LiveEvent?,
     playersById: Map<Long, PlayerEntity>,
+    isEnded: Boolean,              // ✅ חדש
+    onEndGame: () -> Unit,
     onToggleClock: () -> Unit,
     onNextQuarter: () -> Unit,
     onResetQuarter: () -> Unit,
@@ -359,6 +374,12 @@ private fun GameControlPanel(
                 "Q${lastEvent.period} $time — $name ${formatEvent(lastEvent.type)}"
             }
             Text(lastText, style = MaterialTheme.typography.bodyLarge)
+
+            Button(
+                onClick = onEndGame,
+                enabled = !isEnded,
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            ) { Text("End Game") }
         }
     }
 }

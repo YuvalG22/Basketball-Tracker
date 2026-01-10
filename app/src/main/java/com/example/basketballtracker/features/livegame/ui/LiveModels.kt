@@ -37,7 +37,10 @@ data class PlayerBox(
     val rebOff: Int,
     val rebDef: Int,
     val ast: Int,
-    val tov: Int
+    val tov: Int,
+    val stl: Int,
+    val blk: Int,
+    val pf: Int
 ) {
     val fgm get() = twom + threem
     val fga get() = twoa + threea
@@ -80,7 +83,10 @@ fun computeBoxByPlayer(events: List<LiveEvent>): Map<Long, PlayerBox> {
             rebOff = c(EventType.REB_OFF),
             rebDef = c(EventType.REB_DEF),
             ast = c(EventType.AST),
-            tov = c(EventType.TOV)
+            tov = c(EventType.TOV),
+            stl = c(EventType.STL),
+            blk = c(EventType.BLK),
+            pf = c(EventType.PF)
         )
     }
 }

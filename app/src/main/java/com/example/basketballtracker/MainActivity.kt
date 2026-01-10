@@ -44,7 +44,7 @@ class MainActivity : ComponentActivity() {
                         db = db,
                         gamesRepo = gamesRepo,
                         liveRepo = liveRepo,
-                        quarterLengthDefault = 600
+                        quarterLengthDefault = 10
                     )
                 }
             }

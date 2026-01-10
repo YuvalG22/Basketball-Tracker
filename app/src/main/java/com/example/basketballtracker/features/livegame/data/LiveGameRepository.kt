@@ -32,6 +32,10 @@ class LiveGameRepository(
         )
     }
 
+    suspend fun getLiveEventsOnce(gameId: Long): List<LiveEvent> =
+        eventDao.getEvents(gameId).map { it.toDomain() }
+
+
     suspend fun undoLast(gameId: Long) {
         val lastId = eventDao.getLastEventId(gameId) ?: return
         eventDao.deleteById(lastId)

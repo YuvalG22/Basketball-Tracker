@@ -18,7 +18,8 @@ data class LiveUiState(
     val selectedPlayerId: Long? = null,
     val clock: GameClock,
     val events: List<LiveEvent> = emptyList(),
-    val secondsPlayedById: Map<Long, Int> = emptyMap()
+    val secondsPlayedById: Map<Long, Int> = emptyMap(),
+    val isEnded: Boolean = false
 )
 
 class LiveGameViewModel(
@@ -59,23 +60,38 @@ class LiveGameViewModel(
         viewModelScope.launch {
             while (true) {
                 delay(1000)
+
+                var shouldEndQuarter = false
+
                 _base.update { s ->
                     val c = s.clock
                     if (!c.isRunning) return@update s
-                    if (c.secRemaining <= 0) return@update s.copy(clock = c.copy(isRunning = false, secRemaining = 0))
+
+                    if (c.secRemaining <= 1) {
+                        shouldEndQuarter = true
+                        return@update s.copy(
+                            clock = c.copy(
+                                isRunning = false,
+                                secRemaining = 0
+                            )
+                        )
+                    }
+
                     s.copy(clock = c.copy(secRemaining = c.secRemaining - 1))
+                }
+
+                // ✅ מחוץ ל-update: כותבים ל-DB
+                if (shouldEndQuarter) {
+                    endQuarterAuto()
                 }
             }
         }
-
-        viewModelScope.launch {
-            val game = gamesRepo.getById(gameId) ?: return@launch
-            _base.update { it.copy(opponentName = game.opponentName, roundNumber = game.roundNumber, gameDateEpoch = game.gameDateEpoch) }
-        }
     }
 
+
     fun selectPlayer(id: Long) = _base.update { it.copy(selectedPlayerId = id) }
-    fun toggleClock() = _base.update { it.copy(clock = it.clock.copy(isRunning = !it.clock.isRunning)) }
+    fun toggleClock() =
+        _base.update { it.copy(clock = it.clock.copy(isRunning = !it.clock.isRunning)) }
 
     fun resetQuarter() = _base.update {
         it.copy(clock = it.clock.copy(secRemaining = quarterLengthSec, isRunning = false))
@@ -109,4 +125,44 @@ class LiveGameViewModel(
         val gameId = _base.value.gameId
         viewModelScope.launch { repo.undoLast(gameId) }
     }
+
+    fun endGame() {
+        _base.update { it.copy(isEnded = true, clock = it.clock.copy(isRunning = false)) }
+    }
+
+    private fun addEventAt(
+        type: EventType,
+        playerId: Long?,
+        period: Int,
+        clockSecRemaining: Int
+    ) {
+        val snap = _base.value
+        viewModelScope.launch {
+            repo.addEvent(
+                gameId = snap.gameId,
+                playerId = playerId,
+                type = type,
+                period = period,
+                clockSecRemaining = clockSecRemaining
+            )
+        }
+    }
+
+    private fun endQuarterAuto() {
+        val snap = _base.value
+        val events = ui.value.events
+        val onCourt = computeOnCourtIds(events)
+        val period = snap.clock.period
+
+        onCourt.forEach { pid ->
+            addEventAt(
+                type = EventType.SUB_OUT,
+                playerId = pid,
+                period = period,
+                clockSecRemaining = 0
+            )
+        }
+    }
+
+
 }

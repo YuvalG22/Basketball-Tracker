@@ -21,6 +21,7 @@ import com.example.basketballtracker.features.players.data.PlayersRepository
 import kotlinx.coroutines.flow.first
 import com.example.basketballtracker.features.players.state.PlayersViewModel
 import com.example.basketballtracker.features.players.ui.PlayersScreen
+import com.example.basketballtracker.features.summary.ui.GameSummaryScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -31,7 +32,7 @@ fun AppNavGraph(
     db: AppDatabase,
     gamesRepo: GamesRepository,
     liveRepo: LiveGameRepository,
-    quarterLengthDefault: Int = 600
+    quarterLengthDefault: Int = 10
 ) {
     // ✅ create repo here (MVP)
     val playersRepo = remember { PlayersRepository(db.playerDao()) }
@@ -85,12 +86,30 @@ fun AppNavGraph(
                 )
             }
 
-            LiveGameTabletScreen(vm)
+            LiveGameTabletScreen(vm = vm, onEndGameNavigate = {   // ✅ כאן בדיוק
+                vm.endGame()
+                nav.navigate(Routes.summary(gameId))
+            })
         }
 
         composable(Routes.PLAYERS) {
             val vm = remember { PlayersViewModel(playersRepo) }
             PlayersScreen(vm = vm, onBack = { nav.popBackStack() })
         }
+
+        composable(
+            route = Routes.SUMMARY,
+            arguments = listOf(navArgument("gameId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val gameId = backStackEntry.arguments!!.getLong("gameId")
+            GameSummaryScreen(
+                gameId = gameId,
+                db = db,
+                gamesRepo = gamesRepo,
+                liveRepo = liveRepo,
+                onBack = { nav.popBackStack() }
+            )
+        }
+
     }
 }
