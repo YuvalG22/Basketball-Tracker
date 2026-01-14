@@ -3,7 +3,11 @@ package com.example.basketballtracker.features.livegame.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -71,6 +75,7 @@ fun LiveGameTabletScreen(vm: LiveGameViewModel, onEndGameNavigate: () -> Unit) {
                 opponentName = s.opponentName,
                 roundNumber = s.roundNumber,
                 gameDateEpoch = s.gameDateEpoch,
+                teamScore = s.teamScore,
                 clock = s.clock,
                 lastEvent = last,
                 playersById = playersById,
@@ -153,7 +158,11 @@ private fun PlayersPanel(
                                 Text("MIN $minText • PTS $pts • REB $reb • AST $ast")
                                 Spacer(Modifier.height(2.dp))
                             }
-                            OutlinedButton(onClick = { onSubOut(p.id) }, enabled = !isEnded) { Text("OUT") }
+                            OutlinedButton(onClick = { onSubOut(p.id) }, enabled = !isEnded) {
+                                Text(
+                                    "OUT"
+                                )
+                            }
                         }
                     }
                 }
@@ -163,7 +172,12 @@ private fun PlayersPanel(
             Text("Bench (${benchPlayers.size})", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 items(benchPlayers, key = { it.id }) { p ->
                     val isSel = p.id == selectedId
                     val b = box[p.id]
@@ -175,30 +189,33 @@ private fun PlayersPanel(
                     ElevatedCard(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(110.dp)
                             .clickable { onSelect(p.id) },
                         colors = CardDefaults.elevatedCardColors(
                             containerColor = if (isSel) MaterialTheme.colorScheme.primaryContainer
                             else MaterialTheme.colorScheme.surface
                         )
                     ) {
-                        Row(
+                        Column(
                             Modifier
                                 .fillMaxWidth()
+                                .fillMaxHeight()
                                 .padding(10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            verticalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Column(Modifier.padding(10.dp)) {
-                                Text(
-                                    "${p.number} ${p.name}",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text("MIN $minText • PTS $pts • REB $reb • AST $ast")
+
+                            Text(
+                                "${p.name}",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            FilledTonalButton(
+                                onClick = { onSubIn(p.id) },
+                                enabled = canSubIn && !isEnded,
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("IN")
                             }
-                                Button(
-                                    onClick = { onSubIn(p.id) },
-                                    enabled = canSubIn && !isEnded
-                                ) { Text("IN") }
                         }
                     }
                 }
@@ -294,6 +311,7 @@ private fun GameControlPanel(
     opponentName: String,
     roundNumber: Int,
     gameDateEpoch: Long,
+    teamScore: Int,
     clock: GameClock,
     lastEvent: LiveEvent?,
     playersById: Map<Long, PlayerEntity>,
@@ -308,78 +326,90 @@ private fun GameControlPanel(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(12.dp)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Game Info", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(10.dp))
-            val dateText = remember(gameDateEpoch) {
-                if (gameDateEpoch == 0L) "" else
-                    java.text.SimpleDateFormat("dd/MM/yyyy").format(java.util.Date(gameDateEpoch))
-            }
-            Text("$dateText", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(2.dp))
-            Text("Round $roundNumber", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(2.dp))
-            Text("Opponent: $opponentName", style = MaterialTheme.typography.titleMedium)
-            HorizontalDivider(
-                Modifier.padding(vertical = 10.dp),
-                thickness = 2.dp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-            )
-            Text("Q${clock.period}", style = MaterialTheme.typography.titleLarge)
-            val mm = max(0, clock.secRemaining) / 60
-            val ss = max(0, clock.secRemaining) % 60
-            Text(String.format("%02d:%02d", mm, ss), style = MaterialTheme.typography.displaySmall)
+            Column(Modifier.fillMaxWidth()) {
+                Text("Game Info", style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(10.dp))
+                val dateText = remember(gameDateEpoch) {
+                    if (gameDateEpoch == 0L) "" else
+                        java.text.SimpleDateFormat("dd/MM/yyyy")
+                            .format(java.util.Date(gameDateEpoch))
+                }
+                Text("$dateText", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(2.dp))
+                Text("Round $roundNumber", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(2.dp))
+                Text("vs $opponentName", style = MaterialTheme.typography.titleMedium)
+                HorizontalDivider(
+                    Modifier.padding(vertical = 10.dp),
+                    thickness = 2.dp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                )
+                Text("Q${clock.period}", style = MaterialTheme.typography.titleLarge)
+                val mm = max(0, clock.secRemaining) / 60
+                val ss = max(0, clock.secRemaining) % 60
+                Text(
+                    String.format("%02d:%02d", mm, ss),
+                    style = MaterialTheme.typography.displaySmall
+                )
 
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
-                    onClick = onToggleClock,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
-                ) { Text(if (clock.isRunning) "Pause" else "Start") }
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = onToggleClock,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                    ) { Text(if (clock.isRunning) "Pause" else "Start") }
 
+                    OutlinedButton(
+                        onClick = onNextQuarter,
+                        enabled = !clock.isRunning,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                    ) { Text("Next Q") }
+                }
+
+                Spacer(Modifier.height(10.dp))
                 OutlinedButton(
-                    onClick = onNextQuarter,
+                    onClick = onResetQuarter,
                     enabled = !clock.isRunning,
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
                         .height(56.dp)
-                ) { Text("Next Q") }
+                ) { Text("Reset Quarter") }
+
+                Spacer(Modifier.height(16.dp))
+                Text("Last action", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(6.dp))
+
+                val lastText = if (lastEvent == null) {
+                    "—"
+                } else {
+                    val name = lastEvent.playerId?.let { id -> playersById[id]?.name } ?: "Team"
+                    val time = String.format(
+                        "%02d:%02d",
+                        lastEvent.clockSecRemaining / 60,
+                        lastEvent.clockSecRemaining % 60
+                    )
+                    "Q${lastEvent.period} $time — $name ${formatEvent(lastEvent.type)}"
+                }
+                Text(lastText, style = MaterialTheme.typography.bodyLarge)
+                Spacer(Modifier.height(16.dp))
+                Text("Team Score: $teamScore", style = MaterialTheme.typography.headlineMedium)
             }
-
-            Spacer(Modifier.height(10.dp))
-            OutlinedButton(
-                onClick = onResetQuarter,
-                enabled = !clock.isRunning,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-            ) { Text("Reset Quarter") }
-
-            Spacer(Modifier.height(16.dp))
-            Text("Last action", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(6.dp))
-
-            val lastText = if (lastEvent == null) {
-                "—"
-            } else {
-                val name = lastEvent.playerId?.let { id -> playersById[id]?.name } ?: "Team"
-                val time = String.format(
-                    "%02d:%02d",
-                    lastEvent.clockSecRemaining / 60,
-                    lastEvent.clockSecRemaining % 60
-                )
-                "Q${lastEvent.period} $time — $name ${formatEvent(lastEvent.type)}"
-            }
-            Text(lastText, style = MaterialTheme.typography.bodyLarge)
 
             Button(
                 onClick = onEndGame,
                 enabled = !isEnded,
-                modifier = Modifier.fillMaxWidth().height(56.dp)
-            ) { Text("End Game") }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+
+                ) { Text("End Game") }
         }
     }
 }

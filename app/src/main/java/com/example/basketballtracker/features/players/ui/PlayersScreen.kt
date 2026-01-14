@@ -13,7 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.players.state.PlayersViewModel
 
 @Composable
@@ -25,6 +27,10 @@ fun PlayersScreen(
     var showAdd by rememberSaveable { mutableStateOf(false) }
     var name by rememberSaveable { mutableStateOf("") }
     var numberText by rememberSaveable { mutableStateOf("") }
+    var editing by rememberSaveable { mutableStateOf<PlayerEntity?>(null) }
+    var editName by rememberSaveable { mutableStateOf("") }
+    var editNumberText by rememberSaveable { mutableStateOf("") }
+
 
     if (showAdd) {
         AlertDialog(
@@ -72,17 +78,67 @@ fun PlayersScreen(
         )
     }
 
+    if (editing != null) {
+        AlertDialog(
+            onDismissRequest = { editing = null },
+            title = { Text("Edit player") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = editName,
+                        onValueChange = { editName = it },
+                        label = { Text("Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = editNumberText,
+                        onValueChange = { input ->
+                            editNumberText = input.filter { it.isDigit() }.take(2)
+                        },
+                        label = { Text("Number") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = editName.trim().isNotEmpty(),
+                    onClick = {
+                        val p = editing ?: return@TextButton
+                        val num = editNumberText.toIntOrNull() ?: 0
+                        vm.update(p.id, editName, num)
+                        editing = null
+                    }
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { editing = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.padding(16.dp).fillMaxWidth(),
+        Column(
+            Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.Start) {
+            horizontalAlignment = Alignment.Start
+        ) {
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Roster Management", style = MaterialTheme.typography.headlineSmall)
                 TextButton(onClick = onBack) { Text("Back") }
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Button(
                     onClick = { showAdd = true },
                     modifier = Modifier.height(56.dp)
@@ -97,32 +153,43 @@ fun PlayersScreen(
                     items(players, key = { it.id }) { p ->
                         ElevatedCard(
                             modifier = Modifier.fillMaxWidth(),
-                        ){
+                        ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
-                        ) {
-                           Box() {
+                            ) {
+                                Row() {
                                     Text(
-                                        "#${p.number}     ${p.name}",
+                                        modifier = Modifier.width(48.dp),
+                                        text = "#${p.number}",
+                                        textAlign = TextAlign.Center,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = p.name,
                                         style = MaterialTheme.typography.bodyLarge
                                     )
                                 }
-                                Box() {
-                                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                                        IconButton(onClick = { vm.delete(p.id) }) {
-                                            Icon(Icons.Default.Edit, contentDescription = "Delete")
-                                        }
-                                        IconButton(onClick = { vm.delete(p.id) }) {
-                                            Icon(
-                                                Icons.Default.Delete,
-                                                contentDescription = "Delete"
-                                            )
-                                        }
+                                Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                                    IconButton(onClick = {
+                                        editing = p
+                                        editName = p.name
+                                        editNumberText = p.number.toString()
+                                    }) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Edit")
                                     }
+                                    IconButton(onClick = { vm.delete(p.id) }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete"
+                                        )
                                     }
-                        }
+                                }
+                            }
                         }
                     }
                 }

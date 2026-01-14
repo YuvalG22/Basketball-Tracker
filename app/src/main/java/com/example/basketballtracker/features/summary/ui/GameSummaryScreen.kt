@@ -135,7 +135,7 @@ fun GameSummaryScreen(
         if (info.gameDateEpoch == 0L) "" else SimpleDateFormat("dd/MM/yyyy").format(Date(info.gameDateEpoch))
     }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.onSurface) {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -159,7 +159,8 @@ fun GameSummaryScreen(
                         val right = bounds.right.roundToInt().coerceIn(left + 1, full.width)
                         val bottom = bounds.bottom.roundToInt().coerceIn(top + 1, full.height)
 
-                        val cropped = Bitmap.createBitmap(full, left, top, right - left, bottom - top)
+                        val cropped =
+                            Bitmap.createBitmap(full, left, top, right - left, bottom - top)
 
                         // שמירה לקובץ זמני
                         val file = File(context.cacheDir, "game_summary_${gameId}.png")
@@ -194,16 +195,16 @@ fun GameSummaryScreen(
                     tableBounds = coords.boundsInWindow()
                 }
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Column() {
                     Text(
-                        "Opponent: ${info.opponentName}",
+                        "Round ${info.roundNumber} • $dateText",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        "vs ${info.opponentName}",
                         style = MaterialTheme.typography.titleMedium
                     )
                     Spacer(Modifier.width(10.dp))
-                    Text(
-                        "Round ${info.roundNumber} • $dateText",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
                 }
                 TableHeader()
 
@@ -288,8 +289,10 @@ private data class TeamTotals(
 private fun detectStartersByCreatedAt(events: List<LiveEvent>): Set<Long> {
     val sorted = events
         .asSequence()
-        .filter { it.playerId != null && (it.type == EventType.SUB_IN ||
-                it.type == EventType.SUB_OUT) }
+        .filter {
+            it.playerId != null && (it.type == EventType.SUB_IN ||
+                    it.type == EventType.SUB_OUT)
+        }
         .sortedBy { it.createdAt }
         .toList()
 
@@ -301,6 +304,7 @@ private fun detectStartersByCreatedAt(events: List<LiveEvent>): Set<Long> {
                 onCourt.add(pid)
                 if (onCourt.size == 5) return onCourt.toSet()
             }
+
             EventType.SUB_OUT -> onCourt.remove(pid)
             else -> Unit
         }
@@ -316,20 +320,26 @@ fun TableHeader() {
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
-        Text("PLAYER", Modifier.weight(3f))
-        Text("MIN", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("PTS", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("AST", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("REB", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("DREB", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("OREB", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("STL", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("BLK", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("TO", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("FG", Modifier.weight(2f), textAlign = TextAlign.Center)
-        Text("3PT", Modifier.weight(2f), textAlign = TextAlign.Center)
-        Text("FT", Modifier.weight(2f), textAlign = TextAlign.Center)
-        Text("PF", Modifier.weight(1f), textAlign = TextAlign.Center)
+        ProvideTextStyle(
+            value = MaterialTheme.typography.bodyLarge.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        ) {
+            Text("PLAYER", Modifier.weight(3f))
+            Text("MIN", Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text("PTS", Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text("AST", Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text("REB", Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text("DREB", Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text("OREB", Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text("STL", Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text("BLK", Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text("TO", Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text("FG", Modifier.weight(2f), textAlign = TextAlign.Center)
+            Text("3PT", Modifier.weight(2f), textAlign = TextAlign.Center)
+            Text("FT", Modifier.weight(2f), textAlign = TextAlign.Center)
+            Text("PF", Modifier.weight(1f), textAlign = TextAlign.Center)
+        }
     }
     HorizontalDivider()
 }
@@ -419,9 +429,21 @@ private fun TeamTotalRow(t: TeamTotals) {
         Text("${t.blk}", Modifier.weight(1f), textAlign = TextAlign.Center)
         Text("${t.tov}", Modifier.weight(1f), textAlign = TextAlign.Center)
 
-        Text("${t.fgm}/${t.fga} (${pct(t.fgm, t.fga)}%)", Modifier.weight(2f), textAlign = TextAlign.Center)
-        Text("${t.threem}/${t.threea} (${pct(t.threem, t.threea)}%)", Modifier.weight(2f), textAlign = TextAlign.Center)
-        Text("${t.ftm}/${t.fta} (${pct(t.ftm, t.fta)}%)", Modifier.weight(2f), textAlign = TextAlign.Center)
+        Text(
+            "${t.fgm}/${t.fga} (${pct(t.fgm, t.fga)}%)",
+            Modifier.weight(2f),
+            textAlign = TextAlign.Center
+        )
+        Text(
+            "${t.threem}/${t.threea} (${pct(t.threem, t.threea)}%)",
+            Modifier.weight(2f),
+            textAlign = TextAlign.Center
+        )
+        Text(
+            "${t.ftm}/${t.fta} (${pct(t.ftm, t.fta)}%)",
+            Modifier.weight(2f),
+            textAlign = TextAlign.Center
+        )
 
         Text("${t.pf}", Modifier.weight(1f), textAlign = TextAlign.Center)
     }

@@ -20,4 +20,14 @@ class GamesRepository(private val gameDao: GameDao) {
     }
 
     suspend fun getById(id: Long): GameEntity? = gameDao.getById(id)
+
+    fun observeGames(): Flow<List<GameEntity>> =
+        gameDao.observeAllGames()
+
+    fun observeGame(id: Long): Flow<GameEntity?> = gameDao.observeGame(id)
+
+    suspend fun addTeamScore(gameId: Long, delta: Int) {
+        gameDao.addTeamScore(gameId, delta)
+    }
+
 }

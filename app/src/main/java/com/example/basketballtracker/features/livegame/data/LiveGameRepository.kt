@@ -40,6 +40,12 @@ class LiveGameRepository(
         val lastId = eventDao.getLastEventId(gameId) ?: return
         eventDao.deleteById(lastId)
     }
+
+    suspend fun undoLastReturning(gameId: Long): LiveEvent? {
+        val last = eventDao.getLastEvent(gameId) ?: return null
+        eventDao.deleteById(last.id)
+        return last.toDomain()
+    }
 }
 
 private fun EventEntity.toDomain() = LiveEvent(

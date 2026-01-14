@@ -12,6 +12,8 @@ import androidx.navigation.navArgument
 import com.example.basketballtracker.core.data.db.AppDatabase
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.games.data.GamesRepository
+import com.example.basketballtracker.features.history.state.GamesHistoryViewModel
+import com.example.basketballtracker.features.history.ui.GamesHistoryScreen
 import com.example.basketballtracker.features.home.ui.HomeScreen
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
 import com.example.basketballtracker.features.livegame.ui.LiveGameTabletScreen
@@ -44,7 +46,8 @@ fun AppNavGraph(
                 gamesRepo = gamesRepo,
                 onNewGame = { nav.navigate(Routes.NEW_GAME) },
                 onContinue = { gameId -> nav.navigate(Routes.live(gameId)) },
-                onPlayers = { nav.navigate(Routes.PLAYERS) }
+                onPlayers = { nav.navigate(Routes.PLAYERS) },
+                onHistory = { nav.navigate(Routes.HISTORY) }
             )
         }
 
@@ -110,6 +113,18 @@ fun AppNavGraph(
                 onBack = { nav.popBackStack() }
             )
         }
+
+        composable(Routes.HISTORY) {
+            val vm = remember { GamesHistoryViewModel(gamesRepo) }
+
+            GamesHistoryScreen(
+                vm = vm,
+                onGameClick = { gameId ->
+                    nav.navigate(Routes.summary(gameId))
+                }
+            )
+        }
+
 
     }
 }

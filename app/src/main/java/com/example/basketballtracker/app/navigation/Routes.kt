@@ -6,6 +6,7 @@ object Routes {
     const val LIVE = "live/{gameId}"
     const val PLAYERS = "players"
     const val SUMMARY = "summary/{gameId}"
+    const val HISTORY = "history"
 
 
     fun live(gameId: Long) = "live/$gameId"

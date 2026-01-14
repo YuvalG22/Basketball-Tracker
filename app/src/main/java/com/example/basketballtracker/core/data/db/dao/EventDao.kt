@@ -27,6 +27,9 @@ interface EventDao {
     """)
     suspend fun getLastEventId(gameId: Long): Long?
 
+    @Query("SELECT * FROM events WHERE gameId = :gameId ORDER BY createdAt DESC LIMIT 1")
+    suspend fun getLastEvent(gameId: Long): EventEntity?
+
     @Query("""
     SELECT * FROM events
     WHERE gameId = :gameId

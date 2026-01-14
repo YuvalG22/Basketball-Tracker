@@ -11,6 +11,10 @@ class PlayersRepository(private val playerDao: PlayerDao) {
         playerDao.insert(PlayerEntity(name = name, number = number))
     }
 
+    suspend fun updatePlayer(id: Long, name: String, number: Int) {
+        playerDao.updateById(id, name, number)
+    }
+
     suspend fun deletePlayer(id: Long) {
         playerDao.deleteById(id)
     }

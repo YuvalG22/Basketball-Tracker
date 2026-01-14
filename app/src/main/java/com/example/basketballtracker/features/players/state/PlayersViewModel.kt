@@ -23,4 +23,10 @@ class PlayersViewModel(private val repo: PlayersRepository) : ViewModel() {
     fun delete(id: Long) {
         viewModelScope.launch { repo.deletePlayer(id) }
     }
+
+    fun update(id: Long, name: String, number: Int) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch { repo.updatePlayer(id, trimmed, number) }
+    }
 }

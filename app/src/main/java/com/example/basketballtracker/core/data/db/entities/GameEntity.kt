@@ -11,5 +11,7 @@ data class GameEntity(
     val gameDateEpoch: Long,
     val createdAt: Long,
     val quarterLengthSec: Int = 600,
-    val quartersCount: Int = 4
+    val quartersCount: Int = 4,
+    val teamScore: Int = 0,
+    val opponentScore: Int = 0
 )

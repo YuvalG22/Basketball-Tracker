@@ -20,6 +20,9 @@ interface PlayerDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(players: List<PlayerEntity>): List<Long>
 
+    @Query("UPDATE players SET name = :name, number = :number WHERE id = :id")
+    suspend fun updateById(id: Long, name: String, number: Int)
+
     @Query("DELETE FROM players WHERE id = :id")
     suspend fun deleteById(id: Long)
 }

@@ -15,6 +15,7 @@ data class LiveUiState(
     val opponentName: String = "",
     val roundNumber: Int = 0,
     val gameDateEpoch: Long = 0L,
+    val teamScore: Int = 0,
     val selectedPlayerId: Long? = null,
     val clock: GameClock,
     val events: List<LiveEvent> = emptyList(),
@@ -39,8 +40,11 @@ class LiveGameViewModel(
     )
 
     val ui: StateFlow<LiveUiState> =
-        combine(_base, repo.observeLiveEvents(gameId)) { base, events ->
-            base.copy(events = events)
+        combine(
+            _base,
+            repo.observeLiveEvents(gameId),
+            gamesRepo.observeGame(gameId)
+        ) { base, events, game ->
 
             val seconds = computeSecondsPlayedByPlayer(
                 events = events,
@@ -51,12 +55,27 @@ class LiveGameViewModel(
 
             base.copy(
                 events = events,
-                secondsPlayedById = seconds
+                secondsPlayedById = seconds,
+                opponentName = game?.opponentName ?: base.opponentName,
+                roundNumber = game?.roundNumber ?: base.roundNumber,
+                gameDateEpoch = game?.gameDateEpoch ?: base.gameDateEpoch,
+                teamScore = game?.teamScore ?: base.teamScore
             )
-
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), _base.value)
 
+
     init {
+        viewModelScope.launch {
+            val game = gamesRepo.getById(_base.value.gameId) ?: return@launch
+            _base.update {
+                it.copy(
+                    opponentName = game.opponentName,
+                    roundNumber = game.roundNumber,
+                    gameDateEpoch = game.createdAt
+                )
+            }
+        }
+
         viewModelScope.launch {
             while (true) {
                 delay(1000)
@@ -114,6 +133,11 @@ class LiveGameViewModel(
                 period = snap.clock.period,
                 clockSecRemaining = snap.clock.secRemaining
             )
+
+            val pts = pointsFor(type)
+            if (pts != 0) {
+                gamesRepo.addTeamScore(snap.gameId, pts)
+            }
         }
     }
 
@@ -123,7 +147,20 @@ class LiveGameViewModel(
 
     fun undoLast() {
         val gameId = _base.value.gameId
-        viewModelScope.launch { repo.undoLast(gameId) }
+        viewModelScope.launch {
+            val last = repo.undoLastReturning(gameId) ?: return@launch
+            val pts = pointsFor(last.type)
+            if (pts != 0) {
+                gamesRepo.addTeamScore(gameId, -pts)
+            }
+        }
+    }
+
+    private fun pointsFor(type: EventType): Int = when (type) {
+        EventType.TWO_MADE -> 2
+        EventType.THREE_MADE -> 3
+        EventType.FT_MADE -> 1
+        else -> 0
     }
 
     fun endGame() {

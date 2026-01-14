@@ -29,7 +29,8 @@ fun HomeScreen(
     gamesRepo: GamesRepository,
     onNewGame: () -> Unit,
     onContinue: (Long) -> Unit,
-    onPlayers: () -> Unit
+    onPlayers: () -> Unit,
+    onHistory: () -> Unit
 ) {
     val lastGameId by gamesRepo.observeLastGameId().collectAsState(initial = null)
 
@@ -56,7 +57,10 @@ fun HomeScreen(
                 onClick = { onPlayers() },
                 modifier = Modifier.height(64.dp),
             ) { Text("Manage Roster", style = MaterialTheme.typography.titleMedium) }
-            // OutlinedButton(...){ Text("Games History") }
+             OutlinedButton(
+                 onClick = { onHistory() },
+                 modifier = Modifier.height(64.dp),
+             ){ Text("Games History", style = MaterialTheme.typography.titleMedium) }
         }
     }
 }

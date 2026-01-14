@@ -2,6 +2,7 @@ package com.example.basketballtracker.core.data.db.dao
 
 import androidx.room.*
 import com.example.basketballtracker.core.data.db.entities.GameEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GameDao {
@@ -17,4 +18,15 @@ interface GameDao {
     LIMIT 1
 """)
     fun observeLastGameId(): kotlinx.coroutines.flow.Flow<Long?>
+
+    @Query("SELECT * FROM games ORDER BY createdAt DESC")
+    fun observeAllGames(): Flow<List<GameEntity>>
+
+    @Query("SELECT * FROM games WHERE id = :id LIMIT 1")
+    fun observeGame(id: Long): Flow<GameEntity?>
+
+    @Query("UPDATE games SET teamScore = teamScore + :delta WHERE id = :gameId")
+    suspend fun addTeamScore(gameId: Long, delta: Int)
+
+
 }
