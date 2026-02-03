@@ -26,8 +26,15 @@ class GamesRepository(private val gameDao: GameDao) {
 
     fun observeGame(id: Long): Flow<GameEntity?> = gameDao.observeGame(id)
 
-    suspend fun addTeamScore(gameId: Long, delta: Int) {
-        gameDao.addTeamScore(gameId, delta)
-    }
+//    suspend fun addTeamScore(gameId: Long, delta: Int) {
+//        gameDao.addTeamScore(gameId, delta)
+//    }
+//
+//    suspend fun addOpponentScore(gameId: Long, delta: Int) {
+//        gameDao.addOpponentScore(gameId, delta)
+//    }
 
+    suspend fun deleteGame(gameId: Long) {
+        gameDao.deleteById(gameId)
+    }
 }

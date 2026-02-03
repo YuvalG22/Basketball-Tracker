@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.core.data.db.dao.RosterDao
@@ -75,8 +76,8 @@ fun NewGameScreen(
 
             Card {
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
-                    contentPadding = PaddingValues(12.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp),
+                    contentPadding = PaddingValues(horizontal = 0.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     items(players) { p ->
@@ -88,8 +89,9 @@ fun NewGameScreen(
                                 .clickable {
                                     selectedIds = if (checked) selectedIds - p.id else selectedIds + p.id
                                 }
-                                .padding(vertical = 6.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(p.name, style = MaterialTheme.typography.bodyLarge)
                             Checkbox(

@@ -29,6 +29,7 @@ import com.example.basketballtracker.features.livegame.ui.EventType
 import com.example.basketballtracker.features.livegame.ui.LiveEvent
 import com.example.basketballtracker.features.livegame.ui.PlayerBox
 import com.example.basketballtracker.features.livegame.ui.computeBoxByPlayer
+import com.example.basketballtracker.features.livegame.ui.computePlusMinusByPlayer
 import com.example.basketballtracker.features.livegame.ui.computeSecondsPlayedByPlayer
 import com.example.basketballtracker.features.livegame.ui.formatMinutes
 import kotlinx.coroutines.Dispatchers
@@ -101,6 +102,8 @@ fun GameSummaryScreen(
             currentClockSecRemaining = 0
         )
     }
+
+    val pmById = remember(events) { computePlusMinusByPlayer(events) }
 
     val teamTotals = remember(box, secondsPlayedById) {
         val boxes = box.values
@@ -226,24 +229,30 @@ fun GameSummaryScreen(
                     items(starters, key = { it.id }) { p ->
                         val b: PlayerBox? = box[p.id]
                         val sec = secondsPlayedById[p.id] ?: 0
+                        val pm = pmById[p.id] ?: 0
 
                         PlayerRow(
+                            gameId = gameId,
                             playerName = p.name,
                             playerNumber = p.number,
                             box = b,
-                            sec = sec
+                            sec = sec,
+                            pm = pm
                         )
                     }
                     item { HorizontalDivider(thickness = 4.dp) }
                     items(bench, key = { it.id }) { p ->
                         val b: PlayerBox? = box[p.id]
                         val sec = secondsPlayedById[p.id] ?: 0
+                        val pm = pmById[p.id] ?: 0
 
                         PlayerRow(
+                            gameId = gameId,
                             playerName = p.name,
                             playerNumber = p.number,
                             box = b,
-                            sec = sec
+                            sec = sec,
+                            pm = pm
                         )
                     }
                     item {
@@ -339,6 +348,7 @@ fun TableHeader() {
             Text("3PT", Modifier.weight(2f), textAlign = TextAlign.Center)
             Text("FT", Modifier.weight(2f), textAlign = TextAlign.Center)
             Text("PF", Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text("+/-", Modifier.weight(1f), textAlign = TextAlign.Center)
         }
     }
     HorizontalDivider()
@@ -346,12 +356,15 @@ fun TableHeader() {
 
 @Composable
 fun PlayerRow(
+    gameId: Long,
     playerName: String,
     playerNumber: Int,
     box: PlayerBox?,
-    sec: Int
+    sec: Int,
+    pm: Int
 ) {
     val minText = formatMinutes(sec)
+    val pmText = if (pm > 0) "+$pm" else "$pm"
 
     Row(
         Modifier
@@ -395,13 +408,14 @@ fun PlayerRow(
         )
 
         Text("${box?.pf ?: 0}", Modifier.weight(1f), textAlign = TextAlign.Center)
+        Text(if (gameId.toInt() == 2) "" else pmText, Modifier.weight(1f), textAlign = TextAlign.Center)
     }
     HorizontalDivider()
 }
 
 @Composable
 private fun TeamTotalRow(t: TeamTotals) {
-    val minText = formatMinutes(t.totalSec)
+    //val minText = formatMinutes(t.totalSec)
 
     fun pct(m: Int, a: Int): Int {
         if (a == 0) return 0
@@ -419,7 +433,7 @@ private fun TeamTotalRow(t: TeamTotals) {
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        Text(minText, Modifier.weight(1f), textAlign = TextAlign.Center)
+        Text("", Modifier.weight(1f), textAlign = TextAlign.Center)
         Text("${t.pts}", Modifier.weight(1f), textAlign = TextAlign.Center)
         Text("${t.ast}", Modifier.weight(1f), textAlign = TextAlign.Center)
         Text("${t.rebTotal}", Modifier.weight(1f), textAlign = TextAlign.Center)
@@ -446,6 +460,7 @@ private fun TeamTotalRow(t: TeamTotals) {
         )
 
         Text("${t.pf}", Modifier.weight(1f), textAlign = TextAlign.Center)
+        Text("", Modifier.weight(1f), textAlign = TextAlign.Center)
     }
     HorizontalDivider()
 }

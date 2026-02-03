@@ -1,6 +1,13 @@
 package com.example.basketballtracker.features.livegame.ui
 
+import android.R
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.os.Build
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -9,20 +16,44 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.toUpperCase
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.privacysandbox.tools.core.model.Type
+import androidx.room.util.TableInfo
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
+import java.util.Locale
+import java.util.Locale.getDefault
 import kotlin.math.max
 
 @Composable
-fun LiveGameTabletScreen(vm: LiveGameViewModel, onEndGameNavigate: () -> Unit) {
+fun LiveGameTabletScreen(
+    vm: LiveGameViewModel,
+    onEndGameNavigate: () -> Unit,
+    onOpenSummary: () -> Unit
+) {
     val s by vm.ui.collectAsState()
     val box = remember(s.events) { computeBoxByPlayer(s.events) }
+    val teamScore = remember(s.events) { computeTeamScore(s.events) }
+    val opponentScore = remember(s.events) { computeOppScore(s.events) }
     val playersById = remember(s.players) { s.players.associateBy { it.id } }
-    val last = s.events.lastOrNull()
+    val last = s.events.takeLast(5)
 
     val onCourtIds = remember(s.events) { computeOnCourtIds(s.events) }
 
@@ -32,7 +63,6 @@ fun LiveGameTabletScreen(vm: LiveGameViewModel, onEndGameNavigate: () -> Unit) {
     val benchPlayers = remember(s.players, onCourtIds) {
         s.players.filter { it.id !in onCourtIds }
     }
-
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -75,15 +105,17 @@ fun LiveGameTabletScreen(vm: LiveGameViewModel, onEndGameNavigate: () -> Unit) {
                 opponentName = s.opponentName,
                 roundNumber = s.roundNumber,
                 gameDateEpoch = s.gameDateEpoch,
-                teamScore = s.teamScore,
+                teamScore = teamScore,
+                opponentScore = opponentScore,
                 clock = s.clock,
-                lastEvent = last,
+                lastEvents = last,
                 playersById = playersById,
-                isEnded = s.isEnded,          // ✅
+                isEnded = s.isEnded,
                 onEndGame = onEndGameNavigate,
                 onToggleClock = vm::toggleClock,
                 onNextQuarter = vm::nextQuarter,
                 onResetQuarter = vm::resetQuarter,
+                onOpenSummary = onOpenSummary,
                 modifier = Modifier
                     .weight(0.30f)
                     .fillMaxHeight()
@@ -92,6 +124,7 @@ fun LiveGameTabletScreen(vm: LiveGameViewModel, onEndGameNavigate: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlayersPanel(
     onCourtPlayers: List<PlayerEntity>,
@@ -106,6 +139,33 @@ private fun PlayersPanel(
     modifier: Modifier
 ) {
     val canSubIn = onCourtPlayers.size < 5
+
+    // ---- BottomSheet state ----
+    var sheetPlayerId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // Render sheet if needed
+    if (sheetPlayerId != null) {
+        val pid = sheetPlayerId!!
+        val p = (onCourtPlayers + benchPlayers).firstOrNull { it.id == pid }
+        val b = box[pid]
+        val secPlayed = secondsPlayedById[pid] ?: 0
+
+        ModalBottomSheet(
+            onDismissRequest = { sheetPlayerId = null },
+            sheetState = sheetState
+        ) {
+            PlayerDetailsSheetContent(
+                player = p,
+                box = b,
+                secondsPlayed = secPlayed,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+    }
 
     Card(modifier) {
         Column(
@@ -124,44 +184,59 @@ private fun PlayersPanel(
                     val reb = b?.rebTotal ?: 0
                     val ast = b?.ast ?: 0
                     val tov = b?.tov ?: 0
+                    val pf = b?.pf ?: 0
                     val fg = b?.let { "${it.fgm}/${it.fga} (${it.fgPct}%)" } ?: "0/0 (0%)"
                     val tp = b?.let { "${it.threem}/${it.threea} (${it.threePct}%)" } ?: "0/0 (0%)"
                     val ft = b?.let { "${it.ftm}/${it.fta} (${it.ftPct}%)" } ?: "0/0 (0%)"
 
                     val isSel = p.id == selectedId
 
-                    ElevatedCard(
+                    OutlinedCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onSelect(p.id) },
-                        colors = CardDefaults.elevatedCardColors(
-                            containerColor = if (isSel) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface,
+                        colors = CardDefaults.outlinedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
                         ),
+                        border = BorderStroke(
+                            width = 4.dp,
+                            color = if (isSel) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                        )
                     ) {
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .padding(10.dp),
+                                .padding(16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(Modifier.padding(10.dp)) {
+                            Column(Modifier.padding(0.dp)) {
                                 Text(
                                     "#${p.number}  ${p.name}",
                                     style = MaterialTheme.typography.titleMedium
                                 )
-                                Spacer(Modifier.height(4.dp))
+                                Spacer(Modifier.height(2.dp))
                                 val secPlayed = secondsPlayedById[p.id] ?: 0
                                 val minText = formatMinutes(secPlayed)
 
                                 Text("MIN $minText • PTS $pts • REB $reb • AST $ast")
-                                Spacer(Modifier.height(2.dp))
+                                Spacer(Modifier.height(4.dp))
+                                FoulDots(fouls = pf)
                             }
-                            OutlinedButton(onClick = { onSubOut(p.id) }, enabled = !isEnded) {
-                                Text(
-                                    "OUT"
-                                )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                OutlinedButton(onClick = { onSubOut(p.id) }, enabled = !isEnded) {
+                                    Text(
+                                        "OUT"
+                                    )
+                                }
+//                                IconButton(
+//                                    onClick = { sheetPlayerId = p.id }
+//                                ) {
+//                                    Icon(Icons.Default.Info, contentDescription = "Details")
+//                                }
                             }
                         }
                     }
@@ -181,11 +256,11 @@ private fun PlayersPanel(
                 items(benchPlayers, key = { it.id }) { p ->
                     val isSel = p.id == selectedId
                     val b = box[p.id]
-                    val pts = b?.pts ?: 0
-                    val reb = b?.rebTotal ?: 0
-                    val ast = b?.ast ?: 0
+//                    val pts = b?.pts ?: 0
+//                    val reb = b?.rebTotal ?: 0
+//                    val ast = b?.ast ?: 0
                     val secPlayed = secondsPlayedById[p.id] ?: 0
-                    val minText = formatMinutes(secPlayed)
+                    //val minText = formatMinutes(secPlayed)
                     ElevatedCard(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -205,7 +280,7 @@ private fun PlayersPanel(
                         ) {
 
                             Text(
-                                "${p.name}",
+                                "#${p.number} ${p.name}",
                                 style = MaterialTheme.typography.titleSmall
                             )
                             FilledTonalButton(
@@ -294,32 +369,63 @@ private fun ActionsPanel(
                     .fillMaxWidth()
                     .height(56.dp)
             ) { Text("UNDO") }
+            Spacer(Modifier.height(10.dp))
 
             if (!enabled) {
-                Spacer(Modifier.height(10.dp))
                 Text(
                     "Select a player to enable actions",
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(Modifier.height(10.dp))
+            }
+            HorizontalDivider(
+                thickness = 2.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+            )
+            Spacer(Modifier.height(10.dp))
+            Text("Opponent Actions")
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = { onEvent(EventType.OPP_TWO_MADE) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                ) { Text("2PT") }
+                Button(
+                    onClick = { onEvent(EventType.OPP_THREE_MADE) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                ) { Text("3PT") }
+                Button(
+                    onClick = { onEvent(EventType.OPP_FT_MADE) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                ) { Text("FT") }
             }
         }
     }
 }
 
+@SuppressLint("DefaultLocale")
 @Composable
 private fun GameControlPanel(
     opponentName: String,
     roundNumber: Int,
     gameDateEpoch: Long,
     teamScore: Int,
+    opponentScore: Int,
     clock: GameClock,
-    lastEvent: LiveEvent?,
+    lastEvents: List<LiveEvent>,
     playersById: Map<Long, PlayerEntity>,
-    isEnded: Boolean,              // ✅ חדש
+    isEnded: Boolean,
     onEndGame: () -> Unit,
     onToggleClock: () -> Unit,
     onNextQuarter: () -> Unit,
     onResetQuarter: () -> Unit,
+    onOpenSummary: () -> Unit,
     modifier: Modifier
 ) {
     Card(modifier) {
@@ -347,13 +453,49 @@ private fun GameControlPanel(
                     thickness = 2.dp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
                 )
-                Text("Q${clock.period}", style = MaterialTheme.typography.titleLarge)
-                val mm = max(0, clock.secRemaining) / 60
-                val ss = max(0, clock.secRemaining) % 60
-                Text(
-                    String.format("%02d:%02d", mm, ss),
-                    style = MaterialTheme.typography.displaySmall
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(22.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "AFEKA",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        Text(
+                            "$teamScore",
+                            style = MaterialTheme.typography.displayMedium
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        val mm = max(0, clock.secRemaining) / 60
+                        val ss = max(0, clock.secRemaining) % 60
+                        Text(
+                            String.format("%02d:%02d", mm, ss),
+                            style = MaterialTheme.typography.displaySmall
+                        )
+                        Text("Q${clock.period}", style = MaterialTheme.typography.titleLarge)
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            opponentName.uppercase(getDefault()),
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        Text(
+                            "$opponentScore",
+                            style = MaterialTheme.typography.displayMedium
+                        )
+                    }
+                }
 
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -381,35 +523,232 @@ private fun GameControlPanel(
                         .fillMaxWidth()
                         .height(56.dp)
                 ) { Text("Reset Quarter") }
-
-                Spacer(Modifier.height(16.dp))
-                Text("Last action", style = MaterialTheme.typography.titleMedium)
+                HorizontalDivider(
+                    Modifier.padding(vertical = 10.dp),
+                    thickness = 2.dp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                )
+                Text("Last events", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(6.dp))
 
-                val lastText = if (lastEvent == null) {
-                    "—"
+                if (lastEvents.isEmpty()) {
+                    Text("No events yet", style = MaterialTheme.typography.bodyLarge)
                 } else {
-                    val name = lastEvent.playerId?.let { id -> playersById[id]?.name } ?: "Team"
-                    val time = String.format(
-                        "%02d:%02d",
-                        lastEvent.clockSecRemaining / 60,
-                        lastEvent.clockSecRemaining % 60
-                    )
-                    "Q${lastEvent.period} $time — $name ${formatEvent(lastEvent.type)}"
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        items(items = lastEvents, key = { it.id }) { p ->
+                            val isOppEvent = p.type.isOpponentEvent()
+                            val name =
+                                if (isOppEvent) opponentName else p.playerId?.let { id -> playersById[id]?.name }
+                            val time = String.format(
+                                "%02d:%02d",
+                                p.clockSecRemaining / 60,
+                                p.clockSecRemaining % 60
+                            )
+                            Text(
+                                "Q${p.period} $time — $name ${formatEvent(p.type)}",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
                 }
-                Text(lastText, style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(16.dp))
-                Text("Team Score: $teamScore", style = MaterialTheme.typography.headlineMedium)
             }
+            var showEndDialog by remember { mutableStateOf(false) }
+            Column() {
+                OutlinedButton(
+                    onClick = onOpenSummary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) { Text("Box Score") }
+                Spacer(Modifier.height(10.dp))
+                Button(
+                    onClick = { showEndDialog = true },
+                    enabled = !isEnded,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
 
-            Button(
-                onClick = onEndGame,
-                enabled = !isEnded,
+                    ) { Text("End Game") }
+                if (showEndDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showEndDialog = false },
+                        title = { Text("End game?") },
+                        text = { Text("Are you sure you want to end the game? You won’t be able to continue recording events.") },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    showEndDialog = false
+                                    onEndGame() // או onEndGameNavigate()
+                                }
+                            ) { Text("End") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showEndDialog = false }) { Text("Cancel") }
+                        }
+                    )
+                }
+
+            }
+        }
+    }
+}
+
+@Composable
+fun FoulDots(
+    fouls: Int,
+    dotSize: Dp = 8.dp,
+    spacing: Dp = 4.dp,
+    color: Color = Color.Red
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(fouls) { index ->
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                    .size(dotSize)
+                    .clip(CircleShape)
+                    .background(color)
+            )
+        }
+    }
+}
 
-                ) { Text("End Game") }
+@Composable
+private fun PlayerDetailsSheetContent(
+    player: PlayerEntity?,
+    box: PlayerBox?,
+    secondsPlayed: Int,
+    modifier: Modifier = Modifier
+) {
+    val p = player
+    if (p == null) {
+        Text("Player not found", modifier = modifier)
+        return
+    }
+
+    val pts = box?.pts ?: 0
+    val reb = box?.rebTotal ?: 0
+    val ast = box?.ast ?: 0
+    val stl = box?.stl ?: 0
+    val blk = box?.blk ?: 0
+    val tov = box?.tov ?: 0
+    val pf = box?.pf ?: 0
+
+    val fg = box?.let { "${it.fgm}/${it.fga} (${it.fgPct}%)" } ?: "0/0 (0%)"
+    val tp = box?.let { "${it.threem}/${it.threea} (${it.threePct}%)" } ?: "0/0 (0%)"
+    val ft = box?.let { "${it.ftm}/${it.fta} (${it.ftPct}%)" } ?: "0/0 (0%)"
+
+    Column(modifier) {
+        Text("#${p.number} ${p.name}", style = MaterialTheme.typography.displaySmall)
+        Spacer(Modifier.height(16.dp))
+        HorizontalDivider(
+            thickness = 2.dp
+        )
+        Spacer(Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                val minText = formatMinutes(secondsPlayed)
+                Text("MIN", style = MaterialTheme.typography.headlineMedium)
+                Text(minText, style = MaterialTheme.typography.headlineMedium)
+            }
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("PTS", style = MaterialTheme.typography.headlineMedium)
+                Text("$pts", style = MaterialTheme.typography.headlineMedium)
+            }
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("REB", style = MaterialTheme.typography.headlineMedium)
+                Text("$reb", style = MaterialTheme.typography.headlineMedium)
+            }
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("AST", style = MaterialTheme.typography.headlineMedium)
+                Text("$ast", style = MaterialTheme.typography.headlineMedium)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("STL", style = MaterialTheme.typography.headlineMedium)
+                Text("$stl", style = MaterialTheme.typography.headlineMedium)
+            }
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("BLK", style = MaterialTheme.typography.headlineMedium)
+                Text("$blk", style = MaterialTheme.typography.headlineMedium)
+            }
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("TOV", style = MaterialTheme.typography.headlineMedium)
+                Text("$tov", style = MaterialTheme.typography.headlineMedium)
+            }
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("PF", style = MaterialTheme.typography.headlineMedium)
+                Text("$pf", style = MaterialTheme.typography.headlineMedium)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        HorizontalDivider(
+            thickness = 2.dp
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("FG", style = MaterialTheme.typography.headlineMedium)
+                Text(fg, style = MaterialTheme.typography.headlineMedium)
+            }
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("3PT", style = MaterialTheme.typography.headlineMedium)
+                Text(tp, style = MaterialTheme.typography.headlineMedium)
+            }
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("FT", style = MaterialTheme.typography.headlineMedium)
+                Text(ft, style = MaterialTheme.typography.headlineMedium)
+            }
         }
     }
 }

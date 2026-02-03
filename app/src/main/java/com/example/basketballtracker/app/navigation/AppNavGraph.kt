@@ -1,9 +1,13 @@
 package com.example.basketballtracker.app.navigation
 
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -34,7 +38,7 @@ fun AppNavGraph(
     db: AppDatabase,
     gamesRepo: GamesRepository,
     liveRepo: LiveGameRepository,
-    quarterLengthDefault: Int = 10
+    quarterLengthDefault: Int = 600
 ) {
     // ✅ create repo here (MVP)
     val playersRepo = remember { PlayersRepository(db.playerDao()) }
@@ -71,7 +75,6 @@ fun AppNavGraph(
                 initialValue = emptyList(),
                 key1 = gameId
             ) {
-                val ids = db.rosterDao().observeRosterPlayerIds(gameId).first()
                 value = withContext(Dispatchers.IO) {
                     val ids = db.rosterDao().observeRosterPlayerIds(gameId).first()
                     if (ids.isEmpty()) emptyList()
@@ -79,20 +82,38 @@ fun AppNavGraph(
                 }
             }
 
-            val vm = remember(gameId, rosterPlayers) {
-                LiveGameViewModel(
-                    repo = liveRepo,
-                    gamesRepo = gamesRepo,
-                    gameId = gameId,
-                    players = rosterPlayers,
-                    quarterLengthSec = quarterLengthDefault
-                )
+            if (rosterPlayers.isEmpty()) {
+                // אפשר להציג Loading קצר
+                CircularProgressIndicator()
+                return@composable
             }
 
-            LiveGameTabletScreen(vm = vm, onEndGameNavigate = {   // ✅ כאן בדיוק
+
+            val vm: LiveGameViewModel = viewModel(
+                viewModelStoreOwner = backStackEntry,
+                key = "live-$gameId",
+                factory = object : ViewModelProvider.Factory {
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        @Suppress("UNCHECKED_CAST")
+                        return LiveGameViewModel(
+                            repo = liveRepo,
+                            gamesRepo = gamesRepo,
+                            gameId = gameId,
+                            players = rosterPlayers,
+                            quarterLengthSec = quarterLengthDefault
+                        ) as T
+                    }
+                }
+            )
+
+            LiveGameTabletScreen(vm = vm, onEndGameNavigate = {
                 vm.endGame()
-                nav.navigate(Routes.summary(gameId))
-            })
+                nav.navigate(Routes.HOME) {
+                    popUpTo(Routes.HOME) { inclusive = false }
+                    launchSingleTop = true
+                }
+            },
+                onOpenSummary = { nav.navigate(Routes.summary(gameId)) })
         }
 
         composable(Routes.PLAYERS) {

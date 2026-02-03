@@ -131,7 +131,7 @@ fun PlayersScreen(
         ) {
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Roster Management", style = MaterialTheme.typography.headlineSmall)
+                Text("Roster Management", style = MaterialTheme.typography.displaySmall)
                 TextButton(onClick = onBack) { Text("Back") }
             }
 
@@ -165,7 +165,7 @@ fun PlayersScreen(
                                     Text(
                                         modifier = Modifier.width(48.dp),
                                         text = "#${p.number}",
-                                        textAlign = TextAlign.Center,
+                                        textAlign = TextAlign.Start,
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

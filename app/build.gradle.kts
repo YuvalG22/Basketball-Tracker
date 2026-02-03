@@ -45,6 +45,7 @@ android {
 dependencies {
     implementation(libs.androidx.compose.runtime.saveable)
     implementation(libs.androidx.compose.remote.creation.core)
+    implementation(libs.androidx.tools.core)
     val room_version = "2.8.4"
     val nav_version = "2.9.6"
     implementation(libs.androidx.core.ktx)

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.basketballtracker.features.games.data.GamesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class GamesHistoryViewModel(
     private val gamesRepo: GamesRepository
@@ -16,4 +17,10 @@ class GamesHistoryViewModel(
             SharingStarted.WhileSubscribed(5000),
             emptyList()
         )
+
+    fun deleteGame(gameId: Long) {
+        viewModelScope.launch {
+            gamesRepo.deleteGame(gameId)
+        }
+    }
 }

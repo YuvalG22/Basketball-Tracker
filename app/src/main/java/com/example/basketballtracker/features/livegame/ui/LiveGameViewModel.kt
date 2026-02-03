@@ -15,7 +15,9 @@ data class LiveUiState(
     val opponentName: String = "",
     val roundNumber: Int = 0,
     val gameDateEpoch: Long = 0L,
-    val teamScore: Int = 0,
+//    val teamScore: Int = 0,
+//    val opponentScore: Int = 0,
+    val plusMinusById: Map<Long, Int> = emptyMap(),
     val selectedPlayerId: Long? = null,
     val clock: GameClock,
     val events: List<LiveEvent> = emptyList(),
@@ -45,21 +47,23 @@ class LiveGameViewModel(
             repo.observeLiveEvents(gameId),
             gamesRepo.observeGame(gameId)
         ) { base, events, game ->
-
             val seconds = computeSecondsPlayedByPlayer(
                 events = events,
                 quarterLengthSec = quarterLengthSec,
                 currentPeriod = base.clock.period,
                 currentClockSecRemaining = base.clock.secRemaining
             )
+            val pm = computePlusMinusByPlayer(events)
 
             base.copy(
                 events = events,
                 secondsPlayedById = seconds,
+                plusMinusById = pm,
                 opponentName = game?.opponentName ?: base.opponentName,
                 roundNumber = game?.roundNumber ?: base.roundNumber,
                 gameDateEpoch = game?.gameDateEpoch ?: base.gameDateEpoch,
-                teamScore = game?.teamScore ?: base.teamScore
+//                teamScore = game?.teamScore ?: base.teamScore,
+//                opponentScore = game?.opponentScore ?: base.opponentScore
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), _base.value)
 
@@ -98,8 +102,6 @@ class LiveGameViewModel(
 
                     s.copy(clock = c.copy(secRemaining = c.secRemaining - 1))
                 }
-
-                // ✅ מחוץ ל-update: כותבים ל-DB
                 if (shouldEndQuarter) {
                     endQuarterAuto()
                 }
@@ -133,11 +135,6 @@ class LiveGameViewModel(
                 period = snap.clock.period,
                 clockSecRemaining = snap.clock.secRemaining
             )
-
-            val pts = pointsFor(type)
-            if (pts != 0) {
-                gamesRepo.addTeamScore(snap.gameId, pts)
-            }
         }
     }
 
@@ -148,18 +145,21 @@ class LiveGameViewModel(
     fun undoLast() {
         val gameId = _base.value.gameId
         viewModelScope.launch {
-            val last = repo.undoLastReturning(gameId) ?: return@launch
-            val pts = pointsFor(last.type)
-            if (pts != 0) {
-                gamesRepo.addTeamScore(gameId, -pts)
-            }
+            repo.undoLastReturning(gameId) ?: return@launch
         }
     }
 
-    private fun pointsFor(type: EventType): Int = when (type) {
+    private fun teamPointsFor(type: EventType): Int = when (type) {
         EventType.TWO_MADE -> 2
         EventType.THREE_MADE -> 3
         EventType.FT_MADE -> 1
+        else -> 0
+    }
+
+    private fun opponentPointsFor(type: EventType): Int = when (type) {
+        EventType.OPP_TWO_MADE -> 2
+        EventType.OPP_THREE_MADE -> 3
+        EventType.OPP_FT_MADE -> 1
         else -> 0
     }
 
