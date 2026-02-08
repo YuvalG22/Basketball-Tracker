@@ -1,12 +1,18 @@
 package com.example.basketballtracker.features.games.data
 
+import androidx.room.Query
 import com.example.basketballtracker.core.data.db.dao.GameDao
 import com.example.basketballtracker.core.data.db.entities.GameEntity
 import kotlinx.coroutines.flow.Flow
 
 class GamesRepository(private val gameDao: GameDao) {
     fun observeLastGameId(): Flow<Long?> = gameDao.observeLastGameId()
-    suspend fun createGame(opponentName: String, roundNumber: Int, gameDateEpoch: Long, quarterLengthSec: Int): Long {
+    suspend fun createGame(
+        opponentName: String,
+        roundNumber: Int,
+        gameDateEpoch: Long,
+        quarterLengthSec: Int
+    ): Long {
         return gameDao.insert(
             GameEntity(
                 opponentName = opponentName,
@@ -26,13 +32,9 @@ class GamesRepository(private val gameDao: GameDao) {
 
     fun observeGame(id: Long): Flow<GameEntity?> = gameDao.observeGame(id)
 
-//    suspend fun addTeamScore(gameId: Long, delta: Int) {
-//        gameDao.addTeamScore(gameId, delta)
-//    }
-//
-//    suspend fun addOpponentScore(gameId: Long, delta: Int) {
-//        gameDao.addOpponentScore(gameId, delta)
-//    }
+    suspend fun updateGameResult(gameId: Long, teamScore: Int, opponentScore: Int) {
+        gameDao.updateGameResult(gameId, teamScore, opponentScore)
+    }
 
     suspend fun deleteGame(gameId: Long) {
         gameDao.deleteById(gameId)

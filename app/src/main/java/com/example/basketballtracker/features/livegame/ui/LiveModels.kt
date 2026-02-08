@@ -21,6 +21,11 @@ enum class EventType {
         OPP_TWO_MADE, OPP_THREE_MADE, OPP_FT_MADE -> true
         else -> false
     }
+
+    fun isScoreEvent(): Boolean = when (this) {
+        TWO_MADE, THREE_MADE, FT_MADE, OPP_TWO_MADE, OPP_THREE_MADE, OPP_FT_MADE -> true
+        else -> false
+    }
 }
 
 data class GameClock(
@@ -36,7 +41,9 @@ data class LiveEvent(
     val type: EventType,
     val period: Int,
     val clockSecRemaining: Int,
-    val createdAt: Long
+    val createdAt: Long,
+    val teamScoreAtEvent: Int?,
+    val opponentScoreAtEvent: Int?
 )
 
 data class PlayerBox(
@@ -256,6 +263,27 @@ fun formatEvent(t: EventType) = when (t) {
     EventType.TWO_MISS -> "2PT ✗"
     EventType.THREE_MADE -> "3PT ✓"
     EventType.THREE_MISS -> "3PT ✗"
+    EventType.REB_OFF -> "REB O"
+    EventType.REB_DEF -> "REB D"
+    EventType.AST -> "AST"
+    EventType.STL -> "STL"
+    EventType.TOV -> "TOV"
+    EventType.BLK -> "BLK"
+    EventType.PF -> "PF"
+    EventType.SUB_IN -> "IN"
+    EventType.SUB_OUT -> "OUT"
+    EventType.OPP_TWO_MADE -> "2PT ✓"
+    EventType.OPP_THREE_MADE -> "3PT ✓"
+    EventType.OPP_FT_MADE -> "FT ✓"
+}
+
+fun formatEventPBP(t: EventType) = when (t) {
+    EventType.FT_MADE -> "FT"
+    EventType.FT_MISS -> "MISS FT"
+    EventType.TWO_MADE -> "2PT"
+    EventType.TWO_MISS -> "MISS 2PT"
+    EventType.THREE_MADE -> "3PT"
+    EventType.THREE_MISS -> "MISS 3PT"
     EventType.REB_OFF -> "REB O"
     EventType.REB_DEF -> "REB D"
     EventType.AST -> "AST"

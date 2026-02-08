@@ -11,5 +11,7 @@ data class EventEntity(
     val type: String,
     val period: Int,
     val clockSecRemaining: Int,
-    val createdAt: Long
+    val createdAt: Long,
+    val teamScoreAtEvent: Int? = null,
+    val opponentScoreAtEvent: Int? = null
 )

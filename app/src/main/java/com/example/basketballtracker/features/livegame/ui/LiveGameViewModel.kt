@@ -15,8 +15,6 @@ data class LiveUiState(
     val opponentName: String = "",
     val roundNumber: Int = 0,
     val gameDateEpoch: Long = 0L,
-//    val teamScore: Int = 0,
-//    val opponentScore: Int = 0,
     val plusMinusById: Map<Long, Int> = emptyMap(),
     val selectedPlayerId: Long? = null,
     val clock: GameClock,
@@ -127,13 +125,33 @@ class LiveGameViewModel(
         val snap = _base.value
         val pid = playerIdOverride ?: snap.selectedPlayerId
 
+        val currentEvents = ui.value.events
+        val teamNow = computeTeamScore(currentEvents)
+        val oppNow = computeOppScore(currentEvents)
+
+        val (teamAtEvent, oppAtEvent) = when (type) {
+            EventType.TWO_MADE -> teamNow + 2 to oppNow
+            EventType.THREE_MADE -> teamNow + 3 to oppNow
+            EventType.FT_MADE -> teamNow + 1 to oppNow
+
+            EventType.OPP_TWO_MADE -> teamNow to oppNow + 2
+            EventType.OPP_THREE_MADE -> teamNow to oppNow + 3
+            EventType.OPP_FT_MADE -> teamNow to oppNow + 1
+
+            else -> teamNow to oppNow
+        }
+
+        val shouldAttachScore = type.isScoreEvent() || type.isOpponentEvent()
+
         viewModelScope.launch {
             repo.addEvent(
                 gameId = snap.gameId,
                 playerId = pid,
                 type = type,
                 period = snap.clock.period,
-                clockSecRemaining = snap.clock.secRemaining
+                clockSecRemaining = snap.clock.secRemaining,
+                teamScoreAtEvent = if (shouldAttachScore) teamAtEvent else null,
+                opponentScoreAtEvent = if (shouldAttachScore) oppAtEvent else null
             )
         }
     }
@@ -149,22 +167,22 @@ class LiveGameViewModel(
         }
     }
 
-    private fun teamPointsFor(type: EventType): Int = when (type) {
-        EventType.TWO_MADE -> 2
-        EventType.THREE_MADE -> 3
-        EventType.FT_MADE -> 1
-        else -> 0
-    }
-
-    private fun opponentPointsFor(type: EventType): Int = when (type) {
-        EventType.OPP_TWO_MADE -> 2
-        EventType.OPP_THREE_MADE -> 3
-        EventType.OPP_FT_MADE -> 1
-        else -> 0
-    }
-
     fun endGame() {
         _base.update { it.copy(isEnded = true, clock = it.clock.copy(isRunning = false)) }
+
+        val gameId = _base.value.gameId
+        val events = ui.value.events
+
+        val team = computeTeamScore(events)
+        val opp = computeOppScore(events)
+
+        viewModelScope.launch {
+            gamesRepo.updateGameResult(
+                gameId = gameId,
+                teamScore = team,
+                opponentScore = opp
+            )
+        }
     }
 
     private fun addEventAt(

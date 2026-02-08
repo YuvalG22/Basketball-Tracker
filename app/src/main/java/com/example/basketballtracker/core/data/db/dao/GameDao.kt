@@ -25,11 +25,16 @@ interface GameDao {
     @Query("SELECT * FROM games WHERE id = :id LIMIT 1")
     fun observeGame(id: Long): Flow<GameEntity?>
 
-//    @Query("UPDATE games SET teamScore = teamScore + :delta WHERE id = :gameId")
-//    suspend fun addTeamScore(gameId: Long, delta: Int)
-
-//    @Query("UPDATE games SET opponentScore = opponentScore + :delta WHERE id = :gameId")
-//    suspend fun addOpponentScore(gameId: Long, delta: Int)
+    @Query("""
+    UPDATE games
+    SET teamScore = :teamScore, opponentScore = :opponentScore
+    WHERE id = :gameId
+""")
+    suspend fun updateGameResult(
+        gameId: Long,
+        teamScore: Int,
+        opponentScore: Int,
+    )
 
     @Query("DELETE FROM games WHERE id = :gameId")
     suspend fun deleteById(gameId: Long)

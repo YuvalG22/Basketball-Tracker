@@ -18,7 +18,9 @@ class LiveGameRepository(
         playerId: Long?,
         type: EventType,
         period: Int,
-        clockSecRemaining: Int
+        clockSecRemaining: Int,
+        teamScoreAtEvent: Int? = null,
+        opponentScoreAtEvent: Int? = null
     ) {
         eventDao.insert(
             EventEntity(
@@ -27,7 +29,9 @@ class LiveGameRepository(
                 type = type.name,
                 period = period,
                 clockSecRemaining = clockSecRemaining,
-                createdAt = System.currentTimeMillis()
+                createdAt = System.currentTimeMillis(),
+                teamScoreAtEvent = teamScoreAtEvent,
+                opponentScoreAtEvent = opponentScoreAtEvent
             )
         )
     }
@@ -55,5 +59,7 @@ private fun EventEntity.toDomain() = LiveEvent(
     type = EventType.valueOf(type),
     period = period,
     clockSecRemaining = clockSecRemaining,
-    createdAt = createdAt
+    createdAt = createdAt,
+    teamScoreAtEvent = teamScoreAtEvent,
+    opponentScoreAtEvent = opponentScoreAtEvent
 )
