@@ -37,4 +37,6 @@ interface EventDao {
 """)
     suspend fun getEvents(gameId: Long): List<EventEntity>
 
+    @Query("DELETE FROM events WHERE gameId = :gameId")
+    suspend fun deleteByGameId(gameId: Long)
 }

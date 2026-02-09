@@ -1,11 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui
 
-import android.R
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.os.Build
-import android.view.View
-import android.view.ViewTreeObserver
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,10 +11,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,20 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.toUpperCase
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
-import androidx.privacysandbox.tools.core.model.Type
-import androidx.room.util.TableInfo
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
-import java.util.Locale
+import java.time.Clock
 import java.util.Locale.getDefault
 import kotlin.math.max
 
@@ -374,13 +362,10 @@ private fun ActionsPanel(
                 )
                 Spacer(Modifier.height(10.dp))
             }
-            HorizontalDivider(
-                thickness = 2.dp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-            )
-            Spacer(Modifier.height(10.dp))
+            SectionDivider()
+            Spacer(Modifier.weight(1f))
             Text("Opponent Actions")
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(
                     onClick = { onEvent(EventType.OPP_TWO_MADE) },
@@ -428,262 +413,369 @@ private fun GameControlPanel(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(12.dp)
         ) {
             Column(Modifier.fillMaxWidth()) {
                 Text("Game Info", style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(10.dp))
-                val dateText = remember(gameDateEpoch) {
-                    if (gameDateEpoch == 0L) "" else
-                        java.text.SimpleDateFormat("dd/MM/yyyy")
-                            .format(java.util.Date(gameDateEpoch))
-                }
-                Text("$dateText", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(2.dp))
-                Text("Round $roundNumber", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(2.dp))
-                Text("vs $opponentName", style = MaterialTheme.typography.titleMedium)
-                HorizontalDivider(
-                    Modifier.padding(vertical = 10.dp),
-                    thickness = 2.dp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                )
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(22.dp)
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            "AFEKA",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            "$teamScore",
-                            style = MaterialTheme.typography.displayMedium
-                        )
+                    val dateText = remember(gameDateEpoch) {
+                        if (gameDateEpoch == 0L) "" else
+                            java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+                                .format(java.util.Date(gameDateEpoch))
                     }
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        val mm = max(0, clock.secRemaining) / 60
-                        val ss = max(0, clock.secRemaining) % 60
-                        Text(
-                            String.format("%02d:%02d", mm, ss),
-                            style = MaterialTheme.typography.displaySmall
-                        )
-                        Text("Q${clock.period}", style = MaterialTheme.typography.titleLarge)
-                    }
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            opponentName.uppercase(getDefault()),
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            "$opponentScore",
-                            style = MaterialTheme.typography.displayMedium
-                        )
-                    }
+                    Text(
+                        "$dateText • Round $roundNumber",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
-
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        onClick = onToggleClock,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                    ) { Text(if (clock.isRunning) "Pause" else "Start") }
-
-                    OutlinedButton(
-                        onClick = onNextQuarter,
-                        enabled = !clock.isRunning,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                    ) { Text("Next Q") }
-                }
-
-                Spacer(Modifier.height(10.dp))
-                OutlinedButton(
-                    onClick = onResetQuarter,
-                    enabled = !clock.isRunning,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                ) { Text("Reset Quarter") }
-                HorizontalDivider(
-                    Modifier.padding(vertical = 10.dp),
-                    thickness = 2.dp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                SectionDivider()
+                ScoreBoard(
+                    clock,
+                    teamScore,
+                    opponentName,
+                    opponentScore
                 )
+                Spacer(Modifier.height(8.dp))
+                ClockControls(
+                    clock,
+                    onToggleClock,
+                    onNextQuarter,
+                    onResetQuarter
+                )
+                SectionDivider()
                 Text("Play-By-Play", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(6.dp))
-
+                Spacer(Modifier.height(8.dp))
                 if (events.isEmpty()) {
                     Text("No events yet", style = MaterialTheme.typography.bodyLarge)
                 } else {
-                    val listState = rememberLazyListState()
-                    LaunchedEffect(events.size) {
-                        if(events.isNotEmpty()) {
-                            listState.scrollToItem(events.lastIndex)
-                        }
-                    }
-                    LazyColumn(
-                        state = listState,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.height(220.dp)
-                    ) {
-                        items(items = events, key = { it.id }) { p ->
-                            val isOppEvent = p.type.isOpponentEvent()
-                            val isScoreEvent = p.type.isScoreEvent()
-                            val playerName = p.playerId?.let { id -> playersById[id]?.name }
-                            val formattedName = formatPlayerName(playerName)
-                            val time = String.format(
-                                "%01d:%02d",
-                                p.clockSecRemaining / 60,
-                                p.clockSecRemaining % 60
-                            )
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(20.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier.weight(2f),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    if (!isOppEvent) {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                formatEventPBP(p.type),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = if (isScoreEvent) FontWeight.ExtraBold else FontWeight.Normal
-                                            )
-                                            Text(
-                                                formattedName,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = if (isScoreEvent) FontWeight.ExtraBold else FontWeight.Normal,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(
-                                                    alpha = 0.50f
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                                Box(
-                                    modifier = Modifier.weight(1f),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            time,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Normal,
-                                            textAlign = TextAlign.Center,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(
-                                                alpha = 0.50f
-                                            )
-                                        )
-                                        if (isScoreEvent) {
-                                            Text(
-                                                "${p.teamScoreAtEvent}-${p.opponentScoreAtEvent}",
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                textAlign = TextAlign.Center,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(
-                                                    alpha = 0.50f
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                                Box(
-                                    modifier = Modifier.weight(2f),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) {
-                                    if (isOppEvent) {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                opponentName,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = if (isScoreEvent) FontWeight.ExtraBold else FontWeight.Normal,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(
-                                                    alpha = 0.50f
-                                                )
-                                            )
-                                            Text(
-                                                formatEventPBP(p.type),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = if (isScoreEvent) FontWeight.ExtraBold else FontWeight.Normal
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                //Spacer(Modifier.height(16.dp))
-                HorizontalDivider(
-                    Modifier.padding(vertical = 10.dp),
-                    thickness = 2.dp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                )
-            }
-            var showEndDialog by remember { mutableStateOf(false) }
-            Column() {
-//                OutlinedButton(
-//                    onClick = onOpenSummary,
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .height(56.dp)
-//                ) { Text("Box Score") }
-                Spacer(Modifier.height(10.dp))
-                Button(
-                    onClick = { showEndDialog = true },
-                    enabled = !isEnded,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-
-                    ) { Text("End Game") }
-                if (showEndDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showEndDialog = false },
-                        title = { Text("End game?") },
-                        text = { Text("Are you sure you want to end the game? You won’t be able to continue recording events.") },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    showEndDialog = false
-                                    onEndGame() // או onEndGameNavigate()
-                                }
-                            ) { Text("End") }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showEndDialog = false }) { Text("Cancel") }
-                        }
+                    PlayByPlayList(
+                        events = events,
+                        playersById = playersById,
+                        opponentName = opponentName
                     )
                 }
+                SectionDivider()
             }
+            Spacer(Modifier.weight(1f))
+            var showEndDialog by remember { mutableStateOf(false) }
+            Button(
+                onClick = { showEndDialog = true },
+                enabled = !isEnded,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+
+                ) { Text("End Game") }
+            if (showEndDialog) {
+                AlertDialog(
+                    onDismissRequest = { showEndDialog = false },
+                    title = { Text("End game?") },
+                    text = { Text("Are you sure you want to end the game? You won’t be able to continue recording events.") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showEndDialog = false
+                                onEndGame()
+                            }
+                        ) { Text("End") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showEndDialog = false }) { Text("Cancel") }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ScoreBoard(
+    clock: GameClock,
+    teamScore: Int,
+    opponentName: String,
+    opponentScore: Int
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier.weight(3f), contentAlignment = Alignment.CenterStart
+        ) {
+            TeamScore(
+                "AFEKA",
+                teamScore
+            )
+        }
+        Box(
+            modifier = Modifier.weight(2f), contentAlignment = Alignment.Center
+        ) {
+            ScoreBoardClock(clock)
+        }
+        Box(
+            modifier = Modifier.weight(3f), contentAlignment = Alignment.CenterEnd
+        ) {
+            TeamScore(
+                opponentName,
+                opponentScore
+            )
+        }
+    }
+}
+
+@Composable
+fun ScoreBoardClockSection(
+    clock: GameClock,
+    onToggleClock: () -> Unit,
+    onNextQuarter: () -> Unit,
+    onResetQuarter: () -> Unit,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        ScoreBoardClock(clock)
+        Spacer(Modifier.height(8.dp))
+        ClockControls(
+            clock = clock,
+            onToggleClock = onToggleClock,
+            onNextQuarter = onNextQuarter,
+            onResetQuarter = onResetQuarter,
+        )
+    }
+}
+
+@Composable
+fun ScoreBoardClock(clock: GameClock) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            formatClock(clock.secRemaining), style = MaterialTheme.typography.displaySmall
+        )
+        Text("Q${clock.period}", style = MaterialTheme.typography.titleLarge)
+    }
+}
+
+@Composable
+fun ClockControls(
+    clock: GameClock,
+    onToggleClock: () -> Unit,
+    onNextQuarter: () -> Unit,
+    onResetQuarter: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(
+                onClick = onToggleClock,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
+            ) { Text(if (clock.isRunning) "Pause" else "Start") }
+
+            OutlinedButton(
+                onClick = onNextQuarter,
+                enabled = !clock.isRunning,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
+            ) { Text("Next Q") }
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = onResetQuarter,
+            enabled = !clock.isRunning,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) { Text("Reset Quarter") }
+    }
+}
+
+
+@Composable
+fun TeamScore(name: String, score: Int) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            name,
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            "$score",
+            style = MaterialTheme.typography.displayMedium
+        )
+    }
+}
+
+@Composable
+fun PlayByPlayList(
+    events: List<LiveEvent>,
+    playersById: Map<Long, PlayerEntity>,
+    opponentName: String
+) {
+    val filteredList = remember(events) {
+        events.filter { it.type.isScoreEvent() }
+    }
+    val listState = rememberLazyListState()
+    LaunchedEffect(filteredList.size) {
+        if (filteredList.isNotEmpty()) {
+            listState.scrollToItem(filteredList.lastIndex)
+        }
+    }
+    LazyColumn(
+        state = listState,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.height(300.dp)
+    ) {
+        itemsIndexed(filteredList) { index, e ->
+            PlayByPlayItem(
+                index,
+                opponentName,
+                e,
+                playersById
+            )
+            if (index < filteredList.lastIndex) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(top = 8.dp),
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PlayByPlayItem(
+    index: Int,
+    opponentName: String,
+    event: LiveEvent,
+    playersById: Map<Long, PlayerEntity>
+) {
+    val isOppEvent = event.type.isOpponentEvent()
+    val isScoreEvent = event.type.isScoreEvent()
+    val playerName = event.playerId?.let { id -> playersById[id]?.name }
+    val formattedName = formatPlayerName(playerName)
+    val time = formatClock(event.clockSecRemaining)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.weight(2f), contentAlignment = Alignment.CenterStart) {
+            PlayByPlaySide(
+                visible = !isOppEvent,
+                alignEnd = false,
+                primary = formatEventPBP(event.type),
+                secondary = formattedName,
+                isScoreEvent = isScoreEvent,
+                secondaryFaded = true
+            )
+        }
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            PlayByPlayCenter(
+                period = event.period,
+                time = time,
+                isScoreEvent = isScoreEvent,
+                teamScore = event.teamScoreAtEvent,
+                oppScore = event.opponentScoreAtEvent
+            )
+        }
+        Box(Modifier.weight(2f), contentAlignment = Alignment.CenterEnd) {
+            PlayByPlaySide(
+                visible = isOppEvent,
+                alignEnd = true,
+                primary = opponentName,
+                secondary = formatEventPBP(event.type),
+                isScoreEvent = isScoreEvent,
+                secondaryFaded = true
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayByPlaySide(
+    visible: Boolean,
+    alignEnd: Boolean,
+    primary: String,
+    secondary: String,
+    isScoreEvent: Boolean,
+    secondaryFaded: Boolean
+) {
+    if (!visible) return
+
+    val weight = if (isScoreEvent) FontWeight.ExtraBold else FontWeight.Normal
+    val fadedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f)
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (alignEnd) {
+            Text(
+                primary,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = weight,
+                color = if (secondaryFaded) fadedColor else LocalContentColor.current
+            )
+            Text(
+                secondary,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = weight
+            )
+        } else {
+            Text(
+                primary,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = weight
+            )
+            Text(
+                secondary,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = weight,
+                color = if (secondaryFaded) fadedColor else LocalContentColor.current
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayByPlayCenter(
+    period: Int,
+    time: String,
+    isScoreEvent: Boolean,
+    teamScore: Int?,
+    oppScore: Int?
+) {
+    val fadedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f)
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            "Q$period $time",
+            style = MaterialTheme.typography.bodyLarge,
+            color = fadedColor,
+            textAlign = TextAlign.Center
+        )
+        if (isScoreEvent) {
+            Text(
+                "$teamScore-$oppScore",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = fadedColor,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -857,4 +949,20 @@ fun formatPlayerName(fullName: String?): String {
     val lastName = parts.last()
 
     return "$firstInitial. $lastName"
+}
+
+private fun formatClock(secRemaining: Int): String {
+    val safe = max(0, secRemaining)
+    val mm = safe / 60
+    val ss = safe % 60
+    return "%01d:%02d".format(mm, ss)
+}
+
+@Composable
+private fun SectionDivider() {
+    HorizontalDivider(
+        Modifier.padding(vertical = 8.dp),
+        thickness = 2.dp,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+    )
 }

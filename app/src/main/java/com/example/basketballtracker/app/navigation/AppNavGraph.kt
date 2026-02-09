@@ -136,7 +136,7 @@ fun AppNavGraph(
         }
 
         composable(Routes.HISTORY) {
-            val vm = remember { GamesHistoryViewModel(gamesRepo) }
+            val vm = remember { GamesHistoryViewModel(gamesRepo, liveRepo) }
 
             GamesHistoryScreen(
                 vm = vm,

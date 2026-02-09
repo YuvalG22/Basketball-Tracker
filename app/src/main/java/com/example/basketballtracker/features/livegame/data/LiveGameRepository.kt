@@ -36,6 +36,10 @@ class LiveGameRepository(
         )
     }
 
+    suspend fun deleteEventsByGame(gameId: Long) {
+        eventDao.deleteByGameId(gameId)
+    }
+
     suspend fun getLiveEventsOnce(gameId: Long): List<LiveEvent> =
         eventDao.getEvents(gameId).map { it.toDomain() }
 
