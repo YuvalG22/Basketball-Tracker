@@ -153,20 +153,18 @@ fun computeSecondsPlayedByPlayer(
     currentPeriod: Int,
     currentClockSecRemaining: Int
 ): Map<Long, Int> {
-    // זמן "עכשיו" מאז תחילת המשחק בשניות (elapsed)
     val nowT = toGameElapsedSec(
         period = currentPeriod,
         clockSecRemaining = currentClockSecRemaining,
         quarterLengthSec = quarterLengthSec
     )
 
-    // סדר כרונולוגי יציב
     val sorted = events.sortedWith(
         compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt })
     )
 
-    val inTime = mutableMapOf<Long, Int>()     // playerId -> tIn
-    val total = mutableMapOf<Long, Int>()      // playerId -> seconds
+    val inTime = mutableMapOf<Long, Int>()
+    val total = mutableMapOf<Long, Int>()
 
     for (e in sorted) {
         val pid = e.playerId ?: continue
@@ -176,7 +174,6 @@ fun computeSecondsPlayedByPlayer(
 
         when (e.type) {
             EventType.SUB_IN -> {
-                // אם כבר בפנים, נתעלם (או תחליט שאתה רוצה לתקן)
                 if (!inTime.containsKey(pid)) inTime[pid] = t
             }
 
@@ -189,8 +186,6 @@ fun computeSecondsPlayedByPlayer(
             else -> Unit
         }
     }
-
-    // כל מי שעוד על המגרש — נסגור עד "עכשיו"
     for ((pid, tIn) in inTime) {
         val delta = max(0, nowT - tIn)
         total[pid] = (total[pid] ?: 0) + delta
@@ -204,20 +199,16 @@ fun computePlusMinusByPlayer(events: List<LiveEvent>): Map<Long, Int> {
     val onCourt = linkedSetOf<Long>()
 
     val sorted = events.sortedWith(
-        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt })
+        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, {it.id})
     )
 
-    fun teamPoints(type: EventType) = when (type) {
+    fun deltaPoints(type: EventType) = when (type) {
         EventType.TWO_MADE -> 2
         EventType.THREE_MADE -> 3
         EventType.FT_MADE -> 1
-        else -> 0
-    }
-
-    fun oppPoints(type: EventType) = when (type) {
-        EventType.OPP_TWO_MADE -> 2
-        EventType.OPP_THREE_MADE -> 3
-        EventType.OPP_FT_MADE -> 1
+        EventType.OPP_TWO_MADE -> -2
+        EventType.OPP_THREE_MADE -> -3
+        EventType.OPP_FT_MADE -> -1
         else -> 0
     }
 
@@ -226,7 +217,7 @@ fun computePlusMinusByPlayer(events: List<LiveEvent>): Map<Long, Int> {
             EventType.SUB_IN -> e.playerId?.let { onCourt.add(it); pm.putIfAbsent(it, 0) }
             EventType.SUB_OUT -> e.playerId?.let { onCourt.remove(it) }
             else -> {
-                val delta = teamPoints(e.type) - oppPoints(e.type)
+                val delta = deltaPoints(e.type)
                 if (delta != 0) {
                     onCourt.forEach { pid -> pm[pid] = (pm[pid] ?: 0) + delta }
                 }

@@ -11,14 +11,14 @@ val PrimaryContainer = Color(0xFFFF7A00)
 val OnPrimaryContainer = Color(0xFFFFFFFF)
 
 // Backgrounds / Surfaces
-val Background = Color(0xFF000000)   // app background
+val Background = Color(0xFF141414)   // app background
 val OnBackground = Color(0xFFFFFFFF)
 
 val Surface = Color(0xFF1F1D1D)      // cards/panels
 val OnSurface = Color(0xFFE6EAF0)
 
-val SurfaceVariant = Color(0xFF1A2433) // list items, subtle blocks
-val OnSurfaceVariant = Color(0xFFB9C4D6)
+val SurfaceVariant = Color(0xFF2D2A2A) // list items, subtle blocks
+val OnSurfaceVariant = Color(0xBF252323)
 
 
 //Light Theme
