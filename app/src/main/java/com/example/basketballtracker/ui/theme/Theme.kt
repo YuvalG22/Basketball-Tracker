@@ -38,6 +38,8 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant = OnSurfaceVariant,
 
     outline = Outline,
+    outlineVariant = OutlineVariant,
+
     error = Error
 )
 
@@ -54,10 +56,11 @@ private val LightColorScheme = lightColorScheme(
     onSurface = LightOnSurface,
 
     surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = LightOnSurfaceVariant
-)
+    onSurfaceVariant = LightOnSurfaceVariant,
 
-val MyCustomFontFamily = FontFamily(Font(R.font.inter, FontWeight.Bold))
+    outline = Outline,
+    outlineVariant = OutlineVariant
+)
 
 @Composable
 fun BasketballTrackerTheme(

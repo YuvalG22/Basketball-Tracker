@@ -41,6 +41,7 @@ fun HomeScreen(
         ) {
             Text("Basketball Tracker", style = MaterialTheme.typography.displayLarge)
 
+
             Button(
                 onClick = onNewGame,
                 modifier = Modifier.height(64.dp)

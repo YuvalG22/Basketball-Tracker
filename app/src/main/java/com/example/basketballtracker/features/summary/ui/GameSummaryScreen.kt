@@ -1,24 +1,23 @@
 package com.example.basketballtracker.features.summary.ui
 
-import android.R
 import android.content.Intent
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.core.view.drawToBitmap
 import com.example.basketballtracker.core.data.db.AppDatabase
@@ -138,11 +137,11 @@ fun GameSummaryScreen(
         if (info.gameDateEpoch == 0L) "" else SimpleDateFormat("dd/MM/yyyy").format(Date(info.gameDateEpoch))
     }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(12.dp)
         ) {
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -198,7 +197,8 @@ fun GameSummaryScreen(
                     tableBounds = coords.boundsInWindow()
                 }
             ) {
-                Column() {
+                Column(
+                ) {
                     Text(
                         "Round ${info.roundNumber} • $dateText",
                         style = MaterialTheme.typography.titleMedium
@@ -209,62 +209,72 @@ fun GameSummaryScreen(
                     )
                     Spacer(Modifier.width(10.dp))
                 }
-                TableHeader()
-
-                val starterIds = remember(events) { detectStartersByCreatedAt(events) }
-
-                val starters = remember(info.players, starterIds) {
-                    info.players.filter { it.id in starterIds }
-                }
-
-                val bench = remember(info.players, starterIds) {
-                    info.players.filter { it.id !in starterIds }
-                }
-
-                LazyColumn(
-                    Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(0.dp),
-                    horizontalAlignment = Alignment.Start
+                Spacer(Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    items(starters, key = { it.id }) { p ->
-                        val b: PlayerBox? = box[p.id]
-                        val sec = secondsPlayedById[p.id] ?: 0
-                        val pm = pmById[p.id] ?: 0
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                    ) {
+                        TableHeader()
 
-                        PlayerRow(
-                            gameId = gameId,
-                            playerName = p.name,
-                            playerNumber = p.number,
-                            box = b,
-                            sec = sec,
-                            pm = pm
-                        )
-                    }
-                    item { HorizontalDivider(thickness = 4.dp) }
-                    items(bench, key = { it.id }) { p ->
-                        val b: PlayerBox? = box[p.id]
-                        val sec = secondsPlayedById[p.id] ?: 0
-                        val pm = pmById[p.id] ?: 0
+                        val starterIds = remember(events) { detectStartersByCreatedAt(events) }
 
-                        PlayerRow(
-                            gameId = gameId,
-                            playerName = p.name,
-                            playerNumber = p.number,
-                            box = b,
-                            sec = sec,
-                            pm = pm
-                        )
-                    }
-                    item {
-                        HorizontalDivider(thickness = 4.dp)
-                        TeamTotalRow(teamTotals)
-                    }
+                        val starters = remember(info.players, starterIds) {
+                            info.players.filter { it.id in starterIds }
+                        }
 
+                        val bench = remember(info.players, starterIds) {
+                            info.players.filter { it.id !in starterIds }
+                        }
+
+                        LazyColumn(
+                            Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(0.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            itemsIndexed(starters) { index, p ->
+                                val b: PlayerBox? = box[p.id]
+                                val sec = secondsPlayedById[p.id] ?: 0
+                                val pm = pmById[p.id] ?: 0
+
+                                PlayerRow(
+                                    gameId = gameId,
+                                    playerName = p.name,
+                                    playerNumber = p.number,
+                                    box = b,
+                                    sec = sec,
+                                    pm = pm,
+                                    index = index,
+                                    size = starters.size
+                                )
+                            }
+
+                            itemsIndexed(bench) { index, p ->
+                                val b: PlayerBox? = box[p.id]
+                                val sec = secondsPlayedById[p.id] ?: 0
+                                val pm = pmById[p.id] ?: 0
+
+                                PlayerRow(
+                                    gameId = gameId,
+                                    playerName = p.name,
+                                    playerNumber = p.number,
+                                    box = b,
+                                    sec = sec,
+                                    pm = pm,
+                                    index = index,
+                                    size = bench.size
+                                )
+                            }
+                            item { TeamTotalRow(teamTotals) }
+                        }
+                    }
                 }
             }
         }
     }
 }
+
 
 private data class GameInfo(
     val opponentName: String,
@@ -334,24 +344,32 @@ fun TableHeader() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         ) {
-            Text("PLAYER", Modifier.weight(3f))
-            Text("MIN", Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("PTS", Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("AST", Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("REB", Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("DREB", Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("OREB", Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("STL", Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("BLK", Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("TO", Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("FG", Modifier.weight(2f), textAlign = TextAlign.Center)
-            Text("3PT", Modifier.weight(2f), textAlign = TextAlign.Center)
-            Text("FT", Modifier.weight(2f), textAlign = TextAlign.Center)
-            Text("PF", Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text("+/-", Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text(
+                "PLAYER",
+                Modifier.weight(3f),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+            StatHeaderCell("MIN")
+            StatHeaderCell("PTS")
+            StatHeaderCell("AST")
+            StatHeaderCell("REB")
+            StatHeaderCell("DREB")
+            StatHeaderCell("OREB")
+            StatHeaderCell("STL")
+            StatHeaderCell("BLK")
+            StatHeaderCell("TO")
+            StatHeaderCell("FG", 2f)
+            StatHeaderCell("3PT", 2f)
+            StatHeaderCell("FT", 2f)
+            StatHeaderCell("PF")
+            StatHeaderCell("+/-")
         }
     }
-    HorizontalDivider()
+    HorizontalDivider(
+        thickness = 2.dp,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+    )
 }
 
 @Composable
@@ -361,7 +379,9 @@ fun PlayerRow(
     playerNumber: Int,
     box: PlayerBox?,
     sec: Int,
-    pm: Int
+    pm: Int,
+    index: Int,
+    size: Int
 ) {
     val minText = formatMinutes(sec)
     val pmText = if (pm > 0) "+$pm" else "$pm"
@@ -380,42 +400,33 @@ fun PlayerRow(
             )
             Text(playerName, Modifier.weight(5f))
         }
+        StatCell(minText)
+        StatCell("${box?.pts ?: 0}")
+        StatCell("${box?.ast ?: 0}")
+        StatCell("${box?.rebTotal ?: 0}")
+        StatCell("${box?.rebDef ?: 0}")
+        StatCell("${box?.rebOff ?: 0}")
+        StatCell("${box?.stl ?: 0}")
+        StatCell("${box?.blk ?: 0}")
+        StatCell("${box?.tov ?: 0}")
 
-        Text(minText, Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${box?.pts ?: 0}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${box?.ast ?: 0}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${box?.rebTotal ?: 0}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${box?.rebDef ?: 0}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${box?.rebOff ?: 0}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${box?.stl ?: 0}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${box?.blk ?: 0}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${box?.tov ?: 0}", Modifier.weight(1f), textAlign = TextAlign.Center)
+        StatCell("${box?.fgm}/${box?.fga} (${box?.fgPct}%)", 2f)
+        StatCell("${box?.threem}/${box?.threea} (${box?.threePct}%)", 2f)
+        StatCell("${box?.ftm}/${box?.fta} (${box?.ftPct}%)", 2f)
 
-        Text(
-            "${box?.fgm}/${box?.fga} (${box?.fgPct}%)",
-            Modifier.weight(2f),
-            textAlign = TextAlign.Center
-        )
-        Text(
-            "${box?.threem}/${box?.threea} (${box?.threePct}%)",
-            Modifier.weight(2f),
-            textAlign = TextAlign.Center
-        )
-        Text(
-            "${box?.ftm}/${box?.fta} (${box?.ftPct}%)",
-            Modifier.weight(2f),
-            textAlign = TextAlign.Center
-        )
-
-        Text("${box?.pf ?: 0}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text(if (gameId.toInt() == 2) "" else pmText, Modifier.weight(1f), textAlign = TextAlign.Center)
+        StatCell("${box?.pf ?: 0}")
+        StatCell(pmText)
     }
-    HorizontalDivider()
+    val isLast = index == size - 1
+    if (!isLast) {
+        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.surfaceVariant)
+    } else {
+        HorizontalDivider(thickness = 4.dp, color = MaterialTheme.colorScheme.surfaceVariant)
+    }
 }
 
 @Composable
 private fun TeamTotalRow(t: TeamTotals) {
-    //val minText = formatMinutes(t.totalSec)
 
     fun pct(m: Int, a: Int): Int {
         if (a == 0) return 0
@@ -427,41 +438,60 @@ private fun TeamTotalRow(t: TeamTotals) {
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
+
         Text(
             "TOTAL",
             Modifier.weight(3f),
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        Text("", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${t.pts}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${t.ast}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${t.rebTotal}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${t.rebDef}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${t.rebOff}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${t.stl}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${t.blk}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("${t.tov}", Modifier.weight(1f), textAlign = TextAlign.Center)
+        StatCell("", bold = true)
+        StatCell("${t.pts}", bold = true)
+        StatCell("${t.ast}", bold = true)
+        StatCell("${t.rebTotal}", bold = true)
+        StatCell("${t.rebDef}", bold = true)
+        StatCell("${t.rebOff}", bold = true)
+        StatCell("${t.stl}", bold = true)
+        StatCell("${t.blk}", bold = true)
+        StatCell("${t.tov}", bold = true)
 
-        Text(
-            "${t.fgm}/${t.fga} (${pct(t.fgm, t.fga)}%)",
-            Modifier.weight(2f),
-            textAlign = TextAlign.Center
-        )
-        Text(
-            "${t.threem}/${t.threea} (${pct(t.threem, t.threea)}%)",
-            Modifier.weight(2f),
-            textAlign = TextAlign.Center
-        )
-        Text(
-            "${t.ftm}/${t.fta} (${pct(t.ftm, t.fta)}%)",
-            Modifier.weight(2f),
-            textAlign = TextAlign.Center
-        )
+        StatCell("${t.fgm}/${t.fga} (${pct(t.fgm, t.fga)}%)", 2f, true)
+        StatCell("${t.threem}/${t.threea} (${pct(t.threem, t.threea)}%)", 2f, true)
+        StatCell("${t.ftm}/${t.fta} (${pct(t.ftm, t.fta)}%)", 2f, true)
 
-        Text("${t.pf}", Modifier.weight(1f), textAlign = TextAlign.Center)
-        Text("", Modifier.weight(1f), textAlign = TextAlign.Center)
+        StatCell("${t.pf}", bold = true)
+        StatCell("", bold = true)
     }
-    HorizontalDivider()
 }
+
+
+@Composable
+private fun RowScope.StatCell(text: String, cellWeight: Float = 1f, bold: Boolean = false) {
+    Text(
+        text = text,
+        modifier = Modifier.weight(cellWeight),
+        textAlign = TextAlign.Center,
+        style = MaterialTheme.typography.bodyLarge.copy(
+            fontFamily = FontFamily.Monospace
+        ),
+        color = MaterialTheme.colorScheme.onSurface
+    )
+}
+
+@Composable
+private fun RowScope.StatHeaderCell(
+    text: String,
+    cellWeight: Float = 1f
+) {
+    Text(
+        text = text,
+        modifier = Modifier.weight(cellWeight),
+        textAlign = TextAlign.Center,
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    )
+}
+
+
 

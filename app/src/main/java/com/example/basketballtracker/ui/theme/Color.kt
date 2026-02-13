@@ -4,21 +4,21 @@ import androidx.compose.ui.graphics.Color
 
 //Dark Theme
 // Brand / Accent (basketball orange)
-val Primary = Color(0xFFFFFFFF)
-val OnPrimary = Color(0xFF1A1A1A)
+val Primary = Color(0xFFFFFFFF) // buttons color
+val OnPrimary = Color(0xFF1A1A1A) // text on light buttons
 
-val PrimaryContainer = Color(0xFFFF7A00)
+val PrimaryContainer = Color(0xFFFFFFFF)
 val OnPrimaryContainer = Color(0xFFFFFFFF)
 
 // Backgrounds / Surfaces
-val Background = Color(0xFF141414)   // app background
-val OnBackground = Color(0xFFFFFFFF)
+val Background = Color(0xFF141414) // app background
+val OnBackground = Color(0xFFFFFFFF) // for elements directly on background
 
-val Surface = Color(0xFF1F1D1D)      // cards/panels
-val OnSurface = Color(0xFFE6EAF0)
+val Surface = Color(0xFF1F1D1D) // cards/panels
+val OnSurface = Color(0xFFFFFFFF) // text on cards/panels
 
 val SurfaceVariant = Color(0xFF2D2A2A) // list items, subtle blocks
-val OnSurfaceVariant = Color(0xBF252323)
+val OnSurfaceVariant = Color(0xFFFFFFFF) // text on dark buttons
 
 
 //Light Theme
@@ -41,6 +41,8 @@ val LightOnSurfaceVariant = Color(0xFF333333)
 
 // Extra useful colors
 val Outline = Color(0xFFFF7A00)
+val OutlineVariant = Color(0xFFFF7A00)
+
 
 val Success = Color(0xFF2ECC71)
 val Warning = Color(0xFFF4B400)

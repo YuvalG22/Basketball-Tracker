@@ -66,6 +66,7 @@ data class PlayerBox(
 
     val ftPct get() = pct(ftm, fta)
     val fgPct get() = pct(fgm, fga)
+    val twoPct get() = pct(twom, twoa)
     val threePct get() = pct(threem, threea)
 
     private fun pct(made: Int, att: Int): Int {

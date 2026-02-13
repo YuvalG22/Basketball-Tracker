@@ -46,6 +46,8 @@ dependencies {
     implementation(libs.androidx.compose.runtime.saveable)
     implementation(libs.androidx.compose.remote.creation.core)
     implementation(libs.androidx.tools.core)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.material3.window.size.class1)
     val room_version = "2.8.4"
     val nav_version = "2.9.6"
     implementation(libs.androidx.core.ktx)
@@ -56,6 +58,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.runtime)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
