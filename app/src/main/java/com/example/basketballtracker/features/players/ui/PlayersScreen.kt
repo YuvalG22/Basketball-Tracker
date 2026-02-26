@@ -20,6 +20,16 @@ import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.players.state.PlayersViewModel
 import com.example.basketballtracker.ui.theme.Surface
 
+/**
+ * Shows the roster management screen with a list of players and UI to add, edit, and delete entries.
+ *
+ * The composable collects player data from the provided view model and presents:
+ * - An "Add player" dialog with name and numeric inputs (digits only, max 2 characters) and a Save button enabled when the name is not blank.
+ * - An "Edit player" dialog with the same input constraints and Save button enabled when the edited name is not blank.
+ * - A scrollable list of players with Edit and Delete actions.
+ *
+ * @param vm View model that supplies the player list and handles add/update/delete operations.
+ */
 @Composable
 fun PlayersScreen(
     vm: PlayersViewModel,

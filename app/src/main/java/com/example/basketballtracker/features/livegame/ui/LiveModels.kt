@@ -20,16 +20,31 @@ enum class EventType {
     PERIOD_START,
     PERIOD_END;
 
+    /**
+     * Indicates whether the event was recorded for the opponent team.
+     *
+     * @return `true` if the event is one of the opponent score events (`OPP_TWO_MADE`, `OPP_THREE_MADE`, `OPP_FT_MADE`), `false` otherwise.
+     */
     fun isOpponentEvent(): Boolean = when (this) {
         OPP_TWO_MADE, OPP_THREE_MADE, OPP_FT_MADE -> true
         else -> false
     }
 
+    /**
+     * Indicates whether the event is scoring-related or a period boundary marker.
+     *
+     * @return `true` if the event is a made score (team or opponent) or a period start/end marker, `false` otherwise.
+     */
     fun isScoreEvent(): Boolean = when (this) {
         TWO_MADE, THREE_MADE, FT_MADE, OPP_TWO_MADE, OPP_THREE_MADE, OPP_FT_MADE, PERIOD_START, PERIOD_END -> true
         else -> false
     }
 
+    /**
+     * Indicates whether this event type is associated with a specific player.
+     *
+     * @return `true` if the event requires a player (for example: scoring, rebound, assist, steal, block, turnover, or foul), `false` otherwise.
+     */
     fun requiresPlayer(): Boolean = when (this) {
         TWO_MADE,
         TWO_MISS,
@@ -216,6 +231,18 @@ fun computeSecondsPlayedByPlayer(
     return total
 }
 
+/**
+ * Compute per-player plus-minus based on scoring events and substitutions.
+ *
+ * Processes the provided live events to track which players are on court and adjusts each on-court
+ * player's plus-minus when scoring events occur: TWO_MADE = +2, THREE_MADE = +3, FT_MADE = +1,
+ * OPP_TWO_MADE = -2, OPP_THREE_MADE = -3, OPP_FT_MADE = -1. Substitution events (SUB_IN / SUB_OUT)
+ * determine on-court membership used to attribute plus-minus.
+ *
+ * @param events The list of live game events (may be in any order).
+ * @return A map from player ID to that player's accumulated plus-minus; players with no plus-minus
+ *         adjustments may be absent from the map.
+ */
 fun computePlusMinusByPlayer(events: List<LiveEvent>): Map<Long, Int> {
     val pm = mutableMapOf<Long, Int>()
     val onCourt = linkedSetOf<Long>()
@@ -269,6 +296,12 @@ fun formatMinutes(seconds: Int): String {
 }
 
 
+/**
+ * Produce a short, user-facing label for the given game event.
+ *
+ * @param t The event type to format.
+ * @return A concise, human-readable label for the event (for example: "FT ✓", "2PT ✓", "REB O", "Start Q").
+ */
 fun formatEvent(t: EventType) = when (t) {
     EventType.FT_MADE -> "FT ✓"
     EventType.FT_MISS -> "FT ✗"
@@ -292,6 +325,12 @@ fun formatEvent(t: EventType) = when (t) {
     EventType.PERIOD_END -> "End Q"
 }
 
+/**
+ * Maps an EventType to its concise play-by-play label.
+ *
+ * @param t The event type to format for play-by-play display.
+ * @return A short, human-readable label for the event (e.g., "FT", "2PT", "IN", "Start Q").
+ */
 fun formatEventPBP(t: EventType) = when (t) {
     EventType.FT_MADE -> "FT"
     EventType.FT_MISS -> "MISS FT"

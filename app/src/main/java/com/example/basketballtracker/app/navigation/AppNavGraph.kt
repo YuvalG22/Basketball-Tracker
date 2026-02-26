@@ -32,6 +32,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 
+/**
+ * Hosts the app's navigation graph and wires routes to their corresponding screens and view models.
+ *
+ * Sets the start destination to HOME and provides navigation handlers for creating/continuing games,
+ * viewing players, history, and game summaries. Creates a remembered PlayersRepository from the
+ * provided database. The LIVE route asynchronously loads roster players (shows a loading indicator
+ * while empty) and instantiates a LiveGameViewModel with a custom factory; ending a live game navigates
+ * back to HOME. Other routes create and pass the appropriate view models and repositories to screens.
+ *
+ * @param nav The NavHostController used for navigation between routes.
+ * @param db The AppDatabase used to obtain DAOs for players, rosters, and other persistence.
+ * @param gamesRepo Repository for game-related operations.
+ * @param liveRepo Repository for live-game operations.
+ * @param quarterLengthDefault Default quarter length in seconds used when creating new or live games.
+ */
 @Composable
 fun AppNavGraph(
     nav: NavHostController,

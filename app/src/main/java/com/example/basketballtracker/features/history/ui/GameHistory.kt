@@ -44,6 +44,13 @@ import androidx.compose.ui.unit.max
 import com.example.basketballtracker.features.history.state.GamesHistoryViewModel
 import java.nio.file.WatchEvent
 
+/**
+ * Displays the game history UI: a centered list of past games with date, round, opponent, score, and a win/loss indicator.
+ *
+ * Tapping a game row invokes the navigation callback; tapping the delete icon opens a confirmation dialog and, when confirmed, deletes the selected game via the provided view model.
+ *
+ * @param onGameClick Callback invoked with the game's id when a game row is clicked.
+ */
 @Composable
 fun GamesHistoryScreen(
     vm: GamesHistoryViewModel,

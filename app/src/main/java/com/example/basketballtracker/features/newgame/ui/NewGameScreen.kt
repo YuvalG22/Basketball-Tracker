@@ -25,6 +25,18 @@ import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.players.data.PlayersRepository
 import kotlinx.coroutines.launch
 
+/**
+ * Composes a screen for configuring and starting a new basketball game.
+ *
+ * Displays inputs for opponent, round, and quarter length, allows selecting players from
+ * the provided players repository, and starts a game when the selection and inputs are complete.
+ *
+ * @param defaultQuarterLengthSec Initial quarter length in seconds used to populate the quarter length state.
+ * @param gamesRepo Repository used to create and persist the new game.
+ * @param playersRepo Repository observed for the list of available players.
+ * @param rosterDao DAO used to persist roster entries linking selected players to the created game.
+ * @param onStart Callback invoked with the created game's ID after the game and roster entries have been persisted.
+ */
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun NewGameScreen(
@@ -100,6 +112,20 @@ fun NewGameScreen(
     }
 }
 
+/**
+ * Displays the narrow-screen UI for creating a new game, including opponent and round inputs,
+ * a scrollable player selection list, and a start button.
+ *
+ * @param opponent Current text for the opponent field.
+ * @param onOpponent Callback invoked with the new opponent text.
+ * @param roundText Current text for the round field.
+ * @param onRound Callback invoked with the new round text.
+ * @param players List of available players to display.
+ * @param selectedIds Set of player IDs currently selected for the roster.
+ * @param onToggle Callback invoked with a player ID to toggle its selection state.
+ * @param canStart If `true`, the Start button is enabled.
+ * @param onStartClick Callback invoked when the Start button is pressed.
+ */
 @Composable
 private fun NewGameNarrowLayout(
     opponent: String,
@@ -173,6 +199,19 @@ private fun NewGameNarrowLayout(
     }
 }
 
+/**
+ * Render the wide-screen New Game UI: opponent and round inputs, a selectable roster list, and a start button.
+ *
+ * @param opponent Current opponent text.
+ * @param onOpponent Called when the opponent text changes.
+ * @param roundText Current round text.
+ * @param onRound Called when the round text changes.
+ * @param players List of players to display in the roster.
+ * @param selectedIds Set of player IDs that are currently selected.
+ * @param onToggle Toggle selection for the player with the given ID.
+ * @param canStart Whether the Start button is enabled.
+ * @param onStartClick Invoked when the Start button is clicked.
+ */
 @Composable
 private fun NewGameWideLayout(
     opponent: String,
@@ -257,6 +296,17 @@ private fun NewGameWideLayout(
     }
 }
 
+/**
+ * Displays a labeled, themed outlined text field with a hint placeholder and rounded corners.
+ *
+ * Shows the provided label above an OutlinedTextField, binds its value to [text], and forwards user edits to [onValueChange]. The visual styling (colors, typography, and corner radius) follows the app theme.
+ *
+ * @param text The current text value shown in the field.
+ * @param onValueChange Callback invoked with the updated text when the user edits the field.
+ * @param label Short label text displayed above the text field.
+ * @param hint Placeholder text shown inside the field when [text] is empty.
+ * @param modifier Optional [Modifier] to apply to the outer column container.
+ */
 @Composable
 fun MyTextField(
     text: String,

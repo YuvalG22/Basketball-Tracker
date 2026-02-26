@@ -59,6 +59,15 @@ import kotlin.math.max
 
 enum class EventFilter { All, Score }
 
+/**
+ * Composes the live game tablet screen by subscribing to the view model UI and rendering the
+ * scoreboard, players panel, play-by-play controls, and action buttons.
+ *
+ * Subscribes to vm.ui and computes derived state (scores, per-period team fouls, player box
+ * stats, on-court/bench lists, and action enablement) which is passed to child panels.
+ *
+ * @param onEndGameNavigate Callback invoked to navigate away when the user confirms ending the game.
+ */
 @Composable
 fun LiveGameTabletScreen(
     vm: LiveGameViewModel,
@@ -166,6 +175,25 @@ fun LiveGameTabletScreen(
     }
 }
 
+/**
+ * Displays the "On Court" and "Bench" player panels with selection, substitution controls, and a player details dialog.
+ *
+ * Shows a scrollable list of on-court players and a horizontal list of bench players, each with selection and action buttons.
+ * Long-pressing a player opens a details dialog showing that player's stats. Sub-in availability is computed from the
+ * current number of on-court players.
+ *
+ * @param onCourtPlayers List of players currently on the court.
+ * @param benchPlayers List of players on the bench.
+ * @param selectedId Currently selected player id, or null when none is selected.
+ * @param isEnded Whether the game has ended; used to disable certain bench actions.
+ * @param box Mapping from player id to their accumulated box score (may be null for missing entries).
+ * @param plusMinusById Mapping from player id to their plus/minus value; missing entries imply 0.
+ * @param secondsPlayedById Mapping from player id to seconds played; used for sorting and display.
+ * @param onSelect Callback invoked with a player id when a player is selected.
+ * @param onSubIn Callback invoked with a bench player id to request substituting that player in.
+ * @param onSubOut Callback invoked with an on-court player id to request substituting that player out.
+ * @param modifier Modifier applied to the root container.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlayersPanel(
@@ -286,6 +314,18 @@ private fun PlayersPanel(
     }
 }
 
+/**
+ * Displays a card of action controls for recording team and opponent events.
+ *
+ * The panel presents made/missed shot buttons, rebound and miscellaneous action buttons,
+ * a personal foul button, and opponent scoring buttons. Button availability is governed
+ * by the `enabled` flag.
+ *
+ * @param enabled When `true`, all action controls are interactive; when `false`, controls are disabled and a helper hint is shown.
+ * @param onEvent Callback invoked with the selected `EventType` when any action button is pressed.
+ * @param onUndo Callback intended to trigger an undo of the last action.
+ * @param modifier Modifier applied to this panel.
+ */
 @Composable
 private fun ActionsPanel(
     enabled: Boolean,
@@ -375,6 +415,20 @@ private fun ActionsPanel(
     }
 }
 
+/**
+ * Renders the play-by-play control panel with event filtering, undo, and end-game controls.
+ *
+ * Displays a filter for event types, an undo button, a scrollable list of filtered events,
+ * and an end-game button which opens a confirmation dialog when pressed.
+ *
+ * @param opponentName The display name of the opposing team shown in play-by-play entries.
+ * @param events The list of live events to display and filter.
+ * @param playersById Map from player ID to PlayerEntity used to resolve player names in the list.
+ * @param isEnded When true, disables the end-game action.
+ * @param onEndGame Callback invoked when the user confirms ending the game.
+ * @param onUndo Callback invoked when the user presses the undo button.
+ * @param modifier Modifier applied to the panel container.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("DefaultLocale")
 @Composable
@@ -460,6 +514,24 @@ private fun GameControlPanel(
     }
 }
 
+/**
+ * Renders the scoreboard panel with clock controls, team scores, fouls, and game metadata.
+ *
+ * Displays clock controls on the left, a centered score board showing team and opponent scores
+ * and fouls, and game date plus round number on the right. The card background color
+ * changes to indicate running (green) or low/paused time (red) states.
+ *
+ * @param gameDateEpoch Epoch milliseconds for the game date; if 0 the date text is empty.
+ * @param roundNumber The current round number to display.
+ * @param teamScore The home/team score to show.
+ * @param opponentName The opponent team name to show.
+ * @param opponentScore The opponent team's score to show.
+ * @param clock Current game clock state used by the clock controls and display.
+ * @param onToggleClock Callback invoked to toggle the clock running/paused state.
+ * @param onNextQuarter Callback invoked to advance to the next quarter.
+ * @param teamFouls Number of team fouls to display.
+ * @param modifier Modifier to apply to the panel root.
+ */
 @Composable
 fun ScoreBoardPanel(
     gameDateEpoch: Long,
@@ -533,6 +605,15 @@ fun ScoreBoardPanel(
     }
 }
 
+/**
+ * Renders the two-team scoreboard row containing the home team (labeled "AFEKA"), the game clock, and the opponent.
+ *
+ * @param clock The game clock state to display in the center.
+ * @param teamScore The home team score to display on the left.
+ * @param opponentName The opponent team name to display on the right.
+ * @param opponentScore The opponent team score to display on the right.
+ * @param fouls The current team foul count for the period to display for both teams.
+ */
 @Composable
 fun ScoreBoard(
     clock: GameClock,
@@ -569,6 +650,13 @@ fun ScoreBoard(
     }
 }
 
+/**
+ * Displays the formatted remaining game time and the current period in a horizontal layout.
+ *
+ * Shows the remaining time as "M:SS" using a monospace, bold display style on the left and the period as `Qn` on the right.
+ *
+ * @param clock The GameClock containing `secRemaining` (seconds left) and `period` (current quarter). 
+ */
 @Composable
 fun ScoreBoardClock(clock: GameClock) {
     Row(
@@ -593,6 +681,13 @@ fun ScoreBoardClock(clock: GameClock) {
     }
 }
 
+/**
+ * Renders play/pause and "Next Q" controls for the game clock.
+ *
+ * @param clock Current game clock state used to determine the play/pause icon and button enablement.
+ * @param onToggleClock Invoked when the play/pause control is pressed.
+ * @param onNextQuarter Invoked to advance the game to the next quarter; the UI disables this action while the clock is running.
+ */
 @Composable
 fun ClockControls(
     clock: GameClock,
@@ -623,6 +718,13 @@ fun ClockControls(
     }
 }
 
+/**
+ * Displays the right-side team score block showing the team name, numeric score, and foul indicators.
+ *
+ * @param name The team display name.
+ * @param score The team's current score.
+ * @param fouls The team's current foul count rendered as foul dots.
+ */
 @Composable
 fun RightTeamScore(name: String, score: Int, fouls: Int) {
     Row(
@@ -651,6 +753,12 @@ fun RightTeamScore(name: String, score: Int, fouls: Int) {
     }
 }
 
+/**
+ * Renders the left/home team display with the team name, a visual foul indicator, and the team score.
+ *
+ * @param name The team name to show.
+ * @param score The team's current score displayed prominently.
+ * @param fouls The number of team fouls to render as foul dots.
 @Composable
 fun LeftTeamScore(name: String, score: Int, fouls: Int) {
     Row(
@@ -682,6 +790,15 @@ fun LeftTeamScore(name: String, score: Int, fouls: Int) {
     }
 }
 
+/**
+ * Renders a vertically scrollable play-by-play list of events and auto-scrolls to the latest event.
+ *
+ * Displays the provided events in a fixed-height list (up to eight rows of 60dp each) and keeps the view scrolled to the newest item when the events list grows.
+ *
+ * @param events The chronological list of live events to display.
+ * @param playersById Mapping of player IDs to PlayerEntity used to resolve player names/details for each event.
+ * @param opponentName The opponent team name used for rendering opponent-related events.
+ */
 @Composable
 fun PlayByPlayList(
     events: List<LiveEvent>,
@@ -716,6 +833,16 @@ fun PlayByPlayList(
     }
 }
 
+/**
+ * Renders a single play-by-play entry row for the given event.
+ *
+ * Displays left-side event/player details, a center time/period/score column, and right-side opponent details.
+ * If the event is a period start or end marker, renders a period marker instead.
+ *
+ * @param opponentName Display name of the opposing team shown for opponent-side entries.
+ * @param event The live event to render.
+ * @param playersById Map of player IDs to PlayerEntity used to resolve and format the player's name for display. 
+ */
 @Composable
 fun PlayByPlayItem(
     opponentName: String,
@@ -819,6 +946,16 @@ private fun PlayByPlaySide(
     }
 }
 
+/**
+ * Displays the current period and clock time, and optionally a centered score line.
+ *
+ * @param period The current period (quarter) number to display as "Q{period}".
+ * @param time A formatted clock string (e.g., "1:23") shown next to the period.
+ * @param isScoreEvent If true, renders a score line showing `teamScore - oppScore` beneath the period/time.
+ * @param teamScore The team's score to display when `isScoreEvent` is true; may be null if unavailable.
+ * @param oppScore The opponent's score to display when `isScoreEvent` is true; may be null if unavailable.
+ * @param isOppEvent When true, visually de-emphasizes the team side and emphasizes the opponent side on the score line.
+ */
 @Composable
 private fun PlayByPlayCenter(
     period: Int,
@@ -867,6 +1004,16 @@ private fun PlayByPlayCenter(
     }
 }
 
+/**
+ * Renders a horizontal row of foul indicator dots.
+ *
+ * @param fouls Number of fouls to mark; displayed count is capped at 5.
+ * @param maxFouls Total number of dots to render.
+ * @param dotSize Size of each dot.
+ * @param spacing Horizontal spacing between dots.
+ * @param activeColor Color used for active (filled) foul dots.
+ * @param inactiveColor Color used for inactive (empty) foul dots.
+ */
 @Composable
 fun FoulDots(
     fouls: Int,
@@ -894,6 +1041,17 @@ fun FoulDots(
     }
 }
 
+/**
+ * Displays a player's detailed statistics in a vertical sheet layout.
+ *
+ * Shows a "Player not found" message when `player` is null. When `player` is present, renders minutes played, points, free throws, 2-pointers, 3-pointers, field goals, rebounds (total/defensive/offensive), assists, steals, blocks, turnovers, personal fouls, and plus/minus.
+ *
+ * @param player The player to display; if null a "Player not found" message is shown.
+ * @param box The player's box score; null values are treated as zeros and default formatted strings.
+ * @param secondsPlayed Total seconds the player has been on court (formatted as minutes).
+ * @param plusMinus The player's plus/minus value (prefixed with `+` when positive).
+ * @param modifier Modifier to be applied to the root composable.
+ */
 @Composable
 private fun PlayerDetailsSheetContent(
     player: PlayerEntity?,
@@ -1019,6 +1177,19 @@ private fun SectionDivider() {
     )
 }
 
+/**
+ * Displays an outlined card for an on-court player showing number, name, minutes, points, rebounds, assists and fouls, with a button to substitute the player out.
+ *
+ * The card is selectable via tap (invokes `onSelect`), supports a long‑press to open a player details sheet (invokes `onOpenSheet` and triggers haptic feedback), and exposes an "OUT" button that invokes `onSubOut`.
+ *
+ * @param player The player to render.
+ * @param playerBoxScore Aggregated stats for the player; fields used: `pts`, `rebTotal`, `ast`, `pf`. If null, stats display as zero.
+ * @param secondsByPlayer Seconds played for the player; used to format minutes display. If null, treated as zero.
+ * @param isSelected Whether this player is currently selected (affects card border styling).
+ * @param onSelect Callback invoked with the player's id when the card is tapped.
+ * @param onSubOut Callback invoked with the player's id when the "OUT" button is pressed.
+ * @param onOpenSheet Callback invoked with the player's id when the card is long‑pressed to open the details sheet.
+ */
 @Composable
 private fun OnCourtPlayerCard(
     player: PlayerEntity,
@@ -1106,6 +1277,18 @@ private fun OnCourtPlayerCard(
     }
 }
 
+/**
+ * Displays a bench player card showing the player's number and formatted name, with an "IN" button
+ * and click/long-press interactions.
+ *
+ * @param player The player entity to render.
+ * @param isSelected True when the player is currently selected; affects the card border.
+ * @param canSubIn True when substituting this player in is allowed.
+ * @param isEnded True when the game has ended; disables the "IN" button when true.
+ * @param onSelect Invoked with the player's id when the card is clicked.
+ * @param onSubIn Invoked with the player's id when the "IN" button is pressed.
+ * @param onOpenSheet Invoked with the player's id when the card is long-pressed (opens details sheet).
+ */
 @Composable
 private fun BenchPlayerCard(
     player: PlayerEntity,
@@ -1166,6 +1349,14 @@ private fun BenchPlayerCard(
     }
 }
 
+/**
+ * Button that reports a missed-shot event when pressed.
+ *
+ * @param label Text to display inside the button.
+ * @param type The `EventType` that will be sent to the callback when the button is pressed.
+ * @param onEvent Callback invoked with `type` when the button is clicked.
+ * @param enabled Whether the button is enabled and can be interacted with.
+ */
 @Composable
 fun MissedShotButton(
     label: String,
@@ -1183,6 +1374,14 @@ fun MissedShotButton(
     ) { Text(label) }
 }
 
+/**
+ * Primary action button for recording a made shot event.
+ *
+ * @param label The text shown inside the button.
+ * @param type The EventType that will be passed to the callback when the button is pressed.
+ * @param onEvent Callback invoked with `type` when the button is clicked.
+ * @param enabled Controls whether the button is interactive.
+ */
 @Composable
 fun MadeShotButton(label: String, type: EventType, onEvent: (EventType) -> Unit, enabled: Boolean) {
     Button(
@@ -1195,6 +1394,14 @@ fun MadeShotButton(label: String, type: EventType, onEvent: (EventType) -> Unit,
     ) { Text(label) }
 }
 
+/**
+ * Renders a full-width action button inside a Row that dispatches the given event when clicked.
+ *
+ * @param label Text to show on the button.
+ * @param type EventType passed to [onEvent] when the button is clicked.
+ * @param onEvent Callback invoked with [type] on click.
+ * @param enabled Whether the button is interactive.
+ */
 @Composable
 fun RowScope.ActionButton(
     label: String,
@@ -1212,6 +1419,14 @@ fun RowScope.ActionButton(
     ) { Text(text = label) }
 }
 
+/**
+ * Counts personal fouls (PF) recorded for the specified game and period.
+ *
+ * @param events List of live events to examine.
+ * @param gameId Identifier of the game to filter events by.
+ * @param period Period (quarter) number to filter events by.
+ * @return The number of PF events matching the given game and period.
+ */
 fun computeTeamFoulsThisPeriod(
     events: List<LiveEvent>,
     gameId: Long,
@@ -1224,6 +1439,14 @@ fun computeTeamFoulsThisPeriod(
     }
 }
 
+/**
+ * Renders a two-option segmented control to choose the play-by-play event filter.
+ *
+ * Shows "All" and "Score" segments and invokes the callback when the user selects a segment.
+ *
+ * @param selected The currently selected EventFilter.
+ * @param onSelected Callback invoked with the newly selected EventFilter.
+ */
 @Composable
 fun PlayByPlayFilter(
     selected: EventFilter,
@@ -1260,6 +1483,11 @@ fun PlayByPlayFilter(
     }
 }
 
+/**
+ * Displays a centered period marker row like "START Qn" or "END Qn" between horizontal dividers.
+ *
+ * @param event A LiveEvent with type PERIOD_START or PERIOD_END; its `period` value is shown in the marker.
+ */
 @Composable
 private fun PeriodMarker(event: LiveEvent) {
     val text = when (event.type) {

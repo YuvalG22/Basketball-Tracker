@@ -110,10 +110,20 @@ class LiveGameViewModel(
     fun toggleClock() =
         _base.update { it.copy(clock = it.clock.copy(isRunning = !it.clock.isRunning)) }
 
+    /**
+     * Reset the game clock to the configured quarter length and stop it.
+     */
     fun resetQuarter() = _base.update {
         it.copy(clock = it.clock.copy(secRemaining = quarterLengthSec, isRunning = false))
     }
 
+    /**
+     * Advance the game to the next quarter, emit period-end and period-start events, and reset the clock.
+     *
+     * If the current period is already 4, no changes are made. Otherwise a PERIOD_END event is emitted, the
+     * clock's period is incremented, secRemaining is set to quarterLengthSec and isRunning is set to false,
+     * then a PERIOD_START event is emitted.
+     */
     fun nextQuarter() {
         val snap = _base.value
         if (snap.clock.period >= 4) return
@@ -137,6 +147,17 @@ class LiveGameViewModel(
         )
     }
 
+    /**
+     * Creates and persists a live-game event using the current UI state and game clock.
+     *
+     * The effective player for the event is chosen in this order: opponent events have no player; if `noPlayer`
+     * is true the event has no player; `playerIdOverride` if provided; otherwise the currently selected player.
+     * If the event type requires a player and none is available, the call is a no-op. For scoring and opponent
+     * score events the recorded event includes team and opponent scores at the time of the event.
+     *
+     * @param playerIdOverride If non-null, force the event to be attributed to this player instead of the selected player.
+     * @param noPlayer When true, record the event without an associated player (used for opponent or neutral events).
+     */
     fun addEvent(
         type: EventType,
         playerIdOverride: Long? = null,
