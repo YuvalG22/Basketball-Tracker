@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.players.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -17,11 +18,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.players.state.PlayersViewModel
+import com.example.basketballtracker.ui.theme.Surface
 
 @Composable
 fun PlayersScreen(
     vm: PlayersViewModel,
-    onBack: () -> Unit
 ) {
     val players by vm.players.collectAsState()
     var showAdd by rememberSaveable { mutableStateOf(false) }
@@ -119,74 +120,77 @@ fun PlayersScreen(
             }
         )
     }
-
-
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.Start
+    Surface(
+        Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            contentAlignment = Alignment.Center
         ) {
-
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Roster Management", style = MaterialTheme.typography.displaySmall)
-                TextButton(onClick = onBack) { Text("Back") }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                Modifier
+                    .widthIn(max = 500.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text("Roster Management", style = MaterialTheme.typography.displaySmall)
+                Spacer(modifier = Modifier.height(32.dp))
                 Button(
                     onClick = { showAdd = true },
-                    modifier = Modifier.height(56.dp)
+                    modifier = Modifier
+                        .height(56.dp)
+                        .align(Alignment.Start)
                 ) { Text("Add Player") }
-            }
-
-            Card(modifier = Modifier.fillMaxWidth()) {
-                LazyColumn(
-                    contentPadding = PaddingValues(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface)
                 ) {
-                    items(players, key = { it.id }) { p ->
-                        ElevatedCard(
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                    LazyColumn(
+                        contentPadding = PaddingValues(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(players, key = { it.id }) { p ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant)
                             ) {
-                                Row() {
-                                    Text(
-                                        modifier = Modifier.width(48.dp),
-                                        text = "#${p.number}",
-                                        textAlign = TextAlign.Start,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = p.name,
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                }
-                                Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                                    IconButton(onClick = {
-                                        editing = p
-                                        editName = p.name
-                                        editNumberText = p.number.toString()
-                                    }) {
-                                        Icon(Icons.Default.Edit, contentDescription = "Edit")
-                                    }
-                                    IconButton(onClick = { vm.delete(p.id) }) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = "Delete"
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row() {
+                                        Text(
+                                            modifier = Modifier.width(48.dp),
+                                            text = "#${p.number}",
+                                            textAlign = TextAlign.Start,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
+                                        Text(
+                                            text = p.name,
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    }
+                                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                                        IconButton(onClick = {
+                                            editing = p
+                                            editName = p.name
+                                            editNumberText = p.number.toString()
+                                        }) {
+                                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                        }
+                                        IconButton(onClick = { vm.delete(p.id) }) {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Delete"
+                                            )
+                                        }
                                     }
                                 }
                             }

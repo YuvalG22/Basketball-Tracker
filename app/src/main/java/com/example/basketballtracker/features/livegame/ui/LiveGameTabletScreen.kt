@@ -2,6 +2,7 @@ package com.example.basketballtracker.features.livegame.ui
 
 import com.example.basketballtracker.R
 import android.annotation.SuppressLint
+import android.inputmethodservice.Keyboard
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -10,6 +11,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -23,14 +25,22 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PauseCircleOutline
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
@@ -42,6 +52,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.max
 
 enum class EventFilter { All, Score }
@@ -49,15 +62,28 @@ enum class EventFilter { All, Score }
 @Composable
 fun LiveGameTabletScreen(
     vm: LiveGameViewModel,
-    onEndGameNavigate: () -> Unit,
-    onOpenSummary: () -> Unit
+    onEndGameNavigate: () -> Unit
 ) {
     val s by vm.ui.collectAsState()
     val box = remember(s.events) { computeBoxByPlayer(s.events) }
     val teamScore = remember(s.events) { computeTeamScore(s.events) }
     val opponentScore = remember(s.events) { computeOppScore(s.events) }
     val playersById = remember(s.players) { s.players.associateBy { it.id } }
-    val last = s.events.takeLast(5)
+
+    val teamFoulsThisQ = remember(s.events, s.clock.period, s.gameId) {
+        computeTeamFoulsThisPeriod(
+            events = s.events,
+            gameId = s.gameId,
+            period = s.clock.period
+        )
+    }
+
+    val selectedPf = remember(s.selectedPlayerId, box) {
+        val id = s.selectedPlayerId ?: return@remember 0
+        box[id]?.pf ?: 0
+    }
+
+    val actionsEnabled = s.selectedPlayerId != null && !s.isEnded && selectedPf < 5
 
     val onCourtIds = remember(s.events) { computeOnCourtIds(s.events) }
 
@@ -71,60 +97,71 @@ fun LiveGameTabletScreen(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Row(
-            Modifier
+        Column(
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(4.dp)
-                .windowInsetsPadding(WindowInsets.systemBars)
+                .windowInsetsPadding(WindowInsets.systemBars),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            PlayersPanel(
-                onCourtPlayers = onCourtPlayers,
-                benchPlayers = benchPlayers,
-                selectedId = s.selectedPlayerId,
-                isEnded = s.isEnded,
-                box = box,
-                plusMinusById = s.plusMinusById,
-                secondsPlayedById = s.secondsPlayedById,
-                onSelect = vm::selectPlayer,
-                onSubIn = vm::subIn,
-                onSubOut = vm::subOut,
-                modifier = Modifier
-                    .weight(0.35f)
-                    .fillMaxHeight()
-            )
-
-            Spacer(Modifier.width(12.dp))
-
-            ActionsPanel(
-                enabled = s.selectedPlayerId != null && !s.isEnded,
-                onEvent = vm::addEvent,
-                onUndo = vm::undoLast,
-                modifier = Modifier
-                    .weight(0.30f)
-                    .fillMaxHeight()
-            )
-
-            Spacer(Modifier.width(12.dp))
-
-            GameControlPanel(
-                opponentName = s.opponentName,
-                roundNumber = s.roundNumber,
+            ScoreBoardPanel(
                 gameDateEpoch = s.gameDateEpoch,
-                teamScore = teamScore,
-                opponentScore = opponentScore,
+                roundNumber = s.roundNumber,
                 clock = s.clock,
-                events = s.events,
-                playersById = playersById,
-                isEnded = s.isEnded,
-                onEndGame = onEndGameNavigate,
+                teamScore = teamScore,
+                opponentName = s.opponentName,
+                opponentScore = opponentScore,
                 onToggleClock = vm::toggleClock,
                 onNextQuarter = vm::nextQuarter,
-                onResetQuarter = vm::resetQuarter,
-                onOpenSummary = onOpenSummary,
+                teamFouls = teamFoulsThisQ,
                 modifier = Modifier
-                    .weight(0.35f)
-                    .fillMaxHeight()
+                    .weight(0.1f)
+                    .fillMaxWidth()
             )
+            Row(
+                modifier = Modifier.weight(0.9f)
+            ) {
+                PlayersPanel(
+                    onCourtPlayers = onCourtPlayers,
+                    benchPlayers = benchPlayers,
+                    selectedId = s.selectedPlayerId,
+                    isEnded = s.isEnded,
+                    box = box,
+                    plusMinusById = s.plusMinusById,
+                    secondsPlayedById = s.secondsPlayedById,
+                    onSelect = vm::selectPlayer,
+                    onSubIn = vm::subIn,
+                    onSubOut = vm::subOut,
+                    modifier = Modifier
+                        .weight(0.30f)
+                        .fillMaxHeight()
+                )
+
+                Spacer(Modifier.width(6.dp))
+
+                GameControlPanel(
+                    opponentName = s.opponentName,
+                    events = s.events,
+                    playersById = playersById,
+                    isEnded = s.isEnded,
+                    onEndGame = onEndGameNavigate,
+                    onUndo = vm::undoLast,
+                    modifier = Modifier
+                        .weight(0.40f)
+                        .fillMaxHeight()
+                )
+
+                Spacer(Modifier.width(6.dp))
+
+                ActionsPanel(
+                    enabled = actionsEnabled,
+                    onEvent = vm::addEvent,
+                    onUndo = vm::undoLast,
+                    modifier = Modifier
+                        .weight(0.30f)
+                        .fillMaxHeight()
+                )
+            }
         }
     }
 }
@@ -217,6 +254,7 @@ private fun PlayersPanel(
                         playerBoxScore = box[p.id],
                         secondsByPlayer = secondsPlayedById[p.id],
                         isSelected = isSelected,
+                        //selectedId = selectedId,
                         onSelect = onSelect,
                         onSubOut = onSubOut,
                         onOpenSheet = { id -> sheetPlayerId = id }
@@ -227,13 +265,11 @@ private fun PlayersPanel(
             Text("Bench", style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(8.dp))
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
             ) {
-                items(benchPlayers, key = { it.id }) { p ->
+                val sortedBench = benchPlayers.sortedBy { secondsPlayedById[it.id] }.reversed()
+                items(sortedBench, key = { it.id }) { p ->
                     val isSel = p.id == selectedId
                     BenchPlayerCard(
                         player = p,
@@ -268,55 +304,41 @@ private fun ActionsPanel(
         ) {
             Text("Actions", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(12.dp))
-
-            @Composable
-            fun Btn(label: String, type: EventType) {
-                Button(
-                    onClick = { onEvent(type) },
-                    enabled = enabled,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                ) { Text(label) }
-            }
-
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Btn("2PT ✓", EventType.TWO_MADE)
-                    Btn("3PT ✓", EventType.THREE_MADE)
-                    Btn("FT ✓", EventType.FT_MADE)
-                    Btn("REB D", EventType.REB_DEF)
-                    Btn("AST", EventType.AST)
-                    Btn("STL", EventType.STL)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MadeShotButton("2PT ✓", EventType.TWO_MADE, onEvent, enabled)
+                    MadeShotButton("3PT ✓", EventType.THREE_MADE, onEvent, enabled)
+                    MadeShotButton("FT ✓", EventType.FT_MADE, onEvent, enabled)
+                    MadeShotButton("REB D", EventType.REB_DEF, onEvent, enabled)
                 }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Btn("2PT ✗", EventType.TWO_MISS)
-                    Btn("3PT ✗", EventType.THREE_MISS)
-                    Btn("FT ✗", EventType.FT_MISS)
-                    Btn("REB O", EventType.REB_OFF)
-                    Btn("TOV", EventType.TOV)
-                    Btn("BLK", EventType.BLK)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MissedShotButton("2PT ✗", EventType.TWO_MISS, onEvent, enabled)
+                    MissedShotButton("3PT ✗", EventType.THREE_MISS, onEvent, enabled)
+                    MissedShotButton("FT ✗", EventType.FT_MISS, onEvent, enabled)
+                    MissedShotButton("REB O", EventType.REB_OFF, onEvent, enabled)
                 }
             }
-
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ActionButton("AST", EventType.AST, onEvent, enabled)
+                ActionButton("STL", EventType.STL, onEvent, enabled)
+                ActionButton("BLK", EventType.BLK, onEvent, enabled)
+                ActionButton("TOV", EventType.TOV, onEvent, enabled)
+            }
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = { onEvent(EventType.PF) },
                 enabled = enabled,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-            ) { Text("PF (Foul)") }
-
-            Spacer(Modifier.height(14.dp))
-            OutlinedButton(
-                onClick = onUndo,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-            ) { Text("UNDO") }
-            Spacer(Modifier.height(10.dp))
-
+                    .height(56.dp),
+                shape = RoundedCornerShape(50.dp)
+            ) { Text("Personal Foul") }
+            Spacer(Modifier.height(8.dp))
             if (!enabled) {
                 Text(
                     "Select a player to enable actions",
@@ -329,53 +351,40 @@ private fun ActionsPanel(
             Text("Opponent Actions")
             Spacer(Modifier.height(8.dp))
 
-            Image(
-                painter = painterResource(id = R.drawable.hgjhkj),
-                contentDescription = "Clickable image example",
-                modifier = Modifier
-                    .padding(16.dp).fillMaxSize()
-            )
-//            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-//                Button(
-//                    onClick = { onEvent(EventType.OPP_TWO_MADE) },
-//                    modifier = Modifier
-//                        .weight(1f)
-//                        .height(56.dp)
-//                ) { Text("2PT") }
-//                Button(
-//                    onClick = { onEvent(EventType.OPP_THREE_MADE) },
-//                    modifier = Modifier
-//                        .weight(1f)
-//                        .height(56.dp)
-//                ) { Text("3PT") }
-//                Button(
-//                    onClick = { onEvent(EventType.OPP_FT_MADE) },
-//                    modifier = Modifier
-//                        .weight(1f)
-//                        .height(56.dp)
-//                ) { Text("FT") }
-//            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = { onEvent(EventType.OPP_TWO_MADE) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                ) { Text("2PT") }
+                Button(
+                    onClick = { onEvent(EventType.OPP_THREE_MADE) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                ) { Text("3PT") }
+                Button(
+                    onClick = { onEvent(EventType.OPP_FT_MADE) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp)
+                ) { Text("FT") }
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("DefaultLocale")
 @Composable
 private fun GameControlPanel(
     opponentName: String,
-    roundNumber: Int,
-    gameDateEpoch: Long,
-    teamScore: Int,
-    opponentScore: Int,
-    clock: GameClock,
     events: List<LiveEvent>,
     playersById: Map<Long, PlayerEntity>,
     isEnded: Boolean,
     onEndGame: () -> Unit,
-    onToggleClock: () -> Unit,
-    onNextQuarter: () -> Unit,
-    onResetQuarter: () -> Unit,
-    onOpenSummary: () -> Unit,
+    onUndo: () -> Unit,
     modifier: Modifier
 ) {
     Card(
@@ -387,78 +396,23 @@ private fun GameControlPanel(
                 .fillMaxSize()
                 .padding(12.dp)
         ) {
-
-            Text("Game Info", style = MaterialTheme.typography.titleLarge)
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val dateText = remember(gameDateEpoch) {
-                    if (gameDateEpoch == 0L) "" else
-                        java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
-                            .format(java.util.Date(gameDateEpoch))
-                }
-                Text(
-                    "$dateText • Round $roundNumber",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            SectionDivider()
-            ScoreBoard(
-                clock,
-                teamScore,
-                opponentName,
-                opponentScore
-            )
-            Spacer(Modifier.height(8.dp))
-            ClockControls(
-                clock,
-                onToggleClock,
-                onNextQuarter,
-                onResetQuarter
-            )
-            SectionDivider()
-            Text("Game Events", style = MaterialTheme.typography.titleSmall)
+            Text("Play By Play", style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(8.dp))
             var filter by rememberSaveable { mutableStateOf(EventFilter.All) }
-            var expanded by remember { mutableStateOf(false) }
             Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(filter.name, style = MaterialTheme.typography.titleMedium)
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(
-                        if (!expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                        contentDescription = "Options"
-                    )
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    shape = RoundedCornerShape(16.dp),
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("All Events") },
-                        onClick = {
-                            filter = EventFilter.All
-                            expanded = false
-                        }
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Score Events") },
-                        onClick = {
-                            filter = EventFilter.Score
-                            expanded = false
-                        }
-                    )
-
-                }
+                PlayByPlayFilter(
+                    selected = filter,
+                    onSelected = { filter = it }
+                )
+                TextButton(
+                    onClick = onUndo,
+                ) { Text("UNDO", color = MaterialTheme.colorScheme.error) }
             }
-            Spacer(Modifier.height(8.dp))
             val filteredEvents = remember(events, filter) {
                 when (filter) {
                     EventFilter.All -> events
@@ -474,7 +428,6 @@ private fun GameControlPanel(
                     opponentName = opponentName
                 )
             }
-            SectionDivider()
             Spacer(Modifier.weight(1f))
             var showEndDialog by remember { mutableStateOf(false) }
             Button(
@@ -508,70 +461,135 @@ private fun GameControlPanel(
 }
 
 @Composable
-fun ScoreBoard(
-    clock: GameClock,
+fun ScoreBoardPanel(
+    gameDateEpoch: Long,
+    roundNumber: Int,
     teamScore: Int,
     opponentName: String,
-    opponentScore: Int
+    opponentScore: Int,
+    clock: GameClock,
+    onToggleClock: () -> Unit,
+    onNextQuarter: () -> Unit,
+    teamFouls: Int,
+    modifier: Modifier
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Card(
+        modifier,
+        colors = CardDefaults.cardColors(
+            if (!clock.isRunning && clock.secRemaining < 600) Color.Red.copy(
+                alpha = 0.12f
+            ) else if (clock.isRunning) Color.Green.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface
+        )
     ) {
-        Box(
-            modifier = Modifier.weight(3f), contentAlignment = Alignment.CenterStart
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            TeamScore(
-                "AFEKA",
-                teamScore
-            )
-        }
-        Box(
-            modifier = Modifier.weight(2f), contentAlignment = Alignment.Center
-        ) {
-            ScoreBoardClock(clock)
-        }
-        Box(
-            modifier = Modifier.weight(3f), contentAlignment = Alignment.CenterEnd
-        ) {
-            TeamScore(
-                opponentName,
-                opponentScore
-            )
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                ClockControls(
+                    clock = clock,
+                    onToggleClock = onToggleClock,
+                    onNextQuarter = onNextQuarter
+                )
+            }
+            Box(
+                modifier = Modifier.weight(4f),
+                contentAlignment = Alignment.Center
+            ) {
+                ScoreBoard(
+                    clock = clock,
+                    teamScore = teamScore,
+                    opponentName = opponentName,
+                    opponentScore = opponentScore,
+                    fouls = teamFouls
+                )
+            }
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    val dateText = remember(gameDateEpoch) {
+                        if (gameDateEpoch == 0L) "" else
+                            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                                .format(Date(gameDateEpoch))
+                    }
+                    Text(
+                        "$dateText",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        "Round $roundNumber",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-fun ScoreBoardClockSection(
+fun ScoreBoard(
     clock: GameClock,
-    onToggleClock: () -> Unit,
-    onNextQuarter: () -> Unit,
-    onResetQuarter: () -> Unit,
+    teamScore: Int,
+    opponentName: String,
+    opponentScore: Int,
+    fouls: Int
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LeftTeamScore(
+            "AFEKA",
+            teamScore,
+            fouls = fouls
+        )
+        VerticalDivider(
+            modifier = Modifier.padding(horizontal = 24.dp),
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        )
         ScoreBoardClock(clock)
-        Spacer(Modifier.height(8.dp))
-        ClockControls(
-            clock = clock,
-            onToggleClock = onToggleClock,
-            onNextQuarter = onNextQuarter,
-            onResetQuarter = onResetQuarter,
+        VerticalDivider(
+            modifier = Modifier.padding(horizontal = 24.dp),
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        )
+
+        RightTeamScore(
+            opponentName,
+            opponentScore,
+            fouls = fouls
         )
     }
 }
 
 @Composable
 fun ScoreBoardClock(clock: GameClock) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.padding(horizontal = 8.dp)
     ) {
         Text(
-            formatClock(clock.secRemaining), style = MaterialTheme.typography.displaySmall
+            formatClock(clock.secRemaining),
+            modifier = Modifier.width(140.dp),
+            style = MaterialTheme.typography.displayMedium,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.ExtraBold,
+            textAlign = TextAlign.End
         )
-        Text("Q${clock.period}", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            "Q${clock.period}",
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.End
+        )
     }
 }
 
@@ -580,56 +598,86 @@ fun ClockControls(
     clock: GameClock,
     onToggleClock: () -> Unit,
     onNextQuarter: () -> Unit,
-    onResetQuarter: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier.padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        IconButton(
+            onClick = onToggleClock,
+            Modifier.size(48.dp)
         ) {
-            Button(
-                onClick = onToggleClock,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp)
-            ) { Text(if (clock.isRunning) "Pause" else "Start") }
-
-            OutlinedButton(
-                onClick = onNextQuarter,
-                enabled = !clock.isRunning,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp)
-            ) { Text("Next Q") }
+            Icon(
+                imageVector = if (!clock.isRunning) Icons.Default.PlayCircleOutline else Icons.Default.PauseCircleOutline,
+                contentDescription = "playPause",
+                tint = Color.White,
+                modifier = Modifier.size(48.dp)
+            )
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(modifier = Modifier.width(6.dp))
         OutlinedButton(
-            onClick = onResetQuarter,
+            onClick = onNextQuarter,
             enabled = !clock.isRunning,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-        ) { Text("Reset Quarter") }
+        ) { Text("Next Q") }
     }
 }
 
-
 @Composable
-fun TeamScore(name: String, score: Int) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+fun RightTeamScore(name: String, score: Int, fouls: Int) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            name,
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            "$score",
+            modifier = Modifier.width(105.dp),
+            style = MaterialTheme.typography.displayLarge,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold
         )
+        Spacer(modifier = Modifier.width(40.dp))
+        Column(
+            horizontalAlignment = Alignment.End
+        ) {
+            Text(
+                name,
+                style = MaterialTheme.typography.headlineMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            FoulDots(fouls = fouls)
+        }
+    }
+}
+
+@Composable
+fun LeftTeamScore(name: String, score: Int, fouls: Int) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                name,
+                style = MaterialTheme.typography.headlineMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            FoulDots(
+                fouls = fouls,
+            )
+        }
+        Spacer(modifier = Modifier.width(40.dp))
         Text(
             "$score",
-            style = MaterialTheme.typography.displayMedium
+            modifier = Modifier.width(105.dp),
+            style = MaterialTheme.typography.displayLarge,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.End
         )
     }
 }
@@ -646,10 +694,11 @@ fun PlayByPlayList(
             listState.scrollToItem(events.lastIndex)
         }
     }
+    val itemHeight = 60.dp
+    val visibleItems = 8
     LazyColumn(
         state = listState,
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-        modifier = Modifier.height(300.dp)
+        modifier = Modifier.height(itemHeight * visibleItems)
     ) {
         itemsIndexed(events) { index, e ->
             PlayByPlayItem(
@@ -678,10 +727,16 @@ fun PlayByPlayItem(
     val playerName = event.playerId?.let { id -> playersById[id]?.name }
     val formattedName = formatPlayerName(playerName)
     val time = formatClock(event.clockSecRemaining)
+
+    if (event.type == EventType.PERIOD_START || event.type == EventType.PERIOD_END) {
+        PeriodMarker(event)
+        return
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(50.dp),
+            .heightIn(60.dp),
         verticalAlignment = Alignment.CenterVertically
 
     ) {
@@ -701,7 +756,8 @@ fun PlayByPlayItem(
                 time = time,
                 isScoreEvent = isScoreEvent,
                 teamScore = event.teamScoreAtEvent,
-                oppScore = event.opponentScoreAtEvent
+                oppScore = event.opponentScoreAtEvent,
+                isOppEvent = isOppEvent
             )
         }
         Box(Modifier.weight(2f), contentAlignment = Alignment.CenterEnd) {
@@ -769,25 +825,44 @@ private fun PlayByPlayCenter(
     time: String,
     isScoreEvent: Boolean,
     teamScore: Int?,
-    oppScore: Int?
+    oppScore: Int?,
+    isOppEvent: Boolean
 ) {
     val fadedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f)
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             "Q$period $time",
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             color = fadedColor,
             textAlign = TextAlign.Center
         )
         if (isScoreEvent) {
-            Text(
-                "$teamScore-$oppScore",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = fadedColor,
-                textAlign = TextAlign.Center
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "$teamScore",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isOppEvent) fadedColor else MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    " - ",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = fadedColor,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    "$oppScore",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isOppEvent) MaterialTheme.colorScheme.onSurface else fadedColor,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
@@ -795,20 +870,25 @@ private fun PlayByPlayCenter(
 @Composable
 fun FoulDots(
     fouls: Int,
+    maxFouls: Int = 5,
     dotSize: Dp = 8.dp,
     spacing: Dp = 4.dp,
-    color: Color = Color.Red
+    activeColor: Color = Color.Red,
+    inactiveColor: Color = Color.Gray.copy(alpha = 0.3f)
 ) {
+    val displayFouls = fouls.coerceAtMost(5)
     Row(
         horizontalArrangement = Arrangement.spacedBy(spacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        repeat(fouls) { index ->
+        repeat(maxFouls) { index ->
             Box(
                 modifier = Modifier
-                    .size(dotSize)
-                    .clip(CircleShape)
-                    .background(color)
+                    .size(height = 4.dp, width = 12.dp)
+                    .clip(RectangleShape)
+                    .background(
+                        if (index < displayFouls) activeColor else inactiveColor
+                    )
             )
         }
     }
@@ -847,7 +927,10 @@ private fun PlayerDetailsSheetContent(
 
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         StatRow("Minutes", formatMinutes(secondsPlayed))
-        HorizontalDivider()
+        HorizontalDivider(
+            thickness = 2.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        )
 
         StatRow("Points", pts.toString())
         StatRow("Free throws", ft)
@@ -855,13 +938,19 @@ private fun PlayerDetailsSheetContent(
         StatRow("3 pointers", tp)
         StatRow("Field goals", fg)
 
-        HorizontalDivider()
+        HorizontalDivider(
+            thickness = 2.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        )
 
         StatRow("Rebounds", reb.toString())
         StatRow("Defensive rebounds", dreb.toString())
         StatRow("Offensive rebounds", oreb.toString())
 
-        HorizontalDivider()
+        HorizontalDivider(
+            thickness = 2.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        )
 
         StatRow("Assists", ast.toString())
         StatRow("Steals", stl.toString())
@@ -963,7 +1052,7 @@ private fun OnCourtPlayerCard(
         ),
         border = BorderStroke(
             width = 1.dp,
-            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+            color = if (isSelected) MaterialTheme.colorScheme.outline
             else MaterialTheme.colorScheme.surface,
         )
     ) {
@@ -976,7 +1065,7 @@ private fun OnCourtPlayerCard(
         ) {
             Column(Modifier.padding(0.dp)) {
                 Row(
-
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         "#${player.number} ",
@@ -1004,7 +1093,9 @@ private fun OnCourtPlayerCard(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 OutlinedButton(
-                    onClick = { onSubOut(player.id) },
+                    onClick = {
+                        onSubOut(player.id)
+                    },
                 ) {
                     Text(
                         "OUT"
@@ -1030,7 +1121,7 @@ private fun BenchPlayerCard(
     OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .height(110.dp)
+            .height(90.dp)
             .combinedClickable(
                 onClick = { onSelect(player.id) },
                 onLongClick = {
@@ -1043,20 +1134,20 @@ private fun BenchPlayerCard(
         ),
         border = BorderStroke(
             width = 1.dp,
-            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+            color = if (isSelected) MaterialTheme.colorScheme.outline
             else MaterialTheme.colorScheme.surface,
         )
     ) {
         Column(
             Modifier
-                .fillMaxWidth()
+                .width(120.dp)
                 .fillMaxHeight()
-                .padding(10.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
 
             Text(
-                "#${player.number} ${player.name}",
+                "#${player.number}\n${formatPlayerName(player.name)}",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -1064,13 +1155,133 @@ private fun BenchPlayerCard(
                 onClick = { onSubIn(player.id) },
                 enabled = canSubIn && !isEnded,
                 contentPadding = PaddingValues(
-                    horizontal = 10.dp,
-                    vertical = 6.dp
+                    horizontal = 8.dp,
+                    vertical = 4.dp
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("IN")
             }
         }
+    }
+}
+
+@Composable
+fun MissedShotButton(
+    label: String,
+    type: EventType,
+    onEvent: (EventType) -> Unit,
+    enabled: Boolean
+) {
+    Button(
+        onClick = { onEvent(type) },
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = RoundedCornerShape(0.dp, 50.dp, 50.dp, 0.dp)
+    ) { Text(label) }
+}
+
+@Composable
+fun MadeShotButton(label: String, type: EventType, onEvent: (EventType) -> Unit, enabled: Boolean) {
+    Button(
+        onClick = { onEvent(type) },
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = RoundedCornerShape(50.dp, 0.dp, 0.dp, 50.dp)
+    ) { Text(label) }
+}
+
+@Composable
+fun RowScope.ActionButton(
+    label: String,
+    type: EventType,
+    onEvent: (EventType) -> Unit,
+    enabled: Boolean
+) {
+    Button(
+        onClick = { onEvent(type) },
+        enabled = enabled,
+        modifier = Modifier
+            .weight(1f)
+            .height(56.dp),
+        shape = RoundedCornerShape(50.dp)
+    ) { Text(text = label) }
+}
+
+fun computeTeamFoulsThisPeriod(
+    events: List<LiveEvent>,
+    gameId: Long,
+    period: Int
+): Int {
+    return events.count {
+        it.gameId == gameId &&
+                it.type == EventType.PF &&
+                it.period == period
+    }
+}
+
+@Composable
+fun PlayByPlayFilter(
+    selected: EventFilter,
+    onSelected: (EventFilter) -> Unit
+) {
+    SingleChoiceSegmentedButtonRow {
+        SegmentedButton(
+            selected = selected == EventFilter.All,
+            onClick = { onSelected(EventFilter.All) },
+            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            colors = SegmentedButtonDefaults.colors(
+                activeContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                activeContentColor = Color.White,
+                activeBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+                inactiveBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Text("All")
+        }
+
+        SegmentedButton(
+            selected = selected == EventFilter.Score,
+            onClick = { onSelected(EventFilter.Score) },
+            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            colors = SegmentedButtonDefaults.colors(
+                activeContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                activeContentColor = Color.White,
+                activeBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+                inactiveBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Text("Score")
+        }
+    }
+}
+
+@Composable
+private fun PeriodMarker(event: LiveEvent) {
+    val text = when (event.type) {
+        EventType.PERIOD_START -> "START Q${event.period}"
+        EventType.PERIOD_END -> "END Q${event.period}"
+        else -> ""
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HorizontalDivider(modifier = Modifier.weight(1f), thickness = 0.5.dp)
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 12.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            fontWeight = FontWeight.SemiBold
+        )
+        HorizontalDivider(modifier = Modifier.weight(1f), thickness = 0.5.dp)
     }
 }

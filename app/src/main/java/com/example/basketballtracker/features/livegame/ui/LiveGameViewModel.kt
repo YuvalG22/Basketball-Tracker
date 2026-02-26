@@ -60,8 +60,6 @@ class LiveGameViewModel(
                 opponentName = game?.opponentName ?: base.opponentName,
                 roundNumber = game?.roundNumber ?: base.roundNumber,
                 gameDateEpoch = game?.gameDateEpoch ?: base.gameDateEpoch,
-//                teamScore = game?.teamScore ?: base.teamScore,
-//                opponentScore = game?.opponentScore ?: base.opponentScore
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), _base.value)
 
@@ -116,14 +114,43 @@ class LiveGameViewModel(
         it.copy(clock = it.clock.copy(secRemaining = quarterLengthSec, isRunning = false))
     }
 
-    fun nextQuarter() = _base.update { s ->
-        val next = (s.clock.period + 1).coerceAtMost(4)
-        s.copy(clock = GameClock(period = next, secRemaining = quarterLengthSec, isRunning = false))
+    fun nextQuarter() {
+        val snap = _base.value
+        if (snap.clock.period >= 4) return
+        addEvent(
+            type = EventType.PERIOD_END,
+            noPlayer = true
+        )
+        _base.update { s ->
+            val next = s.clock.period + 1
+            s.copy(
+                clock = GameClock(
+                    period = next,
+                    secRemaining = quarterLengthSec,
+                    isRunning = false
+                )
+            )
+        }
+        addEvent(
+            type = EventType.PERIOD_START,
+            noPlayer = true
+        )
     }
 
-    fun addEvent(type: EventType, playerIdOverride: Long? = null) {
+    fun addEvent(
+        type: EventType,
+        playerIdOverride: Long? = null,
+        noPlayer: Boolean = false
+    ) {
         val snap = _base.value
-        val pid = playerIdOverride ?: snap.selectedPlayerId
+        val pid: Long? = when {
+            type.isOpponentEvent() -> null
+            noPlayer -> null
+            playerIdOverride != null -> playerIdOverride
+            else -> snap.selectedPlayerId
+        }
+
+        if (!type.isOpponentEvent() && !noPlayer && type.requiresPlayer() && pid == null) return
 
         val currentEvents = ui.value.events
         val teamNow = computeTeamScore(currentEvents)

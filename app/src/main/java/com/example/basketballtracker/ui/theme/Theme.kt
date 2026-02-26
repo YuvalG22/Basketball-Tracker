@@ -40,7 +40,8 @@ private val DarkColorScheme = darkColorScheme(
     outline = Outline,
     outlineVariant = OutlineVariant,
 
-    error = Error
+    error = Error,
+    onError = OnError
 )
 
 private val LightColorScheme = lightColorScheme(

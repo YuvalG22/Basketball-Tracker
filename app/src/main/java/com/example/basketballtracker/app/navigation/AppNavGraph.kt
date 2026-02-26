@@ -112,13 +112,12 @@ fun AppNavGraph(
                     popUpTo(Routes.HOME) { inclusive = false }
                     launchSingleTop = true
                 }
-            },
-                onOpenSummary = { nav.navigate(Routes.summary(gameId)) })
+            })
         }
 
         composable(Routes.PLAYERS) {
             val vm = remember { PlayersViewModel(playersRepo) }
-            PlayersScreen(vm = vm, onBack = { nav.popBackStack() })
+            PlayersScreen(vm = vm)
         }
 
         composable(

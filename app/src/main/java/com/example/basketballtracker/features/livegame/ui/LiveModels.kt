@@ -15,7 +15,10 @@ enum class EventType {
     //opponent events
     OPP_TWO_MADE,
     OPP_THREE_MADE,
-    OPP_FT_MADE;
+    OPP_FT_MADE,
+
+    PERIOD_START,
+    PERIOD_END;
 
     fun isOpponentEvent(): Boolean = when (this) {
         OPP_TWO_MADE, OPP_THREE_MADE, OPP_FT_MADE -> true
@@ -23,8 +26,26 @@ enum class EventType {
     }
 
     fun isScoreEvent(): Boolean = when (this) {
-        TWO_MADE, THREE_MADE, FT_MADE, OPP_TWO_MADE, OPP_THREE_MADE, OPP_FT_MADE -> true
+        TWO_MADE, THREE_MADE, FT_MADE, OPP_TWO_MADE, OPP_THREE_MADE, OPP_FT_MADE, PERIOD_START, PERIOD_END -> true
         else -> false
+    }
+
+    fun requiresPlayer(): Boolean = when (this) {
+        TWO_MADE,
+        TWO_MISS,
+        THREE_MADE,
+        THREE_MISS,
+        FT_MADE,
+        FT_MISS,
+        REB_DEF,
+        REB_OFF,
+        AST,
+        STL,
+        BLK,
+        TOV,
+        PF -> true
+
+        else -> false // Opponent / System
     }
 }
 
@@ -200,7 +221,7 @@ fun computePlusMinusByPlayer(events: List<LiveEvent>): Map<Long, Int> {
     val onCourt = linkedSetOf<Long>()
 
     val sorted = events.sortedWith(
-        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, {it.id})
+        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.id })
     )
 
     fun deltaPoints(type: EventType) = when (type) {
@@ -267,6 +288,8 @@ fun formatEvent(t: EventType) = when (t) {
     EventType.OPP_TWO_MADE -> "2PT ✓"
     EventType.OPP_THREE_MADE -> "3PT ✓"
     EventType.OPP_FT_MADE -> "FT ✓"
+    EventType.PERIOD_START -> "Start Q"
+    EventType.PERIOD_END -> "End Q"
 }
 
 fun formatEventPBP(t: EventType) = when (t) {
@@ -288,4 +311,6 @@ fun formatEventPBP(t: EventType) = when (t) {
     EventType.OPP_TWO_MADE -> "2PT"
     EventType.OPP_THREE_MADE -> "3PT"
     EventType.OPP_FT_MADE -> "FT"
+    EventType.PERIOD_START -> "Start Q"
+    EventType.PERIOD_END -> "End Q"
 }

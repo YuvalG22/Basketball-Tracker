@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -13,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -69,39 +71,32 @@ fun NewGameScreen(
     }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-        ) {
-            val isWide = maxWidth >= 600.dp
-
-            if (isWide) {
-                NewGameWideLayout(
-                    opponent = opponent,
-                    onOpponent = { opponent = it },
-                    roundText = roundText,
-                    onRound = { roundText = it.filter(Char::isDigit).take(3) },
-                    players = players,
-                    selectedIds = selectedIds,
-                    onToggle = ::togglePlayer,
-                    canStart = canStart,
-                    onStartClick = ::startGame
-                )
-            } else {
-                NewGameNarrowLayout(
-                    opponent = opponent,
-                    onOpponent = { opponent = it },
-                    roundText = roundText,
-                    onRound = { roundText = it.filter(Char::isDigit).take(3) },
-                    players = players,
-                    selectedIds = selectedIds,
-                    onToggle = ::togglePlayer,
-                    canStart = canStart,
-                    onStartClick = ::startGame
-                )
-            }
+        if (isWide) {
+            NewGameWideLayout(
+                opponent = opponent,
+                onOpponent = { opponent = it },
+                roundText = roundText,
+                onRound = { roundText = it.filter(Char::isDigit).take(3) },
+                players = players,
+                selectedIds = selectedIds,
+                onToggle = ::togglePlayer,
+                canStart = canStart,
+                onStartClick = ::startGame
+            )
+        } else {
+            NewGameNarrowLayout(
+                opponent = opponent,
+                onOpponent = { opponent = it },
+                roundText = roundText,
+                onRound = { roundText = it.filter(Char::isDigit).take(3) },
+                players = players,
+                selectedIds = selectedIds,
+                onToggle = ::togglePlayer,
+                canStart = canStart,
+                onStartClick = ::startGame
+            )
         }
+
     }
 }
 
@@ -118,7 +113,9 @@ private fun NewGameNarrowLayout(
     onStartClick: () -> Unit
 ) {
     Column(
-        Modifier.fillMaxSize().padding(24.dp),
+        Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("New Game", style = MaterialTheme.typography.headlineSmall)
@@ -137,13 +134,11 @@ private fun NewGameNarrowLayout(
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-
-        Text("Select roster (${selectedIds.size})", style = MaterialTheme.typography.titleMedium)
-
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .weight(1f),
+            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface)
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -169,7 +164,9 @@ private fun NewGameNarrowLayout(
         Button(
             enabled = canStart,
             onClick = onStartClick,
-            modifier = Modifier.fillMaxWidth().height(64.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
         ) {
             Text(if (canStart) "Start" else "Select at least 5 players")
         }
@@ -188,50 +185,46 @@ private fun NewGameWideLayout(
     canStart: Boolean,
     onStartClick: () -> Unit
 ) {
-    Column(
-        Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Text("New Game", style = MaterialTheme.typography.headlineSmall)
-
-        Row(
-            Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        Column(
+            Modifier
+                .widthIn(max = 400.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // שמאל: קלטים
-            Card(
-                modifier = Modifier.weight(0.9f)
-            ) {
-                Column(
-                    Modifier.fillMaxWidth().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = opponent,
-                        onValueChange = onOpponent,
-                        label = { Text("Opponent") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = roundText,
-                        onValueChange = onRound,
-                        label = { Text("Round") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        "Select roster (${selectedIds.size})",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
+            Text("New Game", style = MaterialTheme.typography.headlineSmall)
+            Column() {
+                MyTextField(
+                    text = opponent,
+                    onValueChange = onOpponent,
+                    label = "Opponent",
+                    hint = "Opponent",
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                MyTextField(
+                    text = roundText,
+                    onValueChange = onRound,
+                    label = "Round",
+                    hint = "Round",
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-
-            // ימין: רשימה
+            Spacer(modifier = Modifier.height(32.dp))
             Card(
-                modifier = Modifier.weight(1.1f)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface)
             ) {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     items(players, key = { it.id }) { p ->
@@ -250,14 +243,55 @@ private fun NewGameWideLayout(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                enabled = canStart,
+                onClick = onStartClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+            ) {
+                Text(if (canStart) "Start" else "Select at least 5 players")
+            }
         }
+    }
+}
 
-        Button(
-            enabled = canStart,
-            onClick = onStartClick,
-            modifier = Modifier.fillMaxWidth().height(64.dp)
-        ) {
-            Text(if (canStart) "Start" else "Select at least 5 players")
-        }
+@Composable
+fun MyTextField(
+    text: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    hint: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        OutlinedTextField(
+            value = text,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedContainerColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedBorderColor = MaterialTheme.colorScheme.outline
+            ),
+            placeholder = {
+                Text(
+                    text = hint,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
+                )
+            },
+            textStyle = MaterialTheme.typography.bodyLarge,
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 }
