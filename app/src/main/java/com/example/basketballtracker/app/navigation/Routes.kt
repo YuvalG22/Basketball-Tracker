@@ -5,6 +5,7 @@ object Routes {
     const val NEW_GAME = "new_game"
     const val LIVE = "live/{gameId}"
     const val PLAYERS = "players"
+    const val STATS = "stats"
     const val SUMMARY = "summary/{gameId}"
     const val HISTORY = "history"
 

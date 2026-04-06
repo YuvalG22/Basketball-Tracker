@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.history.ui
 
+import androidx.collection.mutableLongSetOf
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +32,8 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
@@ -84,11 +88,17 @@ fun GamesHistoryScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .widthIn(max = 500.dp),
+                    .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text("Game History", style = MaterialTheme.typography.displaySmall)
-                Spacer(modifier = Modifier.height(32.dp))
+                Text(
+                    "Click on a game to show box score",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                var selectedGameId by remember { mutableLongStateOf(0) }
                 LazyColumn(
                     reverseLayout = false,
                     modifier = Modifier
@@ -97,72 +107,139 @@ fun GamesHistoryScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(games, key = { it.id }) { game ->
+                        val isSelected = game.id == selectedGameId
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onGameClick(game.id) },
-                            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface)
+                                .clickable {
+                                    onGameClick(game.id)
+                                    selectedGameId = game.id
+                                },
+                            colors = if (isSelected) CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant) else CardDefaults.cardColors(
+                                MaterialTheme.colorScheme.surface
+                            )
                         ) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Column(Modifier.padding(12.dp)) {
+                                val isWin = game.teamScore > game.opponentScore
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        "AFEKA",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        "${game.teamScore}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = if (isWin) FontWeight.Bold else FontWeight.Normal,
+                                        //color = if (isWin) Color.Green else Color.Red
+                                    )
+                                }
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        game.opponentName,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        "${game.opponentScore}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        //color = if (isWin) Color.Red else Color.Green
+                                    )
+                                }
+                                HorizontalDivider(
+                                    Modifier.fillMaxWidth(),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f)
+                                )
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        "Round ${game.roundNumber}",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
                                     val date = remember(game.createdAt) {
                                         java.text.SimpleDateFormat("dd/MM/yyyy")
                                             .format(java.util.Date(game.createdAt))
                                     }
-
                                     Text(
-                                        "$date • Round ${game.roundNumber}",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Text(
-                                        "vs ${game.opponentName}",
+                                        date,
                                         style = MaterialTheme.typography.bodyLarge
                                     )
                                 }
-                                Row(
-                                    Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    val isWin = game.teamScore > game.opponentScore
-                                    Text(
-                                        modifier = Modifier.width(100.dp),
-                                        textAlign = TextAlign.Center,
-                                        text = "${game.teamScore} - ${game.opponentScore}",
-                                        style = MaterialTheme.typography.headlineSmall
-                                    )
-                                    Text(
-                                        modifier = Modifier.width(60.dp),
-                                        text = if (isWin) "W" else "L",
-                                        textAlign = TextAlign.Center,
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        color = if (isWin) Color.Green else Color.Red
-                                    )
-                                    VerticalDivider(
-                                        Modifier
-                                            .height(40.dp)
-                                            .padding(horizontal = 4.dp),
-                                        thickness = 2.dp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f)
-                                    )
-                                    IconButton(
-                                        onClick = {
-                                            deleteGameId = game.id
-                                            deleteGameTitle =
-                                                "vs ${game.opponentName} (Round ${game.roundNumber})"
-                                        }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Delete,
-                                            contentDescription = "Delete game"
-                                        )
-                                    }
-                                }
                             }
+//                            Row(
+//                                Modifier.fillMaxWidth(),
+//                                verticalAlignment = Alignment.CenterVertically,
+//                                horizontalArrangement = Arrangement.SpaceBetween
+//                            ) {
+//                                Column(Modifier.padding(12.dp)) {
+//                                    val date = remember(game.createdAt) {
+//                                        java.text.SimpleDateFormat("dd/MM/yyyy")
+//                                            .format(java.util.Date(game.createdAt))
+//                                    }
+//
+//                                    Text(
+//                                        "$date • Round ${game.roundNumber}",
+//                                        style = MaterialTheme.typography.titleMedium
+//                                    )
+//                                    Text(
+//                                        "vs ${game.opponentName}",
+//                                        style = MaterialTheme.typography.bodyLarge
+//                                    )
+//                                }
+//                                Row(
+//                                    Modifier.padding(12.dp),
+//                                    verticalAlignment = Alignment.CenterVertically,
+//                                    horizontalArrangement = Arrangement.SpaceBetween
+//                                ) {
+//                                    val isWin = game.teamScore > game.opponentScore
+//                                    Text(
+//                                        modifier = Modifier.width(100.dp),
+//                                        textAlign = TextAlign.Center,
+//                                        text = "${game.teamScore} - ${game.opponentScore}",
+//                                        style = MaterialTheme.typography.headlineSmall
+//                                    )
+//                                    Text(
+//                                        modifier = Modifier.width(60.dp),
+//                                        text = if (isWin) "W" else "L",
+//                                        textAlign = TextAlign.Center,
+//                                        style = MaterialTheme.typography.headlineSmall,
+//                                        color = if (isWin) Color.Green else Color.Red
+//                                    )
+//                                    VerticalDivider(
+//                                        Modifier
+//                                            .height(40.dp)
+//                                            .padding(horizontal = 4.dp),
+//                                        thickness = 2.dp,
+//                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f)
+//                                    )
+//                                    IconButton(
+//                                        onClick = {
+//                                            deleteGameId = game.id
+//                                            deleteGameTitle =
+//                                                "vs ${game.opponentName} (Round ${game.roundNumber})"
+//                                        }
+//                                    ) {
+//                                        Icon(
+//                                            imageVector = Icons.Filled.Delete,
+//                                            contentDescription = "Delete game"
+//                                        )
+//                                    }
+//                                }
+//                            }
                         }
                     }
                 }

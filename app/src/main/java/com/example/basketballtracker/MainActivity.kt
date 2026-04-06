@@ -17,6 +17,7 @@ import com.example.basketballtracker.core.data.db.MIGRATION_3_4
 import com.example.basketballtracker.core.data.db.MIGRATION_4_5
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
+import com.example.basketballtracker.features.stats.data.SeasonStatsRepository
 import com.example.basketballtracker.ui.theme.BasketballTrackerTheme
 
 class MainActivity : ComponentActivity() {
@@ -24,31 +25,34 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
-        windowInsetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        windowInsetsController.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
 
         setContent {
-                BasketballTrackerTheme {
-                    val ctx = LocalContext.current
-                    val nav = rememberNavController()
+            BasketballTrackerTheme {
+                val ctx = LocalContext.current
+                val nav = rememberNavController()
 
-                    val db = remember {
-                        Room.databaseBuilder(ctx, AppDatabase::class.java, "basketball.db")
-                            .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
-                            .build()
-                    }
-
-                    val gamesRepo = remember { GamesRepository(db.gameDao()) }
-                    val liveRepo = remember { LiveGameRepository(db.eventDao()) }
-
-                    AppNavGraph(
-                        nav = nav,
-                        db = db,
-                        gamesRepo = gamesRepo,
-                        liveRepo = liveRepo,
-                        quarterLengthDefault = 600
-                    )
+                val db = remember {
+                    Room.databaseBuilder(ctx, AppDatabase::class.java, "basketball.db")
+                        .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
+                        .build()
                 }
+
+                val gamesRepo = remember { GamesRepository(db.gameDao()) }
+                val liveRepo = remember { LiveGameRepository(db.eventDao()) }
+                val statsRepo = remember { SeasonStatsRepository(db.playerDao(), db.eventDao()) }
+
+                AppNavGraph(
+                    nav = nav,
+                    db = db,
+                    gamesRepo = gamesRepo,
+                    liveRepo = liveRepo,
+                    statsRepository = statsRepo,
+                    quarterLengthDefault = 600
+                )
             }
         }
     }
+}

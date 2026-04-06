@@ -24,13 +24,13 @@ import com.example.basketballtracker.core.data.db.AppDatabase
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
-import com.example.basketballtracker.features.livegame.ui.EventType
-import com.example.basketballtracker.features.livegame.ui.LiveEvent
-import com.example.basketballtracker.features.livegame.ui.PlayerBox
-import com.example.basketballtracker.features.livegame.ui.computeBoxByPlayer
-import com.example.basketballtracker.features.livegame.ui.computePlusMinusByPlayer
-import com.example.basketballtracker.features.livegame.ui.computeSecondsPlayedByPlayer
-import com.example.basketballtracker.features.livegame.ui.formatMinutes
+import com.example.basketballtracker.features.livegame.domain.EventType
+import com.example.basketballtracker.features.livegame.domain.LiveEvent
+import com.example.basketballtracker.features.livegame.domain.PlayerBox
+import com.example.basketballtracker.features.livegame.domain.computeBoxByPlayer
+import com.example.basketballtracker.features.livegame.domain.computePlusMinusByPlayer
+import com.example.basketballtracker.features.livegame.domain.computeSecondsPlayedByPlayer
+import com.example.basketballtracker.features.livegame.domain.formatMinutes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -92,7 +92,6 @@ fun GameSummaryScreen(
 
     val box = remember(events) { computeBoxByPlayer(events) }
 
-    // דקות: “בסוף משחק” => period=quartersCount, clock=0
     val secondsPlayedById = remember(events, info.quarterLengthSec, info.quartersCount) {
         computeSecondsPlayedByPlayer(
             events = events,
@@ -239,7 +238,6 @@ fun GameSummaryScreen(
                                 val pm = pmById[p.id] ?: 0
 
                                 PlayerRow(
-                                    gameId = gameId,
                                     playerName = p.name,
                                     playerNumber = p.number,
                                     box = b,
@@ -256,7 +254,6 @@ fun GameSummaryScreen(
                                 val pm = pmById[p.id] ?: 0
 
                                 PlayerRow(
-                                    gameId = gameId,
                                     playerName = p.name,
                                     playerNumber = p.number,
                                     box = b,
@@ -374,7 +371,6 @@ fun TableHeader() {
 
 @Composable
 fun PlayerRow(
-    gameId: Long,
     playerName: String,
     playerNumber: Int,
     box: PlayerBox?,

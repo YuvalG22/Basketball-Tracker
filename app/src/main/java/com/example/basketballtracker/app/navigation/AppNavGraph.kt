@@ -27,6 +27,9 @@ import com.example.basketballtracker.features.players.data.PlayersRepository
 import kotlinx.coroutines.flow.first
 import com.example.basketballtracker.features.players.state.PlayersViewModel
 import com.example.basketballtracker.features.players.ui.PlayersScreen
+import com.example.basketballtracker.features.stats.data.SeasonStatsRepository
+import com.example.basketballtracker.features.stats.state.SeasonStatsViewModel
+import com.example.basketballtracker.features.stats.ui.SeasonStatsScreen
 import com.example.basketballtracker.features.summary.ui.GameSummaryScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -38,9 +41,9 @@ fun AppNavGraph(
     db: AppDatabase,
     gamesRepo: GamesRepository,
     liveRepo: LiveGameRepository,
+    statsRepository: SeasonStatsRepository,
     quarterLengthDefault: Int = 600
 ) {
-    // ✅ create repo here (MVP)
     val playersRepo = remember { PlayersRepository(db.playerDao()) }
 
     NavHost(navController = nav, startDestination = Routes.HOME) {
@@ -51,6 +54,7 @@ fun AppNavGraph(
                 onNewGame = { nav.navigate(Routes.NEW_GAME) },
                 onContinue = { gameId -> nav.navigate(Routes.live(gameId)) },
                 onPlayers = { nav.navigate(Routes.PLAYERS) },
+                onPlayersStats = { nav.navigate(Routes.STATS) },
                 onHistory = { nav.navigate(Routes.HISTORY) }
             )
         }
@@ -131,6 +135,15 @@ fun AppNavGraph(
                 gamesRepo = gamesRepo,
                 liveRepo = liveRepo,
                 onBack = { nav.popBackStack() }
+            )
+        }
+
+        composable(Routes.STATS) {
+            val vm = remember { SeasonStatsViewModel(statsRepository) }
+            val gamesVm = remember { GamesHistoryViewModel(gamesRepo, liveRepo) }
+            SeasonStatsScreen(
+                vm = vm,
+                gamesVm = gamesVm
             )
         }
 

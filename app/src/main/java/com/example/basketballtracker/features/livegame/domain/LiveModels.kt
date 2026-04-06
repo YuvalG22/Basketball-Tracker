@@ -1,5 +1,6 @@
-package com.example.basketballtracker.features.livegame.ui
+package com.example.basketballtracker.features.livegame.domain
 
+import kotlin.collections.iterator
 import kotlin.math.max
 
 import kotlin.math.roundToInt
@@ -16,12 +17,13 @@ enum class EventType {
     OPP_TWO_MADE,
     OPP_THREE_MADE,
     OPP_FT_MADE,
+    OPP_PF,
 
     PERIOD_START,
     PERIOD_END;
 
     fun isOpponentEvent(): Boolean = when (this) {
-        OPP_TWO_MADE, OPP_THREE_MADE, OPP_FT_MADE -> true
+        OPP_TWO_MADE, OPP_THREE_MADE, OPP_FT_MADE, OPP_PF -> true
         else -> false
     }
 
@@ -268,6 +270,30 @@ fun formatMinutes(seconds: Int): String {
     return String.format("%d", mm)
 }
 
+fun computeTeamFoulsThisPeriod(
+    events: List<LiveEvent>,
+    gameId: Long,
+    period: Int
+): Int {
+    return events.count {
+        it.gameId == gameId &&
+                it.type == EventType.PF &&
+                it.period == period
+    }
+}
+
+fun computeOpponentFoulsThisPeriod(
+    events: List<LiveEvent>,
+    gameId: Long,
+    period: Int
+): Int {
+    return events.count {
+        it.gameId == gameId &&
+                it.type == EventType.OPP_PF &&
+                it.period == period
+    }
+}
+
 
 fun formatEvent(t: EventType) = when (t) {
     EventType.FT_MADE -> "FT ✓"
@@ -288,6 +314,7 @@ fun formatEvent(t: EventType) = when (t) {
     EventType.OPP_TWO_MADE -> "2PT ✓"
     EventType.OPP_THREE_MADE -> "3PT ✓"
     EventType.OPP_FT_MADE -> "FT ✓"
+    EventType.OPP_PF -> "PF"
     EventType.PERIOD_START -> "Start Q"
     EventType.PERIOD_END -> "End Q"
 }
@@ -311,6 +338,7 @@ fun formatEventPBP(t: EventType) = when (t) {
     EventType.OPP_TWO_MADE -> "2PT"
     EventType.OPP_THREE_MADE -> "3PT"
     EventType.OPP_FT_MADE -> "FT"
+    EventType.OPP_PF -> "PF"
     EventType.PERIOD_START -> "Start Q"
     EventType.PERIOD_END -> "End Q"
 }

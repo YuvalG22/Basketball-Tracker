@@ -1,6 +1,6 @@
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
-import com.example.basketballtracker.features.livegame.ui.EventType
-import com.example.basketballtracker.features.livegame.ui.LiveEvent
+import com.example.basketballtracker.features.livegame.domain.EventType
+import com.example.basketballtracker.features.livegame.domain.LiveEvent
 
 suspend fun fixQuarterBoundarySubs(
     gameId: Long,

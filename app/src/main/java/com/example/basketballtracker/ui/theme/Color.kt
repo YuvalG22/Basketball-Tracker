@@ -45,6 +45,6 @@ val OutlineVariant = Color(0xFFFF7A00)
 
 
 val Success = Color(0xFF2ECC71)
-val Warning = Color(0xFFF4B400)
+val Warning = Color(0xFF212120)
 val Error = Color(0xFFFF4D4D)
 val OnError = Color(0xFFFFFFFF)
