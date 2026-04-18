@@ -1,10 +1,12 @@
 package com.example.basketballtracker.features.livegame.ui.panels
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -87,7 +89,6 @@ fun PlayersPanel(
     val canSubIn = onCourtPlayers.size < 5
 
     var sheetPlayerId by rememberSaveable { mutableStateOf<Long?>(null) }
-//    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     if (sheetPlayerId != null) {
         val pid = sheetPlayerId!!
         val p = (onCourtPlayers + benchPlayers).firstOrNull { it.id == pid }
@@ -311,76 +312,90 @@ private fun PlayerCard(
         )
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth()
+                .height(IntrinsicSize.Min)
         ) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedCard(
-                        modifier = Modifier.width(numberWidth),
-                        colors = CardDefaults.outlinedCardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        border = BorderStroke(
-                            width = 0.5.dp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "#${player.number}",
-                                style = MaterialTheme.typography.bodySmall,
+            if (mode == PlayerCardMode.ON_COURT) {
+                Box(
+                    modifier = Modifier
+                        .width(12.dp)
+                        .padding(start = 1.dp)
+                        .fillMaxHeight()
+                        .background(Color(0xFF3AB47A))
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedCard(
+                            modifier = Modifier.width(numberWidth),
+                            colors = CardDefaults.outlinedCardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            border = BorderStroke(
+                                width = 0.5.dp,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "#${player.number}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                            }
                         }
+
+                        Spacer(modifier = Modifier.width(spacing))
+
+                        Text(
+                            text = player.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Spacer(modifier = Modifier.width(spacing))
+
+                        FoulDots(fouls = pf)
                     }
 
-                    Spacer(modifier = Modifier.width(spacing))
+                    Row {
+                        Box(modifier = Modifier.width(numberWidth))
+                        Spacer(modifier = Modifier.width(spacing))
 
-                    Text(
-                        text = player.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                        val seconds = secondsByPlayer ?: 0
+                        val minText = formatMinutes(seconds)
 
-                    Spacer(modifier = Modifier.width(spacing))
-
-                    FoulDots(fouls = pf)
+                        Text(
+                            text = "MIN $minText  •  PTS $pts  •  REB $reb  •  AST $ast",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
 
-                Row {
-                    Box(modifier = Modifier.width(numberWidth))
-                    Spacer(modifier = Modifier.width(spacing))
-
-                    val seconds = secondsByPlayer ?: 0
-                    val minText = formatMinutes(seconds)
-
-                    Text(
-                        text = "MIN $minText  •  PTS $pts  •  REB $reb  •  AST $ast",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                IconButton(
-                    modifier = Modifier.size(24.dp),
-                    enabled = canSubstitute,
-                    onClick = { onSubstitute(player.id) }
-                ) {
-                    Icon(
-                        imageVector = icon,
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(
                         modifier = Modifier.size(24.dp),
-                        contentDescription = "Substitute",
-                        tint = iconTint
-                    )
+                        enabled = canSubstitute,
+                        onClick = { onSubstitute(player.id) }
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            modifier = Modifier.size(24.dp),
+                            contentDescription = "Substitute",
+                            tint = iconTint
+                        )
+                    }
                 }
             }
         }
