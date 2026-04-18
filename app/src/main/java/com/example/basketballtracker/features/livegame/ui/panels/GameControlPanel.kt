@@ -1,6 +1,7 @@
 package com.example.basketballtracker.features.livegame.ui.panels
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -69,7 +72,7 @@ fun GameControlPanel(
                 .fillMaxSize()
                 .padding(12.dp)
         ) {
-            Text("Play By Play", style = MaterialTheme.typography.titleLarge)
+            Text("Play By Play", style = MaterialTheme.typography.titleSmall)
             Spacer(modifier = Modifier.height(8.dp))
             var filter by rememberSaveable { mutableStateOf(EventFilter.All) }
             Row(
@@ -100,7 +103,11 @@ fun GameControlPanel(
                 }
             }
             if (filteredEvents.isEmpty()) {
-                Text("No events yet", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "No events yet",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
             } else {
                 PlayByPlayList(
                     events = filteredEvents,
@@ -125,11 +132,9 @@ fun PlayByPlayList(
             listState.scrollToItem(events.lastIndex)
         }
     }
-//    val itemHeight = 60.dp
-//    val visibleItems = 8
     LazyColumn(
         state = listState,
-//        modifier = Modifier.height(itemHeight * visibleItems)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         itemsIndexed(events) { index, e ->
             PlayByPlayItem(
@@ -137,12 +142,6 @@ fun PlayByPlayList(
                 e,
                 playersById,
             )
-            if (index < events.lastIndex) {
-                HorizontalDivider(
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                )
-            }
         }
     }
 }
@@ -163,43 +162,50 @@ fun PlayByPlayItem(
         PeriodMarker(event)
         return
     }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(60.dp),
-        verticalAlignment = Alignment.CenterVertically
-
+    OutlinedCard(
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
-        Box(Modifier.weight(2f), contentAlignment = Alignment.CenterStart) {
-            PlayByPlaySide(
-                visible = !isOppEvent,
-                alignEnd = false,
-                primary = formatEventPBP(event.type),
-                secondary = formattedName,
-                isScoreEvent = isScoreEvent,
-                secondaryFaded = true
-            )
-        }
-        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            PlayByPlayCenter(
-                period = event.period,
-                time = time,
-                isScoreEvent = isScoreEvent,
-                teamScore = event.teamScoreAtEvent,
-                oppScore = event.opponentScoreAtEvent,
-                isOppEvent = isOppEvent
-            )
-        }
-        Box(Modifier.weight(2f), contentAlignment = Alignment.CenterEnd) {
-            PlayByPlaySide(
-                visible = isOppEvent,
-                alignEnd = true,
-                primary = opponentName,
-                secondary = formatEventPBP(event.type),
-                isScoreEvent = isScoreEvent,
-                secondaryFaded = true
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .heightIn(60.dp),
+            verticalAlignment = Alignment.CenterVertically
+
+        ) {
+            Box(Modifier.weight(2f), contentAlignment = Alignment.CenterStart) {
+                PlayByPlaySide(
+                    visible = !isOppEvent,
+                    alignEnd = false,
+                    primary = formatEventPBP(event.type),
+                    secondary = formattedName,
+                    isScoreEvent = isScoreEvent,
+                    secondaryFaded = true
+                )
+            }
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                PlayByPlayCenter(
+                    period = event.period,
+                    time = time,
+                    isScoreEvent = isScoreEvent,
+                    teamScore = event.teamScoreAtEvent,
+                    oppScore = event.opponentScoreAtEvent,
+                    isOppEvent = isOppEvent
+                )
+            }
+            Box(Modifier.weight(2f), contentAlignment = Alignment.CenterEnd) {
+                PlayByPlaySide(
+                    visible = isOppEvent,
+                    alignEnd = true,
+                    primary = opponentName,
+                    secondary = formatEventPBP(event.type),
+                    isScoreEvent = isScoreEvent,
+                    secondaryFaded = true
+                )
+            }
         }
     }
 }
@@ -252,24 +258,42 @@ private fun PlayByPlaySide(
             Text(
                 primary,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = weight,
-                color = if (secondaryFaded) fadedColor else LocalContentColor.current
+                color = if (secondaryFaded) fadedColor else LocalContentColor.current,
             )
-            Text(
-                secondary,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = weight
-            )
+            OutlinedCard(
+                colors = CardDefaults.outlinedCardColors(
+                    containerColor = Color.White
+                ),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (!isScoreEvent) Color.White else Color.Transparent
+                )
+            ) {
+                Text(
+                    secondary,
+                    modifier = Modifier.padding(horizontal = 6.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         } else {
-            Text(
-                primary,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = weight
-            )
+            OutlinedCard(
+                colors = CardDefaults.outlinedCardColors(
+                    containerColor = if (isScoreEvent) Color.White else MaterialTheme.colorScheme.surface
+                ),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = Color.White
+                )
+            ) {
+                Text(
+                    primary,
+                    modifier = Modifier.padding(horizontal = 6.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
             Text(
                 secondary,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = weight,
                 color = if (secondaryFaded) fadedColor else LocalContentColor.current
             )
         }

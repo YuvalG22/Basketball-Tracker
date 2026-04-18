@@ -14,24 +14,34 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.remote.core.serialize.SerializeTags
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,10 +49,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import androidx.room.util.TableInfo
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.core.ui.components.SectionDivider
 import com.example.basketballtracker.features.livegame.domain.PlayerBox
@@ -50,6 +63,11 @@ import com.example.basketballtracker.features.livegame.domain.formatMinutes
 import com.example.basketballtracker.features.livegame.ui.components.FoulDots
 import com.example.basketballtracker.features.livegame.ui.components.StatRow
 import com.example.basketballtracker.utils.formatPlayerName
+
+enum class PlayerCardMode {
+    ON_COURT,
+    BENCH
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,41 +146,43 @@ fun PlayersPanel(
         ) {
             Text(
                 "On Court",
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleSmall
             )
-            Spacer(Modifier.height(8.dp))
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(onCourtPlayers, key = { it.id }) { p ->
-                    val isSelected = p.id == selectedId
-                    OnCourtPlayerCard(
-                        player = p,
-                        playerBoxScore = box[p.id],
-                        secondsByPlayer = secondsPlayedById[p.id],
+            Spacer(Modifier.height(4.dp))
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(onCourtPlayers, key = { it.id }) { player ->
+                    val isSelected = player.id == selectedId
+                    PlayerCard(
+                        player = player,
+                        playerBoxScore = box[player.id],
+                        secondsByPlayer = secondsPlayedById[player.id],
                         isSelected = isSelected,
-                        //selectedId = selectedId,
+                        mode = PlayerCardMode.ON_COURT,
                         onSelect = onSelect,
-                        onSubOut = onSubOut,
+                        onSubstitute = onSubOut,
                         onOpenSheet = { id -> sheetPlayerId = id }
                     )
                 }
             }
             SectionDivider()
             Text("Bench", style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 val sortedBench = benchPlayers.sortedBy { secondsPlayedById[it.id] }.reversed()
-                items(sortedBench, key = { it.id }) { p ->
-                    val isSel = p.id == selectedId
-                    BenchPlayerCard(
-                        player = p,
+                items(sortedBench, key = { it.id }) { player ->
+                    val isSel = player.id == selectedId
+                    PlayerCard(
+                        player = player,
+                        playerBoxScore = box[player.id],
+                        secondsByPlayer = secondsPlayedById[player.id],
                         isSelected = isSel,
-                        canSubIn = canSubIn,
-                        isEnded = isEnded,
+                        mode = PlayerCardMode.BENCH,
+                        canSubstitute = canSubIn,
                         onSelect = onSelect,
-                        onSubIn = onSubIn,
+                        onSubstitute = onSubIn,
                         onOpenSheet = { id -> sheetPlayerId = id }
                     )
                 }
@@ -239,13 +259,15 @@ private fun PlayerDetailsSheetContent(
 }
 
 @Composable
-private fun OnCourtPlayerCard(
+private fun PlayerCard(
     player: PlayerEntity,
     playerBoxScore: PlayerBox?,
     secondsByPlayer: Int?,
     isSelected: Boolean,
+    mode: PlayerCardMode,
+    canSubstitute: Boolean = true,
     onSelect: (Long) -> Unit,
-    onSubOut: (Long) -> Unit,
+    onSubstitute: (Long) -> Unit,
     onOpenSheet: (Long) -> Unit
 ) {
     val pts = playerBoxScore?.pts ?: 0
@@ -254,6 +276,20 @@ private fun OnCourtPlayerCard(
     val pf = playerBoxScore?.pf ?: 0
 
     val hapticFeedback = LocalHapticFeedback.current
+    val numberWidth = 36.dp
+    val spacing = 8.dp
+
+    val icon =
+        when (mode) {
+            PlayerCardMode.ON_COURT -> Icons.Default.ArrowDownward
+            PlayerCardMode.BENCH -> Icons.Default.ArrowUpward
+        }
+
+    val iconTint =
+        when (mode) {
+            PlayerCardMode.ON_COURT -> MaterialTheme.colorScheme.error
+            PlayerCardMode.BENCH -> if (canSubstitute) Color(0xFF3AB47A) else Color.Transparent
+        }
 
     OutlinedCard(
         modifier = Modifier
@@ -263,123 +299,89 @@ private fun OnCourtPlayerCard(
                 onLongClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                     onOpenSheet(player.id)
-                },
-
-                ),
+                }
+            ),
         colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(
-            width = 1.dp,
-            color = if (isSelected) MaterialTheme.colorScheme.outline
-            else MaterialTheme.colorScheme.surface,
+            width = 2.dp,
+            color = if (isSelected) Color.White
+            else MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Row(
-            Modifier
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(Modifier.padding(0.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedCard(
+                        modifier = Modifier.width(numberWidth),
+                        colors = CardDefaults.outlinedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        border = BorderStroke(
+                            width = 0.5.dp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "#${player.number}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(spacing))
+
                     Text(
-                        "#${player.number} ",
+                        text = player.name,
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+
+                    Spacer(modifier = Modifier.width(spacing))
+
+                    FoulDots(fouls = pf)
+                }
+
+                Row {
+                    Box(modifier = Modifier.width(numberWidth))
+                    Spacer(modifier = Modifier.width(spacing))
+
+                    val seconds = secondsByPlayer ?: 0
+                    val minText = formatMinutes(seconds)
+
                     Text(
-                        player.name,
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "MIN $minText  •  PTS $pts  •  REB $reb  •  AST $ast",
                         color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
-                Spacer(Modifier.height(2.dp))
-                val seconds = secondsByPlayer ?: 0
-                val minText = formatMinutes(seconds)
-                Text(
-                    "MIN $minText  •  PTS $pts  •  REB $reb  •  AST $ast",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(Modifier.height(4.dp))
-                FoulDots(fouls = pf)
             }
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        onSubOut(player.id)
-                    },
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButton(
+                    modifier = Modifier.size(24.dp),
+                    enabled = canSubstitute,
+                    onClick = { onSubstitute(player.id) }
                 ) {
-                    Text(
-                        "OUT"
+                    Icon(
+                        imageVector = icon,
+                        modifier = Modifier.size(24.dp),
+                        contentDescription = "Substitute",
+                        tint = iconTint
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BenchPlayerCard(
-    player: PlayerEntity,
-    isSelected: Boolean,
-    canSubIn: Boolean,
-    isEnded: Boolean,
-    onSelect: (Long) -> Unit,
-    onSubIn: (Long) -> Unit,
-    onOpenSheet: (Long) -> Unit
-) {
-    val hapticFeedback = LocalHapticFeedback.current
-
-    OutlinedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(90.dp)
-            .combinedClickable(
-                onClick = { onSelect(player.id) },
-                onLongClick = {
-
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onOpenSheet(player.id)
-                }),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isSelected) MaterialTheme.colorScheme.outline
-            else MaterialTheme.colorScheme.surface,
-        )
-    ) {
-        Column(
-            Modifier
-                .width(120.dp)
-                .fillMaxHeight()
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-
-            Text(
-                "#${player.number}\n${formatPlayerName(player.name)}",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Button(
-                onClick = { onSubIn(player.id) },
-                enabled = canSubIn && !isEnded,
-                contentPadding = PaddingValues(
-                    horizontal = 8.dp,
-                    vertical = 4.dp
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("IN")
             }
         }
     }
