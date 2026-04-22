@@ -4,6 +4,7 @@ import com.example.basketballtracker.core.data.db.dao.EventDao
 import com.example.basketballtracker.core.data.db.entities.EventEntity
 import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
+import com.example.basketballtracker.features.livegame.domain.ShotMeta
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -20,7 +21,8 @@ class LiveGameRepository(
         period: Int,
         clockSecRemaining: Int,
         teamScoreAtEvent: Int? = null,
-        opponentScoreAtEvent: Int? = null
+        opponentScoreAtEvent: Int? = null,
+        shotMeta: ShotMeta?
     ) {
         eventDao.insert(
             EventEntity(
@@ -31,7 +33,10 @@ class LiveGameRepository(
                 clockSecRemaining = clockSecRemaining,
                 createdAt = System.currentTimeMillis(),
                 teamScoreAtEvent = teamScoreAtEvent,
-                opponentScoreAtEvent = opponentScoreAtEvent
+                opponentScoreAtEvent = opponentScoreAtEvent,
+                shotX = shotMeta?.x,
+                shotY = shotMeta?.y,
+                shotDistance = shotMeta?.distance
             )
         )
     }

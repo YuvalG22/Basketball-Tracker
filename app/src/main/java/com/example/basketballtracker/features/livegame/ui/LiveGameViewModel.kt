@@ -8,6 +8,7 @@ import com.example.basketballtracker.features.livegame.data.LiveGameRepository
 import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.GameClock
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
+import com.example.basketballtracker.features.livegame.domain.ShotMeta
 import com.example.basketballtracker.features.livegame.domain.computeOnCourtIds
 import com.example.basketballtracker.features.livegame.domain.computeOppScore
 import com.example.basketballtracker.features.livegame.domain.computePlusMinusByPlayer
@@ -127,10 +128,10 @@ class LiveGameViewModel(
 
     fun nextQuarter() {
         val snap = _base.value
-        if (snap.clock.period >= 4) return
         addEvent(
             type = EventType.PERIOD_END,
-            noPlayer = true
+            noPlayer = true,
+            shotMeta = null
         )
         _base.update { s ->
             val next = s.clock.period + 1
@@ -144,14 +145,16 @@ class LiveGameViewModel(
         }
         addEvent(
             type = EventType.PERIOD_START,
-            noPlayer = true
+            noPlayer = true,
+            shotMeta = null
         )
     }
 
     fun addEvent(
         type: EventType,
         playerIdOverride: Long? = null,
-        noPlayer: Boolean = false
+        noPlayer: Boolean = false,
+        shotMeta: ShotMeta? = null,
     ) {
         val snap = _base.value
         val pid: Long? = when {
@@ -189,13 +192,14 @@ class LiveGameViewModel(
                 period = snap.clock.period,
                 clockSecRemaining = snap.clock.secRemaining,
                 teamScoreAtEvent = if (shouldAttachScore) teamAtEvent else null,
-                opponentScoreAtEvent = if (shouldAttachScore) oppAtEvent else null
+                opponentScoreAtEvent = if (shouldAttachScore) oppAtEvent else null,
+                shotMeta = shotMeta
             )
         }
     }
 
-    fun subIn(playerId: Long) = addEvent(EventType.SUB_IN, playerIdOverride = playerId)
-    fun subOut(playerId: Long) = addEvent(EventType.SUB_OUT, playerIdOverride = playerId)
+    fun subIn(playerId: Long) = addEvent(EventType.SUB_IN, playerIdOverride = playerId, shotMeta = null)
+    fun subOut(playerId: Long) = addEvent(EventType.SUB_OUT, playerIdOverride = playerId, shotMeta = null)
 
 
     fun undoLast() {
@@ -227,7 +231,8 @@ class LiveGameViewModel(
         type: EventType,
         playerId: Long?,
         period: Int,
-        clockSecRemaining: Int
+        clockSecRemaining: Int,
+        shotMeta: ShotMeta?
     ) {
         val snap = _base.value
         viewModelScope.launch {
@@ -236,7 +241,8 @@ class LiveGameViewModel(
                 playerId = playerId,
                 type = type,
                 period = period,
-                clockSecRemaining = clockSecRemaining
+                clockSecRemaining = clockSecRemaining,
+                shotMeta = shotMeta
             )
         }
     }
@@ -252,10 +258,9 @@ class LiveGameViewModel(
                 type = EventType.SUB_OUT,
                 playerId = pid,
                 period = period,
-                clockSecRemaining = 0
+                clockSecRemaining = 0,
+                shotMeta = null
             )
         }
     }
-
-
 }

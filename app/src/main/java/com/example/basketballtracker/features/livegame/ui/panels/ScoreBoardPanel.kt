@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.features.livegame.domain.GameClock
 import com.example.basketballtracker.features.livegame.ui.components.FoulDots
 import com.example.basketballtracker.utils.formatClock
+import com.example.basketballtracker.utils.periodLabel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -288,7 +289,7 @@ fun ScoreBoardClock(clock: GameClock) {
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
-            "Q${clock.period}",
+            periodLabel(clock.period),
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.End
         )

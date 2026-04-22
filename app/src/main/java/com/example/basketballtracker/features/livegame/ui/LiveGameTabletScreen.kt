@@ -124,7 +124,7 @@ fun LiveGameTabletScreen(
 
                 ActionsPanel(
                     enabled = actionsEnabled,
-                    onEvent = vm::addEvent,
+                    onEvent = { type, shotMeta -> vm.addEvent(type, shotMeta = shotMeta) },
                     modifier = Modifier
                         .weight(0.30f)
                         .fillMaxHeight()

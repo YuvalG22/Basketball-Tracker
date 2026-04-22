@@ -1,3 +1,5 @@
+package com.example.basketballtracker.features.debug
+
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
 import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
@@ -37,7 +39,8 @@ suspend fun fixQuarterBoundarySubs(
                     playerId = pid,
                     type = EventType.SUB_OUT,
                     period = p,
-                    clockSecRemaining = 0
+                    clockSecRemaining = 0,
+                    shotMeta = null
                 )
             }
         }
@@ -52,7 +55,8 @@ suspend fun fixQuarterBoundarySubs(
                     playerId = pid,
                     type = EventType.SUB_IN,
                     period = nextP,
-                    clockSecRemaining = quarterLengthSec
+                    clockSecRemaining = quarterLengthSec,
+                    shotMeta = null
                 )
             }
         }

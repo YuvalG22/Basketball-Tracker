@@ -13,5 +13,8 @@ data class EventEntity(
     val clockSecRemaining: Int,
     val createdAt: Long,
     val teamScoreAtEvent: Int? = null,
-    val opponentScoreAtEvent: Int? = null
+    val opponentScoreAtEvent: Int? = null,
+    val shotX: Float? = null,
+    val shotY: Float? = null,
+    val shotDistance: Float? = null
 )

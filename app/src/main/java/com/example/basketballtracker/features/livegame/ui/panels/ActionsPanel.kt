@@ -48,15 +48,17 @@ import androidx.room.util.TableInfo
 import com.example.basketballtracker.R
 import com.example.basketballtracker.features.core.ui.components.SectionDivider
 import com.example.basketballtracker.features.livegame.domain.EventType
+import com.example.basketballtracker.features.livegame.domain.ShotMeta
 import com.example.basketballtracker.features.livegame.ui.components.ActionButton
 import com.example.basketballtracker.features.livegame.ui.components.MadeShotButton
 import com.example.basketballtracker.features.livegame.ui.components.MissedShotButton
+import com.example.basketballtracker.utils.calculateShotDistance
 import kotlin.math.sqrt
 
 @Composable
 fun ActionsPanel(
     enabled: Boolean,
-    onEvent: (EventType) -> Unit,
+    onEvent: (EventType, ShotMeta?) -> Unit,
     modifier: Modifier
 ) {
     Card(
@@ -200,84 +202,84 @@ fun ActionsPanel(
             HalfCourtClickable(
                 onEvent = onEvent
             )
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    "2 POINTS",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.5f)
-                )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MadeShotButton("MADE", EventType.TWO_MADE, onEvent, enabled)
-                    MissedShotButton("MISS", EventType.TWO_MISS, onEvent, enabled)
-                }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "3 POINTS",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.5f)
-                )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MadeShotButton("MADE", EventType.THREE_MADE, onEvent, enabled)
-                    MissedShotButton("MISS", EventType.THREE_MISS, onEvent, enabled)
-                }
-                Text(
-                    "FREE THROWS",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.5f)
-                )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MadeShotButton("MADE", EventType.FT_MADE, onEvent, enabled)
-                    MissedShotButton("MISS", EventType.FT_MISS, onEvent, enabled)
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ActionButton("REB D", EventType.REB_DEF, onEvent, enabled)
-                ActionButton("REB O", EventType.REB_OFF, onEvent, enabled)
-                ActionButton("AST", EventType.AST, onEvent, enabled)
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ActionButton("STL", EventType.STL, onEvent, enabled)
-                ActionButton("BLK", EventType.BLK, onEvent, enabled)
-                ActionButton("TOV", EventType.TOV, onEvent, enabled)
-            }
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = { onEvent(EventType.PF) },
-                enabled = enabled,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
-            ) {
-                Text(
-                    "Personal Foul",
-                    color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            Text("Opponent Actions", style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ActionButton("2PT", EventType.OPP_TWO_MADE, onEvent, enabled)
-                ActionButton("3PT", EventType.OPP_THREE_MADE, onEvent, enabled)
-                ActionButton("FT", EventType.OPP_FT_MADE, onEvent, enabled)
-                ActionButton("PF", EventType.OPP_PF, onEvent, enabled)
-            }
+//            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+//                Text(
+//                    "2 POINTS",
+//                    style = MaterialTheme.typography.bodySmall,
+//                    color = Color.White.copy(alpha = 0.5f)
+//                )
+//                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+//                    MadeShotButton("MADE", EventType.TWO_MADE, onEvent, enabled)
+//                    MissedShotButton("MISS", EventType.TWO_MISS, onEvent, enabled)
+//                }
+//                Spacer(Modifier.height(8.dp))
+//                Text(
+//                    "3 POINTS",
+//                    style = MaterialTheme.typography.bodySmall,
+//                    color = Color.White.copy(alpha = 0.5f)
+//                )
+//                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+//                    MadeShotButton("MADE", EventType.THREE_MADE, onEvent, enabled)
+//                    MissedShotButton("MISS", EventType.THREE_MISS, onEvent, enabled)
+//                }
+//                Text(
+//                    "FREE THROWS",
+//                    style = MaterialTheme.typography.bodySmall,
+//                    color = Color.White.copy(alpha = 0.5f)
+//                )
+//                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+//                    MadeShotButton("MADE", EventType.FT_MADE, onEvent, enabled)
+//                    MissedShotButton("MISS", EventType.FT_MISS, onEvent, enabled)
+//                }
+//            }
+//            Spacer(Modifier.height(8.dp))
+//            Row(
+//                modifier = Modifier.fillMaxWidth(),
+//                verticalAlignment = Alignment.CenterVertically,
+//                horizontalArrangement = Arrangement.spacedBy(8.dp)
+//            ) {
+//                ActionButton("REB D", EventType.REB_DEF, onEvent, enabled)
+//                ActionButton("REB O", EventType.REB_OFF, onEvent, enabled)
+//                ActionButton("AST", EventType.AST, onEvent, enabled)
+//            }
+//            Spacer(Modifier.height(8.dp))
+//            Row(
+//                modifier = Modifier.fillMaxWidth(),
+//                verticalAlignment = Alignment.CenterVertically,
+//                horizontalArrangement = Arrangement.spacedBy(8.dp)
+//            ) {
+//                ActionButton("STL", EventType.STL, onEvent, enabled)
+//                ActionButton("BLK", EventType.BLK, onEvent, enabled)
+//                ActionButton("TOV", EventType.TOV, onEvent, enabled)
+//            }
+//            Spacer(Modifier.height(8.dp))
+//            Button(
+//                onClick = { onEvent(EventType.PF) },
+//                enabled = enabled,
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(56.dp),
+//                shape = RoundedCornerShape(8.dp),
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+//                ),
+//            ) {
+//                Text(
+//                    "Personal Foul",
+//                    color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
+//                    style = MaterialTheme.typography.bodyLarge,
+//                    fontWeight = FontWeight.Bold
+//                )
+//            }
+//            Spacer(Modifier.weight(1f))
+//            Text("Opponent Actions", style = MaterialTheme.typography.titleSmall)
+//            Spacer(Modifier.height(8.dp))
+//            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+//                ActionButton("2PT", EventType.OPP_TWO_MADE, onEvent, enabled)
+//                ActionButton("3PT", EventType.OPP_THREE_MADE, onEvent, enabled)
+//                ActionButton("FT", EventType.OPP_FT_MADE, onEvent, enabled)
+//                ActionButton("PF", EventType.OPP_PF, onEvent, enabled)
+//            }
         }
     }
 }
@@ -291,7 +293,7 @@ data class ShotPoint(
 
 @Composable
 fun HalfCourtClickable(
-    onEvent: (EventType) -> Unit
+    onEvent: (EventType, ShotMeta) -> Unit
 ) {
     var courtSize by remember { mutableStateOf(IntSize.Zero) }
     var shots by remember { mutableStateOf(listOf<ShotPoint>()) }
@@ -321,6 +323,12 @@ fun HalfCourtClickable(
 
                             val isThreePoint = isThreePointShot(svgPoint.x, svgPoint.y)
 
+                            val shotMeta = ShotMeta(
+                                x = svgPoint.x,
+                                y = svgPoint.y,
+                                distance = calculateShotDistance(svgPoint.x, svgPoint.y)
+                            )
+
                             shots = shots + ShotPoint(
                                 px = tap,
                                 svg = svgPoint,
@@ -329,9 +337,9 @@ fun HalfCourtClickable(
                             )
 
                             if (isThreePoint) {
-                                onEvent(EventType.THREE_MISS)
+                                onEvent(EventType.THREE_MISS, shotMeta)
                             } else {
-                                onEvent(EventType.TWO_MISS)
+                                onEvent(EventType.TWO_MISS, shotMeta)
                             }
                         },
                         onLongPress = { press ->
@@ -344,6 +352,12 @@ fun HalfCourtClickable(
 
                             val isThreePoint = isThreePointShot(svgPoint.x, svgPoint.y)
 
+                            val shotMeta = ShotMeta(
+                                x = svgPoint.x,
+                                y = svgPoint.y,
+                                distance = calculateShotDistance(svgPoint.x, svgPoint.y)
+                            )
+
                             shots = shots + ShotPoint(
                                 px = press,
                                 svg = svgPoint,
@@ -351,9 +365,9 @@ fun HalfCourtClickable(
                                 isThree = isThreePoint
                             )
                             if (isThreePoint) {
-                                onEvent(EventType.THREE_MADE)
+                                onEvent(EventType.THREE_MADE, shotMeta)
                             } else {
-                                onEvent(EventType.TWO_MADE)
+                                onEvent(EventType.TWO_MADE, shotMeta)
                             }
                         }
                     )
@@ -371,24 +385,24 @@ fun HalfCourtClickable(
                     if (shot.made) {
                         drawCircle(
                             color = Color(0xFF4CAF50),
-                            radius = 10f,
+                            radius = 8f,
                             center = shot.px
                         )
                         drawCircle(
                             color = Color.White,
-                            radius = 10f,
+                            radius = 8f,
                             center = shot.px,
                             style = Stroke(width = 2f)
                         )
                     } else {
                         drawCircle(
                             color = Color.Red,
-                            radius = 10f,
+                            radius = 8f,
                             center = shot.px,
                         )
                         drawCircle(
                             color = Color.White,
-                            radius = 10f,
+                            radius = 8f,
                             center = shot.px,
                             style = Stroke(width = 2f)
                         )

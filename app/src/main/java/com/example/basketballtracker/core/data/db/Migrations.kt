@@ -33,3 +33,11 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         db.execSQL("ALTER TABLE games ADD COLUMN isHomeGame INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE events ADD COLUMN shotX REAL")
+        db.execSQL("ALTER TABLE events ADD COLUMN shotY REAL")
+        db.execSQL("ALTER TABLE events ADD COLUMN shotDistance REAL")
+    }
+}

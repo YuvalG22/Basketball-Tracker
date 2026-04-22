@@ -1,6 +1,7 @@
 package com.example.basketballtracker.utils
 
 import kotlin.math.max
+import kotlin.math.sqrt
 
 fun formatClock(secRemaining: Int): String {
     val safe = max(0, secRemaining)
@@ -19,4 +20,22 @@ fun formatPlayerName(fullName: String?): String {
     val lastName = parts.last()
 
     return "$firstInitial. $lastName"
+}
+
+fun periodLabel(period: Int): String {
+    return when(period) {
+        in 1..4 -> "Q$period"
+        5 -> "OT"
+        else -> "OT${period - 4}"
+    }
+}
+
+fun calculateShotDistance(x: Float, y: Float): Float {
+    val hoopX = 7.5f
+    val hoopY = 1.575f
+
+    val dx = x - hoopX
+    val dy = y - hoopY
+
+    return sqrt(dx * dx + dy * dy)
 }

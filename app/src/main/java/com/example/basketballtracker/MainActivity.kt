@@ -16,6 +16,7 @@ import com.example.basketballtracker.core.data.db.AppDatabase
 import com.example.basketballtracker.core.data.db.MIGRATION_3_4
 import com.example.basketballtracker.core.data.db.MIGRATION_4_5
 import com.example.basketballtracker.core.data.db.MIGRATION_5_6
+import com.example.basketballtracker.core.data.db.MIGRATION_6_7
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
 import com.example.basketballtracker.features.stats.data.SeasonStatsRepository
@@ -37,7 +38,7 @@ class MainActivity : ComponentActivity() {
 
                 val db = remember {
                     Room.databaseBuilder(ctx, AppDatabase::class.java, "basketball.db")
-                        .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                        .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                         .build()
                 }
 

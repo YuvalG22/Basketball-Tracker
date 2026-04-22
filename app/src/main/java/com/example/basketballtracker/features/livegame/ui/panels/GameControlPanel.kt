@@ -52,6 +52,7 @@ import com.example.basketballtracker.features.livegame.domain.formatEventPBP
 import com.example.basketballtracker.features.livegame.ui.EventFilter
 import com.example.basketballtracker.utils.formatClock
 import com.example.basketballtracker.utils.formatPlayerName
+import com.example.basketballtracker.utils.periodLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("DefaultLocale")
@@ -213,8 +214,8 @@ fun PlayByPlayItem(
 @Composable
 private fun PeriodMarker(event: LiveEvent) {
     val text = when (event.type) {
-        EventType.PERIOD_START -> "START Q${event.period}"
-        EventType.PERIOD_END -> "END Q${event.period}"
+        EventType.PERIOD_START -> "START ${periodLabel(event.period)}"
+        EventType.PERIOD_END -> "END ${periodLabel(event.period)}"
         else -> ""
     }
 
@@ -224,7 +225,11 @@ private fun PeriodMarker(event: LiveEvent) {
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        HorizontalDivider(modifier = Modifier.weight(1f), thickness = 0.5.dp)
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.error
+        )
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 12.dp),
@@ -232,7 +237,11 @@ private fun PeriodMarker(event: LiveEvent) {
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             fontWeight = FontWeight.SemiBold
         )
-        HorizontalDivider(modifier = Modifier.weight(1f), thickness = 0.5.dp)
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.error
+        )
     }
 }
 
@@ -313,7 +322,7 @@ private fun PlayByPlayCenter(
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            "Q$period $time",
+            "${periodLabel(period)} $time",
             style = MaterialTheme.typography.bodyMedium,
             color = fadedColor,
             textAlign = TextAlign.Center

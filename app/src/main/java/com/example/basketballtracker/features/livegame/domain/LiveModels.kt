@@ -57,6 +57,12 @@ data class GameClock(
     val isRunning: Boolean = false
 )
 
+data class ShotMeta(
+    val x: Float,
+    val y: Float,
+    val distance: Float,
+)
+
 data class LiveEvent(
     val id: Long,
     val gameId: Long,

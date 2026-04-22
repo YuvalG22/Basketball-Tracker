@@ -24,14 +24,14 @@
       android:pathData="M5.05,0h4.9v5.8h-4.9z"
       android:strokeLineJoin="round"
       android:strokeWidth="0.08"
-      android:fillColor="#00000000"
+      android:fillColor="#A0000000"
       android:strokeColor="#ffffff"
       android:strokeLineCap="round"/>
   <path
       android:pathData="M5.7,5.8A1.8,1.8 0,0 0,9.3 5.8"
       android:strokeLineJoin="round"
       android:strokeWidth="0.08"
-      android:fillColor="#00000000"
+      android:fillColor="#A0000000"
       android:strokeColor="#ffffff"
       android:strokeLineCap="round"/>
   <path
