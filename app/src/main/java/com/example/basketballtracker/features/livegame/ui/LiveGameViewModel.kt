@@ -21,6 +21,7 @@ data class LiveUiState(
     val gameId: Long,
     val players: List<PlayerEntity>,
     val opponentName: String = "",
+    val isHomeGame: Boolean = false,
     val roundNumber: Int = 0,
     val gameDateEpoch: Long = 0L,
     val plusMinusById: Map<Long, Int> = emptyMap(),
@@ -68,6 +69,7 @@ class LiveGameViewModel(
                 opponentName = game?.opponentName ?: base.opponentName,
                 roundNumber = game?.roundNumber ?: base.roundNumber,
                 gameDateEpoch = game?.gameDateEpoch ?: base.gameDateEpoch,
+                isHomeGame = game?.isHomeGame ?: base.isHomeGame
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), _base.value)
 
@@ -79,7 +81,8 @@ class LiveGameViewModel(
                 it.copy(
                     opponentName = game.opponentName,
                     roundNumber = game.roundNumber,
-                    gameDateEpoch = game.createdAt
+                    gameDateEpoch = game.createdAt,
+                    isHomeGame = game.isHomeGame
                 )
             }
         }

@@ -78,6 +78,7 @@ fun LiveGameTabletScreen(
                 teamScore = teamScore,
                 opponentName = s.opponentName,
                 opponentScore = opponentScore,
+                isHomeGame = s.isHomeGame,
                 onToggleClock = vm::toggleClock,
                 onNextQuarter = vm::nextQuarter,
                 isEnded = s.isEnded,

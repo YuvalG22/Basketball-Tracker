@@ -375,8 +375,55 @@ private fun PlayerCard(
                         val seconds = secondsByPlayer ?: 0
                         val minText = formatMinutes(seconds)
 
+//                        Text(
+//                            text = "MIN $minText  •  PTS $pts  •  REB $reb  •  AST $ast",
+//                            color = MaterialTheme.colorScheme.onSurface,
+//                            style = MaterialTheme.typography.bodyMedium
+//                        )
                         Text(
-                            text = "MIN $minText  •  PTS $pts  •  REB $reb  •  AST $ast",
+                            text = "MIN",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = minText,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.width(spacing))
+                        Text(
+                            text = "PTS",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = pts.toString(),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.width(spacing))
+                        Text(
+                            text = "REB",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = reb.toString(),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.width(spacing))
+                        Text(
+                            text = "AST",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = ast.toString(),
                             color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.bodyMedium
                         )

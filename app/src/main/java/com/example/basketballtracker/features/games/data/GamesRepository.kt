@@ -9,6 +9,7 @@ class GamesRepository(private val gameDao: GameDao) {
     fun observeLastGameId(): Flow<Long?> = gameDao.observeLastGameId()
     suspend fun createGame(
         opponentName: String,
+        isHomeGame: Boolean,
         roundNumber: Int,
         gameDateEpoch: Long,
         quarterLengthSec: Int
@@ -16,6 +17,7 @@ class GamesRepository(private val gameDao: GameDao) {
         return gameDao.insert(
             GameEntity(
                 opponentName = opponentName,
+                isHomeGame = isHomeGame,
                 roundNumber = roundNumber,
                 gameDateEpoch = gameDateEpoch,
                 createdAt = System.currentTimeMillis(),

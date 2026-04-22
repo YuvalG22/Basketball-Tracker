@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.PauseCircleOutline
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -46,6 +48,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.features.livegame.domain.GameClock
 import com.example.basketballtracker.features.livegame.ui.components.FoulDots
@@ -53,6 +56,7 @@ import com.example.basketballtracker.utils.formatClock
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Locale.getDefault
 
 @Composable
 fun ScoreBoardPanel(
@@ -61,6 +65,7 @@ fun ScoreBoardPanel(
     teamScore: Int,
     opponentName: String,
     opponentScore: Int,
+    isHomeGame: Boolean,
     clock: GameClock,
     onToggleClock: () -> Unit,
     onNextQuarter: () -> Unit,
@@ -100,8 +105,9 @@ fun ScoreBoardPanel(
                     teamScore = teamScore,
                     opponentName = opponentName,
                     opponentScore = opponentScore,
+                    isHomeGame = isHomeGame,
                     homeFouls = homeFouls,
-                    awayFouls = awayFouls
+                    awayFouls = awayFouls,
                 )
             }
             Box(
@@ -233,6 +239,7 @@ fun ScoreBoard(
     teamScore: Int,
     opponentName: String,
     opponentScore: Int,
+    isHomeGame: Boolean,
     homeFouls: Int,
     awayFouls: Int
 ) {
@@ -240,7 +247,7 @@ fun ScoreBoard(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LeftTeamScore(
-            "AFEKA",
+            if (isHomeGame) "AFEKA" else opponentName.uppercase(getDefault()),
             teamScore,
             fouls = homeFouls
         )
@@ -257,7 +264,7 @@ fun ScoreBoard(
         )
 
         RightTeamScore(
-            opponentName,
+            if (isHomeGame) opponentName.uppercase(getDefault()) else "AFEKA",
             opponentScore,
             fouls = awayFouls
         )
@@ -314,6 +321,10 @@ fun ClockControls(
         OutlinedButton(
             onClick = onNextQuarter,
             enabled = !clock.isRunning,
+            border = BorderStroke(
+                width = 2.dp,
+                color = Color.White
+            )
         ) { Text("Next Q") }
     }
 }
@@ -326,8 +337,13 @@ fun RightTeamScore(name: String, score: Int, fouls: Int) {
         RightAnimatedScore(score)
         Spacer(modifier = Modifier.width(40.dp))
         Column(
-            horizontalAlignment = Alignment.End
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Text(
+                "AWAY",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            )
             Text(
                 name,
                 style = MaterialTheme.typography.headlineMedium,
@@ -346,8 +362,13 @@ fun LeftTeamScore(name: String, score: Int, fouls: Int) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
-            horizontalAlignment = Alignment.Start
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Text(
+                "HOME",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            )
             Text(
                 name,
                 style = MaterialTheme.typography.headlineMedium,

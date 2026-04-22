@@ -111,7 +111,7 @@ fun RowScope.ActionButton(
         enabled = enabled,
         modifier = Modifier
             .weight(1f)
-            .height(56.dp),
+            .height(48.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant

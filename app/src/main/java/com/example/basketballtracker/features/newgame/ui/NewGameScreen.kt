@@ -15,7 +15,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.core.data.db.dao.RosterDao
@@ -40,6 +39,7 @@ fun NewGameScreen(
     val scope = rememberCoroutineScope()
 
     var opponent by rememberSaveable { mutableStateOf("") }
+    var isHomeGame by rememberSaveable { mutableStateOf(false) }
     var quarterLen by rememberSaveable { mutableIntStateOf(defaultQuarterLengthSec) }
     var roundText by rememberSaveable { mutableStateOf("") }
 
@@ -60,7 +60,7 @@ fun NewGameScreen(
         val ids = selectedIds.toList()
 
         scope.launch {
-            val gameId = gamesRepo.createGame(opp, round, gameDateEpoch, quarterLen)
+            val gameId = gamesRepo.createGame(opp, isHomeGame, round, gameDateEpoch, quarterLen)
 
             rosterDao.insertAll(
                 ids.map { pid -> RosterEntity(gameId = gameId, playerId = pid) }
@@ -75,6 +75,8 @@ fun NewGameScreen(
             NewGameWideLayout(
                 opponent = opponent,
                 onOpponent = { opponent = it },
+                isHomeGame = isHomeGame,
+                onIsHomeGameChange = { isHomeGame = !isHomeGame },
                 roundText = roundText,
                 onRound = { roundText = it.filter(Char::isDigit).take(3) },
                 players = players,
@@ -177,13 +179,15 @@ private fun NewGameNarrowLayout(
 private fun NewGameWideLayout(
     opponent: String,
     onOpponent: (String) -> Unit,
+    isHomeGame: Boolean,
+    onIsHomeGameChange: () -> Unit,
     roundText: String,
     onRound: (String) -> Unit,
     players: List<PlayerEntity>,
     selectedIds: Set<Long>,
     onToggle: (Long) -> Unit,
     canStart: Boolean,
-    onStartClick: () -> Unit
+    onStartClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -213,6 +217,13 @@ private fun NewGameWideLayout(
                     hint = "Round",
                     modifier = Modifier.fillMaxWidth()
                 )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Is home game?", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Checkbox(checked = isHomeGame, onCheckedChange = { onIsHomeGameChange() })
+                }
             }
             Spacer(modifier = Modifier.height(32.dp))
             Card(

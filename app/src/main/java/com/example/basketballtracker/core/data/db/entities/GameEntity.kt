@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class GameEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val opponentName: String,
+    val isHomeGame: Boolean = false,
     val roundNumber: Int,
     val gameDateEpoch: Long,
     val createdAt: Long,

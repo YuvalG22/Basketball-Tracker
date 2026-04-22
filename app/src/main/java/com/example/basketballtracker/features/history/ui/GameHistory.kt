@@ -178,6 +178,18 @@ fun GamesHistoryScreen(
                                         date,
                                         style = MaterialTheme.typography.bodyLarge
                                     )
+                                    IconButton(
+                                        onClick = {
+                                            deleteGameId = game.id
+                                            deleteGameTitle =
+                                                "vs ${game.opponentName} (Round ${game.roundNumber})"
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Delete,
+                                            contentDescription = "Delete game"
+                                        )
+                                    }
                                 }
                             }
 //                            Row(
