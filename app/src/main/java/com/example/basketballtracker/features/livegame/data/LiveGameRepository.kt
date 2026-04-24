@@ -70,5 +70,8 @@ private fun EventEntity.toDomain() = LiveEvent(
     clockSecRemaining = clockSecRemaining,
     createdAt = createdAt,
     teamScoreAtEvent = teamScoreAtEvent,
-    opponentScoreAtEvent = opponentScoreAtEvent
+    opponentScoreAtEvent = opponentScoreAtEvent,
+    shotX = shotX,
+    shotY = shotY,
+    shotDistance = shotDistance
 )

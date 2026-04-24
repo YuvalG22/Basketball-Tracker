@@ -52,6 +52,7 @@ import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.features.livegame.domain.GameClock
 import com.example.basketballtracker.features.livegame.ui.components.FoulDots
+import com.example.basketballtracker.ui.theme.inter
 import com.example.basketballtracker.utils.formatClock
 import com.example.basketballtracker.utils.periodLabel
 import java.text.SimpleDateFormat
@@ -79,9 +80,7 @@ fun ScoreBoardPanel(
     Card(
         modifier,
         colors = CardDefaults.cardColors(
-            if (!clock.isRunning && clock.secRemaining < 600) Color.Red.copy(
-                alpha = 0.12f
-            ) else if (clock.isRunning) Color.Green.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
@@ -207,9 +206,9 @@ fun LeftAnimatedScore(score: Int) {
             text = target.toString(),
             modifier = Modifier.width(105.dp),
             style = MaterialTheme.typography.displayLarge,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = inter,
             textAlign = TextAlign.End,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.ExtraBold
         )
     }
 }
@@ -227,9 +226,9 @@ fun RightAnimatedScore(score: Int) {
             text = target.toString(),
             modifier = Modifier.width(105.dp),
             style = MaterialTheme.typography.displayLarge,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = inter,
             textAlign = TextAlign.Start,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.ExtraBold
         )
     }
 }
@@ -274,24 +273,25 @@ fun ScoreBoard(
 
 @Composable
 fun ScoreBoardClock(clock: GameClock) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.padding(horizontal = 8.dp)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
             formatClock(clock.secRemaining),
             modifier = Modifier.width(140.dp),
-            style = MaterialTheme.typography.displayMedium,
+            style = MaterialTheme.typography.displaySmall,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.ExtraBold,
-            textAlign = TextAlign.End
+            color = if (!clock.isRunning && clock.secRemaining < 600) MaterialTheme.colorScheme.error
+            else if (clock.isRunning) Color(0xFF3AB47A) else Color.White,
+            textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             periodLabel(clock.period),
-            style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.End
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
         )
     }
 }

@@ -32,6 +32,11 @@ enum class EventType {
         else -> false
     }
 
+    fun isShotEvent(): Boolean = when(this) {
+         TWO_MADE, TWO_MISS, THREE_MADE, THREE_MISS -> true
+         else -> false
+    }
+
     fun requiresPlayer(): Boolean = when (this) {
         TWO_MADE,
         TWO_MISS,
@@ -72,7 +77,10 @@ data class LiveEvent(
     val clockSecRemaining: Int,
     val createdAt: Long,
     val teamScoreAtEvent: Int?,
-    val opponentScoreAtEvent: Int?
+    val opponentScoreAtEvent: Int?,
+    val shotX: Float? = null,
+    val shotY: Float? = null,
+    val shotDistance: Float? = null
 )
 
 data class PlayerBox(

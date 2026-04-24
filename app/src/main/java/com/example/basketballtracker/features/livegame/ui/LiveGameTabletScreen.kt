@@ -124,6 +124,9 @@ fun LiveGameTabletScreen(
 
                 ActionsPanel(
                     enabled = actionsEnabled,
+                    box = box,
+                    selectedId = s.selectedPlayerId,
+                    events = s.events,
                     onEvent = { type, shotMeta -> vm.addEvent(type, shotMeta = shotMeta) },
                     modifier = Modifier
                         .weight(0.30f)

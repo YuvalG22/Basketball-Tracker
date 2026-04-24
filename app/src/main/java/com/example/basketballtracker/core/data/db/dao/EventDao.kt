@@ -42,4 +42,18 @@ interface EventDao {
 
     @Query("SELECT * FROM events")
     fun getAllEvents(): Flow<List<EventEntity>>
+
+    @Query("""
+    SELECT * FROM events
+    WHERE gameId = :gameId
+      AND playerId = :playerId
+      AND type IN ('TWO_MADE', 'TWO_MISS', 'THREE_MADE', 'THREE_MISS')
+      AND shotX IS NOT NULL
+      AND shotY IS NOT NULL
+    ORDER BY createdAt ASC
+""")
+    fun observeShotEventsForPlayer(
+        gameId: Long,
+        playerId: Long
+    ): Flow<List<EventEntity>>
 }

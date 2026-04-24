@@ -1,6 +1,5 @@
 package com.example.basketballtracker.features.livegame.ui.panels
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -34,8 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PaintingStyle.Companion.Fill
-import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -44,23 +39,40 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.room.util.TableInfo
 import com.example.basketballtracker.R
-import com.example.basketballtracker.features.core.ui.components.SectionDivider
 import com.example.basketballtracker.features.livegame.domain.EventType
+import com.example.basketballtracker.features.livegame.domain.LiveEvent
+import com.example.basketballtracker.features.livegame.domain.PlayerBox
 import com.example.basketballtracker.features.livegame.domain.ShotMeta
 import com.example.basketballtracker.features.livegame.ui.components.ActionButton
-import com.example.basketballtracker.features.livegame.ui.components.MadeShotButton
-import com.example.basketballtracker.features.livegame.ui.components.MissedShotButton
 import com.example.basketballtracker.utils.calculateShotDistance
+import kotlin.collections.get
 import kotlin.math.sqrt
 
 @Composable
 fun ActionsPanel(
     enabled: Boolean,
+    box: Map<Long, PlayerBox>,
+    events: List<LiveEvent>,
+    selectedId: Long?,
     onEvent: (EventType, ShotMeta?) -> Unit,
     modifier: Modifier
 ) {
+    val shots = events.mapNotNull { event ->
+        if (event.playerId != selectedId) return@mapNotNull null
+        if (!event.type.isShotEvent()) return@mapNotNull null
+
+        val x = event.shotX ?: return@mapNotNull null
+        val y = event.shotY ?: return@mapNotNull null
+
+        ShotUi(
+            x = x,
+            y = y,
+            made = event.type == EventType.TWO_MADE || event.type == EventType.THREE_MADE,
+            isThree = event.type == EventType.THREE_MADE || event.type == EventType.THREE_MISS
+        )
+    }
+
     Card(
         modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -72,135 +84,10 @@ fun ActionsPanel(
         ) {
             Text("Actions", style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(8.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF262626)),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "34",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "MIN",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "31",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "PTS",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "12",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "REB",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "8",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "AST",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "12/24",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "FG (50%)",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "3/8",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "3PT (38%)",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "6/6",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "FT (100%)",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            HalfCourtClickable(
-                onEvent = onEvent
+            PlayerGameStatsCard(
+                playerBox = box[selectedId],
+                onEvent = onEvent,
+                shots = shots
             )
 //            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
 //                Text(
@@ -232,71 +119,69 @@ fun ActionsPanel(
 //                    MissedShotButton("MISS", EventType.FT_MISS, onEvent, enabled)
 //                }
 //            }
-//            Spacer(Modifier.height(8.dp))
-//            Row(
-//                modifier = Modifier.fillMaxWidth(),
-//                verticalAlignment = Alignment.CenterVertically,
-//                horizontalArrangement = Arrangement.spacedBy(8.dp)
-//            ) {
-//                ActionButton("REB D", EventType.REB_DEF, onEvent, enabled)
-//                ActionButton("REB O", EventType.REB_OFF, onEvent, enabled)
-//                ActionButton("AST", EventType.AST, onEvent, enabled)
-//            }
-//            Spacer(Modifier.height(8.dp))
-//            Row(
-//                modifier = Modifier.fillMaxWidth(),
-//                verticalAlignment = Alignment.CenterVertically,
-//                horizontalArrangement = Arrangement.spacedBy(8.dp)
-//            ) {
-//                ActionButton("STL", EventType.STL, onEvent, enabled)
-//                ActionButton("BLK", EventType.BLK, onEvent, enabled)
-//                ActionButton("TOV", EventType.TOV, onEvent, enabled)
-//            }
-//            Spacer(Modifier.height(8.dp))
-//            Button(
-//                onClick = { onEvent(EventType.PF) },
-//                enabled = enabled,
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .height(56.dp),
-//                shape = RoundedCornerShape(8.dp),
-//                colors = ButtonDefaults.buttonColors(
-//                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-//                ),
-//            ) {
-//                Text(
-//                    "Personal Foul",
-//                    color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
-//                    style = MaterialTheme.typography.bodyLarge,
-//                    fontWeight = FontWeight.Bold
-//                )
-//            }
-//            Spacer(Modifier.weight(1f))
-//            Text("Opponent Actions", style = MaterialTheme.typography.titleSmall)
-//            Spacer(Modifier.height(8.dp))
-//            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-//                ActionButton("2PT", EventType.OPP_TWO_MADE, onEvent, enabled)
-//                ActionButton("3PT", EventType.OPP_THREE_MADE, onEvent, enabled)
-//                ActionButton("FT", EventType.OPP_FT_MADE, onEvent, enabled)
-//                ActionButton("PF", EventType.OPP_PF, onEvent, enabled)
-//            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ActionButton("REB D", EventType.REB_DEF, onEvent, enabled)
+                        ActionButton("REB O", EventType.REB_OFF, onEvent, enabled)
+                        ActionButton("AST", EventType.AST, onEvent, enabled)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ActionButton("STL", EventType.STL, onEvent, enabled)
+                        ActionButton("BLK", EventType.BLK, onEvent, enabled)
+                        ActionButton("TOV", EventType.TOV, onEvent, enabled)
+                    }
+                }
+                Button(
+                    onClick = { onEvent(EventType.PF, null) },
+                    enabled = enabled,
+                    modifier = Modifier
+                        .height(104.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Text(
+                        "PF",
+                        color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            Text("Opponent Actions", style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ActionButton("2PT", EventType.OPP_TWO_MADE, onEvent, enabled)
+                ActionButton("3PT", EventType.OPP_THREE_MADE, onEvent, enabled)
+                ActionButton("FT", EventType.OPP_FT_MADE, onEvent, enabled)
+                ActionButton("PF", EventType.OPP_PF, onEvent, enabled)
+            }
         }
     }
 }
 
-data class ShotPoint(
-    val px: Offset,
-    val svg: Offset,
-    val made: Boolean,
-    val isThree: Boolean
-)
-
 @Composable
 fun HalfCourtClickable(
-    onEvent: (EventType, ShotMeta) -> Unit
+    onEvent: (EventType, ShotMeta?) -> Unit,
+    shots: List<ShotUi> = emptyList()
 ) {
     var courtSize by remember { mutableStateOf(IntSize.Zero) }
-    var shots by remember { mutableStateOf(listOf<ShotPoint>()) }
 
     Box(
         modifier = Modifier
@@ -328,14 +213,6 @@ fun HalfCourtClickable(
                                 y = svgPoint.y,
                                 distance = calculateShotDistance(svgPoint.x, svgPoint.y)
                             )
-
-                            shots = shots + ShotPoint(
-                                px = tap,
-                                svg = svgPoint,
-                                made = false,
-                                isThree = isThreePoint
-                            )
-
                             if (isThreePoint) {
                                 onEvent(EventType.THREE_MISS, shotMeta)
                             } else {
@@ -357,13 +234,6 @@ fun HalfCourtClickable(
                                 y = svgPoint.y,
                                 distance = calculateShotDistance(svgPoint.x, svgPoint.y)
                             )
-
-                            shots = shots + ShotPoint(
-                                px = press,
-                                svg = svgPoint,
-                                made = true,
-                                isThree = isThreePoint
-                            )
                             if (isThreePoint) {
                                 onEvent(EventType.THREE_MADE, shotMeta)
                             } else {
@@ -382,28 +252,33 @@ fun HalfCourtClickable(
 
             Canvas(modifier = Modifier.matchParentSize()) {
                 shots.forEach { shot ->
+                    val center = Offset(
+                        x = (shot.x / 15f) * size.width,
+                        y = (shot.y / 14f) * size.height
+                    )
+
                     if (shot.made) {
                         drawCircle(
                             color = Color(0xFF4CAF50),
                             radius = 8f,
-                            center = shot.px
+                            center = center
                         )
                         drawCircle(
                             color = Color.White,
                             radius = 8f,
-                            center = shot.px,
+                            center = center,
                             style = Stroke(width = 2f)
                         )
                     } else {
                         drawCircle(
                             color = Color.Red,
                             radius = 8f,
-                            center = shot.px,
+                            center = center
                         )
                         drawCircle(
                             color = Color.White,
                             radius = 8f,
-                            center = shot.px,
+                            center = center,
                             style = Stroke(width = 2f)
                         )
                     }
@@ -430,4 +305,123 @@ fun isThreePointShot(x: Float, y: Float): Boolean {
     val distance = sqrt(dx * dx + dy * dy)
 
     return distance >= 6.75f
+}
+
+data class ShotUi(
+    val x: Float,
+    val y: Float,
+    val made: Boolean,
+    val isThree: Boolean
+)
+
+@Composable
+fun PlayerGameStatsCard(
+    playerBox: PlayerBox?,
+    onEvent: (EventType, ShotMeta?) -> Unit,
+    shots: List<ShotUi> = emptyList()
+) {
+    val pts = playerBox?.pts ?: 0
+    val ast = playerBox?.ast ?: 0
+    val reb = playerBox?.rebTotal ?: 0
+    val stl = playerBox?.stl ?: 0
+    val blk = playerBox?.blk ?: 0
+    val tov = playerBox?.tov ?: 0
+    val pf = playerBox?.pf ?: 0
+    val fgm = playerBox?.fgm ?: 0
+    val fga = playerBox?.fga ?: 0
+    val fgpct = playerBox?.fgPct ?: 0
+    val threem = playerBox?.threem ?: 0
+    val threea = playerBox?.threea ?: 0
+    val threePct = playerBox?.threePct ?: 0
+    val ftm = playerBox?.ftm ?: 0
+    val fta = playerBox?.fta ?: 0
+    val ftPct = playerBox?.ftPct ?: 0
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF262626)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            StatColumn(
+                title = "PTS",
+                value = pts.toString(),
+            )
+            StatColumn(
+                title = "AST",
+                value = ast.toString(),
+            )
+            StatColumn(
+                title = "REB",
+                value = reb.toString(),
+            )
+            StatColumn(
+                title = "STL",
+                value = stl.toString(),
+            )
+            StatColumn(
+                title = "BLK",
+                value = blk.toString(),
+            )
+            StatColumn(
+                title = "TO",
+                value = tov.toString(),
+            )
+            StatColumn(
+                title = "PF",
+                value = pf.toString(),
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            StatColumn(
+                title = "FG (${fgpct}%)",
+                value = "${fgm}/${fga}",
+            )
+            StatColumn(
+                title = "3PT (${threePct}%)",
+                value = "${threem}/${threea}",
+            )
+            StatColumn(
+                title = "FT (${ftPct}%)",
+                value = "${ftm}/${fta}",
+            )
+        }
+    }
+    Spacer(Modifier.height(8.dp))
+    HalfCourtClickable(
+        onEvent = onEvent,
+        shots = shots
+    )
+}
+
+@Composable
+fun StatColumn(
+    title: String,
+    value: String,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = value,
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.ExtraBold
+        )
+        Text(
+            text = title,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
 }

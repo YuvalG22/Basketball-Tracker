@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.features.livegame.domain.EventType
+import com.example.basketballtracker.features.livegame.domain.ShotMeta
 
 @Composable
 fun RowScope.MissedShotButton(
@@ -103,11 +104,11 @@ fun RowScope.MadeShotButton(
 fun RowScope.ActionButton(
     label: String,
     type: EventType,
-    onEvent: (EventType) -> Unit,
+    onEvent: (EventType, ShotMeta?) -> Unit,
     enabled: Boolean
 ) {
     Button(
-        onClick = { onEvent(type) },
+        onClick = { onEvent(type, null) },
         enabled = enabled,
         modifier = Modifier
             .weight(1f)
@@ -120,7 +121,7 @@ fun RowScope.ActionButton(
         Text(
             text = label,
             color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold
         )
     }

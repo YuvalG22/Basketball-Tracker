@@ -406,9 +406,9 @@ fun PlayerRow(
         StatCell("${box?.blk ?: 0}")
         StatCell("${box?.tov ?: 0}")
 
-        StatCell("${box?.fgm}/${box?.fga} (${box?.fgPct}%)", 2f)
-        StatCell("${box?.threem}/${box?.threea} (${box?.threePct}%)", 2f)
-        StatCell("${box?.ftm}/${box?.fta} (${box?.ftPct}%)", 2f)
+        StatCell("${box?.fgm ?: 0}/${box?.fga ?: 0} (${box?.fgPct ?: 0}%)", 2f)
+        StatCell("${box?.threem ?: 0}/${box?.threea ?: 0} (${box?.threePct ?: 0}%)", 2f)
+        StatCell("${box?.ftm ?: 0}/${box?.fta ?: 0} (${box?.ftPct ?: 0}%)", 2f)
 
         StatCell("${box?.pf ?: 0}")
         StatCell(pmText)
