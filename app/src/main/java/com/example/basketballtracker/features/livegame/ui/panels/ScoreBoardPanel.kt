@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontFamily.Companion.Monospace
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -203,12 +205,12 @@ fun LeftAnimatedScore(score: Int) {
         }
     ) { target ->
         Text(
-            text = target.toString(),
             modifier = Modifier.width(105.dp),
+            text = target.toString(),
             style = MaterialTheme.typography.displayLarge,
             fontFamily = inter,
-            textAlign = TextAlign.End,
-            fontWeight = FontWeight.ExtraBold
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Black
         )
     }
 }
@@ -223,12 +225,12 @@ fun RightAnimatedScore(score: Int) {
         }
     ) { target ->
         Text(
-            text = target.toString(),
             modifier = Modifier.width(105.dp),
+            text = target.toString(),
             style = MaterialTheme.typography.displayLarge,
             fontFamily = inter,
-            textAlign = TextAlign.Start,
-            fontWeight = FontWeight.ExtraBold
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Black
         )
     }
 }
@@ -244,29 +246,20 @@ fun ScoreBoard(
     awayFouls: Int
 ) {
     Row(
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         LeftTeamScore(
             if (isHomeGame) "AFEKA" else opponentName.uppercase(getDefault()),
-            teamScore,
+            if (isHomeGame) teamScore else opponentScore,
             fouls = homeFouls
         )
-        VerticalDivider(
-            modifier = Modifier.padding(horizontal = 24.dp),
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-        )
         ScoreBoardClock(clock)
-        VerticalDivider(
-            modifier = Modifier.padding(horizontal = 24.dp),
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-        )
-
         RightTeamScore(
             if (isHomeGame) opponentName.uppercase(getDefault()) else "AFEKA",
-            opponentScore,
-            fouls = awayFouls
+            if (isHomeGame) opponentScore else teamScore,
+            fouls = awayFouls,
         )
     }
 }
@@ -275,23 +268,23 @@ fun ScoreBoard(
 fun ScoreBoardClock(clock: GameClock) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             formatClock(clock.secRemaining),
             modifier = Modifier.width(140.dp),
-            style = MaterialTheme.typography.displaySmall,
+            style = MaterialTheme.typography.headlineMedium,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.ExtraBold,
             color = if (!clock.isRunning && clock.secRemaining < 600) MaterialTheme.colorScheme.error
             else if (clock.isRunning) Color(0xFF3AB47A) else Color.White,
             textAlign = TextAlign.Center,
         )
-        Spacer(modifier = Modifier.width(16.dp))
         Text(
             periodLabel(clock.period),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleSmall,
             textAlign = TextAlign.Center,
+            color = Color.White.copy(alpha = 0.5f),
         )
     }
 }
@@ -331,23 +324,28 @@ fun ClockControls(
 }
 
 @Composable
-fun RightTeamScore(name: String, score: Int, fouls: Int) {
+fun RowScope.RightTeamScore(name: String, score: Int, fouls: Int) {
     Row(
+        modifier = Modifier.weight(1f),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RightAnimatedScore(score)
-        Spacer(modifier = Modifier.width(40.dp))
+        Spacer(modifier = Modifier.width(16.dp))
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.Start,
         ) {
             Text(
                 "AWAY",
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = inter,
+                fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             )
             Text(
                 name,
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineSmall,
+                fontFamily = inter,
+                fontWeight = FontWeight.Black,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -358,21 +356,27 @@ fun RightTeamScore(name: String, score: Int, fouls: Int) {
 }
 
 @Composable
-fun LeftTeamScore(name: String, score: Int, fouls: Int) {
+fun RowScope.LeftTeamScore(name: String, score: Int, fouls: Int) {
     Row(
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.weight(1f),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End,
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.End,
         ) {
             Text(
                 "HOME",
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = inter,
+                fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             )
             Text(
                 name,
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineSmall,
+                fontFamily = inter,
+                fontWeight = FontWeight.Black,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -381,7 +385,7 @@ fun LeftTeamScore(name: String, score: Int, fouls: Int) {
                 fouls = fouls,
             )
         }
-        Spacer(modifier = Modifier.width(40.dp))
+        Spacer(modifier = Modifier.width(16.dp))
         LeftAnimatedScore(score)
     }
 }

@@ -45,6 +45,8 @@ import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.PlayerBox
 import com.example.basketballtracker.features.livegame.domain.ShotMeta
 import com.example.basketballtracker.features.livegame.ui.components.ActionButton
+import com.example.basketballtracker.features.livegame.ui.components.MadeShotButton
+import com.example.basketballtracker.features.livegame.ui.components.MissedShotButton
 import com.example.basketballtracker.utils.calculateShotDistance
 import kotlin.collections.get
 import kotlin.math.sqrt
@@ -120,6 +122,21 @@ fun ActionsPanel(
 //                }
 //            }
             Spacer(Modifier.height(8.dp))
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "FREE THROWS",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MadeShotButton("MADE", EventType.FT_MADE, onEvent, enabled)
+                    MissedShotButton("MISS", EventType.FT_MISS, onEvent, enabled)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -149,7 +166,7 @@ fun ActionsPanel(
                     onClick = { onEvent(EventType.PF, null) },
                     enabled = enabled,
                     modifier = Modifier
-                        .height(104.dp),
+                        .height(88.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -165,7 +182,7 @@ fun ActionsPanel(
             }
             Spacer(Modifier.weight(1f))
             Text("Opponent Actions", style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(2.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ActionButton("2PT", EventType.OPP_TWO_MADE, onEvent, enabled)
                 ActionButton("3PT", EventType.OPP_THREE_MADE, onEvent, enabled)

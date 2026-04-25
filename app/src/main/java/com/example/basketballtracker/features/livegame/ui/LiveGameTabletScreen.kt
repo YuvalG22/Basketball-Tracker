@@ -114,6 +114,7 @@ fun LiveGameTabletScreen(
                     opponentName = s.opponentName,
                     events = s.events,
                     playersById = playersById,
+                    isHomeGame = s.isHomeGame,
                     onUndo = vm::undoLast,
                     modifier = Modifier
                         .weight(0.40f)

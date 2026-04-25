@@ -3,6 +3,7 @@ package com.example.basketballtracker.features.livegame.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,34 +31,34 @@ import com.example.basketballtracker.features.livegame.domain.ShotMeta
 fun RowScope.MissedShotButton(
     label: String,
     type: EventType,
-    onEvent: (EventType) -> Unit,
+    onEvent: (EventType, ShotMeta?) -> Unit,
     enabled: Boolean
 ) {
     Button(
-        onClick = { onEvent(type) },
+        onClick = { onEvent(type, null) },
         enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
             .weight(1f)
-            .height(56.dp),
+            .height(40.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Icon(
-                Icons.Outlined.Cancel,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = if (enabled) Color.White else Color.White.copy(alpha = 0.5f)
-            )
             Text(
                 label,
                 color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
+            )
+            Icon(
+                Icons.Outlined.Cancel,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = if (enabled) Color.White else Color.White.copy(alpha = 0.5f)
             )
         }
     }
@@ -67,34 +68,34 @@ fun RowScope.MissedShotButton(
 fun RowScope.MadeShotButton(
     label: String,
     type: EventType,
-    onEvent: (EventType) -> Unit,
+    onEvent: (EventType, ShotMeta?) -> Unit,
     enabled: Boolean
 ) {
     Button(
-        onClick = { onEvent(type) },
+        onClick = { onEvent(type, null) },
         enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
             .weight(1f)
-            .height(56.dp),
+            .height(40.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3AB47A))
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Icon(
-                Icons.Outlined.CheckCircle,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = if (enabled) Color.White else Color.White.copy(alpha = 0.5f)
-            )
             Text(
                 label,
                 color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
+            )
+            Icon(
+                Icons.Outlined.CheckCircle,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = if (enabled) Color.White else Color.White.copy(alpha = 0.5f)
             )
         }
     }
@@ -112,7 +113,7 @@ fun RowScope.ActionButton(
         enabled = enabled,
         modifier = Modifier
             .weight(1f)
-            .height(48.dp),
+            .height(40.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant

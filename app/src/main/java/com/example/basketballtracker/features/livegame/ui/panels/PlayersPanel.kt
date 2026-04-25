@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -64,6 +65,7 @@ import com.example.basketballtracker.features.livegame.domain.PlayerBox
 import com.example.basketballtracker.features.livegame.domain.formatMinutes
 import com.example.basketballtracker.features.livegame.ui.components.FoulDots
 import com.example.basketballtracker.features.livegame.ui.components.StatRow
+import com.example.basketballtracker.ui.theme.inter
 import com.example.basketballtracker.utils.formatPlayerName
 
 enum class PlayerCardMode {
@@ -277,7 +279,7 @@ private fun PlayerCard(
     val pf = playerBoxScore?.pf ?: 0
 
     val hapticFeedback = LocalHapticFeedback.current
-    val numberWidth = 36.dp
+    val numberWidth = 24.dp
     val spacing = 8.dp
 
     val icon =
@@ -303,22 +305,23 @@ private fun PlayerCard(
                 }
             ),
         colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = Color.White.copy(alpha = 0.03f)
         ),
         border = BorderStroke(
-            width = 2.dp,
+            width = 1.dp,
             color = if (isSelected) Color.White
-            else MaterialTheme.colorScheme.surfaceVariant
+            else Color.White.copy(alpha = 0.08f)
         )
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .height(IntrinsicSize.Min)
         ) {
             if (mode == PlayerCardMode.ON_COURT) {
                 Box(
                     modifier = Modifier
-                        .width(12.dp)
+                        .width(10.dp)
                         .padding(start = 1.dp)
                         .fillMaxHeight()
                         .background(Color(0xFF3AB47A))
@@ -333,38 +336,21 @@ private fun PlayerCard(
             ) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedCard(
+                        Text(
+                            text = "#${player.number}",
+                            fontFamily = inter,
                             modifier = Modifier.width(numberWidth),
-                            colors = CardDefaults.outlinedCardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            border = BorderStroke(
-                                width = 0.5.dp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                            )
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "#${player.number}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
-
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
                         Spacer(modifier = Modifier.width(spacing))
-
                         Text(
                             text = player.name,
+                            fontFamily = inter,
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-
                         Spacer(modifier = Modifier.width(spacing))
-
                         FoulDots(fouls = pf)
                     }
 
@@ -374,58 +360,64 @@ private fun PlayerCard(
 
                         val seconds = secondsByPlayer ?: 0
                         val minText = formatMinutes(seconds)
-
-//                        Text(
-//                            text = "MIN $minText  •  PTS $pts  •  REB $reb  •  AST $ast",
-//                            color = MaterialTheme.colorScheme.onSurface,
-//                            style = MaterialTheme.typography.bodyMedium
-//                        )
                         Text(
                             text = "MIN",
+                            fontFamily = inter,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = minText,
+                            fontFamily = inter,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.width(spacing))
                         Text(
                             text = "PTS",
+                            fontFamily = inter,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = pts.toString(),
+                            fontFamily = inter,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.width(spacing))
                         Text(
                             text = "REB",
+                            fontFamily = inter,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = reb.toString(),
+                            fontFamily = inter,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.width(spacing))
                         Text(
                             text = "AST",
+                            fontFamily = inter,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = ast.toString(),
+                            fontFamily = inter,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
