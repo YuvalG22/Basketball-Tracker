@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -52,6 +53,7 @@ import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.formatEventPBP
 import com.example.basketballtracker.features.livegame.ui.EventFilter
+import com.example.basketballtracker.features.livegame.ui.PeriodFilter
 import com.example.basketballtracker.utils.formatClock
 import com.example.basketballtracker.utils.formatPlayerName
 import com.example.basketballtracker.utils.periodLabel
@@ -74,32 +76,46 @@ fun GameControlPanel(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(12.dp)
+                .padding(0.dp)
         ) {
-            Text("Play By Play", style = MaterialTheme.typography.titleSmall)
-            Spacer(modifier = Modifier.height(8.dp))
             var filter by rememberSaveable { mutableStateOf(EventFilter.All) }
             Row(
                 modifier = Modifier
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                PlayByPlayFilter(
-                    selected = filter,
-                    onSelected = { filter = it }
+                Text(
+                    "Play By Play",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.White.copy(alpha = 0.5f)
                 )
-                IconButton(
-                    onClick = onUndo,
+                Row(
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    Icon(
-                        tint = MaterialTheme.colorScheme.error,
-                        contentDescription = "undo event",
-                        modifier = Modifier.size(36.dp),
-                        painter = painterResource(id = R.drawable.outline_undo_24),
+                    PlayByPlayFilter(
+                        selected = filter,
+                        onSelected = { filter = it }
                     )
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(
+                        onClick = onUndo,
+                    ) {
+                        Icon(
+                            tint = MaterialTheme.colorScheme.error,
+                            contentDescription = "undo event",
+                            modifier = Modifier.size(36.dp),
+                            painter = painterResource(id = R.drawable.outline_undo_24),
+                        )
+                    }
                 }
             }
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 1.dp,
+                color = Color.White.copy(alpha = 0.08f)
+            )
             val filteredEvents = remember(events, filter) {
                 when (filter) {
                     EventFilter.All -> events
@@ -140,6 +156,7 @@ fun PlayByPlayList(
     }
     LazyColumn(
         state = listState,
+        modifier = Modifier.padding(end = 12.dp, start = 12.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         itemsIndexed(events) { index, e ->

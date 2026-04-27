@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui.panels
 
+import android.R.attr.alpha
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -52,7 +53,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.unit.dp
+import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.GameClock
+import com.example.basketballtracker.features.livegame.domain.ShotMeta
+import com.example.basketballtracker.features.livegame.ui.components.ActionButton
 import com.example.basketballtracker.features.livegame.ui.components.FoulDots
 import com.example.basketballtracker.ui.theme.inter
 import com.example.basketballtracker.utils.formatClock
@@ -73,6 +77,8 @@ fun ScoreBoardPanel(
     clock: GameClock,
     onToggleClock: () -> Unit,
     onNextQuarter: () -> Unit,
+    onEvent: (EventType, ShotMeta?) -> Unit,
+    enabled: Boolean,
     isEnded: Boolean,
     onEndGame: () -> Unit,
     homeFouls: Int,
@@ -83,7 +89,8 @@ fun ScoreBoardPanel(
         modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        )
+        ),
+        shape = RoundedCornerShape(0.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -99,7 +106,7 @@ fun ScoreBoardPanel(
                 )
             }
             Box(
-                modifier = Modifier.weight(4f),
+                modifier = Modifier.weight(2f),
                 contentAlignment = Alignment.Center
             ) {
                 ScoreBoard(
@@ -112,29 +119,66 @@ fun ScoreBoardPanel(
                     awayFouls = awayFouls,
                 )
             }
+            Spacer(modifier = Modifier.width(12.dp))
             Box(
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Text(
+                        "OPP\nSCORE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Column(
-                        modifier = Modifier.padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier
+                            .width(130.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            OppScoreButton("FT", EventType.OPP_FT_MADE, onEvent, enabled)
+                            OppScoreButton("2PT", EventType.OPP_TWO_MADE, onEvent, enabled)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            OppScoreButton("3PT", EventType.OPP_THREE_MADE, onEvent, enabled)
+                            OppScoreButton("PF", EventType.OPP_PF, onEvent, enabled)
+                        }
+                    }
+                    VerticalDivider(
+                        modifier = Modifier
+                            .height(48.dp)
+                            .padding(end = 8.dp, start = 8.dp),
+                        thickness = 1.dp,
+                        color = Color.White.copy(alpha = 0.2f)
+                    )
+                    Column(
+                        horizontalAlignment = Alignment.End
                     ) {
                         val dateText = remember(gameDateEpoch) {
                             if (gameDateEpoch == 0L) "" else
-                                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                                SimpleDateFormat("E, MMM d, yyyy", Locale.ENGLISH)
                                     .format(Date(gameDateEpoch))
                         }
                         Text(
-                            "$dateText",
-                            style = MaterialTheme.typography.titleMedium
+                            "Round $roundNumber",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White.copy(alpha = 0.8f)
                         )
                         Text(
-                            "Round $roundNumber",
-                            style = MaterialTheme.typography.titleMedium
+                            "$dateText",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.5f)
                         )
                     }
                     var menuExpanded by remember { mutableStateOf(false) }
@@ -205,12 +249,12 @@ fun LeftAnimatedScore(score: Int) {
         }
     ) { target ->
         Text(
-            modifier = Modifier.width(105.dp),
+            //modifier = Modifier.width(100.dp),
             text = target.toString(),
             style = MaterialTheme.typography.displayLarge,
-            fontFamily = inter,
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Black
+            //fontFamily = Monospace,
+            textAlign = TextAlign.End,
+            fontWeight = FontWeight.ExtraBold
         )
     }
 }
@@ -225,12 +269,12 @@ fun RightAnimatedScore(score: Int) {
         }
     ) { target ->
         Text(
-            modifier = Modifier.width(105.dp),
+            //modifier = Modifier.width(100.dp),
             text = target.toString(),
             style = MaterialTheme.typography.displayLarge,
-            fontFamily = inter,
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Black
+            //fontFamily = Monospace,
+            textAlign = TextAlign.Start,
+            fontWeight = FontWeight.ExtraBold
         )
     }
 }
@@ -248,18 +292,28 @@ fun ScoreBoard(
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        VerticalDivider(
+            modifier = Modifier.height(48.dp),
+            thickness = 1.dp,
+            color = Color.White.copy(alpha = 0.2f)
+        )
         LeftTeamScore(
             if (isHomeGame) "AFEKA" else opponentName.uppercase(getDefault()),
             if (isHomeGame) teamScore else opponentScore,
-            fouls = homeFouls
+            fouls = if (isHomeGame) homeFouls else awayFouls,
         )
         ScoreBoardClock(clock)
         RightTeamScore(
             if (isHomeGame) opponentName.uppercase(getDefault()) else "AFEKA",
             if (isHomeGame) opponentScore else teamScore,
-            fouls = awayFouls,
+            fouls = if (isHomeGame) awayFouls else homeFouls,
+        )
+        VerticalDivider(
+            modifier = Modifier.height(48.dp),
+            thickness = 1.dp,
+            color = Color.White.copy(alpha = 0.2f)
         )
     }
 }
@@ -272,7 +326,7 @@ fun ScoreBoardClock(clock: GameClock) {
     ) {
         Text(
             formatClock(clock.secRemaining),
-            modifier = Modifier.width(140.dp),
+            modifier = Modifier.width(85.dp),
             style = MaterialTheme.typography.headlineMedium,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.ExtraBold,
@@ -311,15 +365,22 @@ fun ClockControls(
                 modifier = Modifier.size(48.dp)
             )
         }
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(16.dp))
         OutlinedButton(
             onClick = onNextQuarter,
             enabled = !clock.isRunning,
             border = BorderStroke(
                 width = 2.dp,
                 color = Color.White
+            ),
+            shape = RoundedCornerShape(8.dp),
+        ) {
+            Text(
+                "Next Period",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
             )
-        ) { Text("Next Q") }
+        }
     }
 }
 
@@ -343,7 +404,7 @@ fun RowScope.RightTeamScore(name: String, score: Int, fouls: Int) {
             )
             Text(
                 name,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 fontFamily = inter,
                 fontWeight = FontWeight.Black,
                 maxLines = 1,
@@ -374,7 +435,7 @@ fun RowScope.LeftTeamScore(name: String, score: Int, fouls: Int) {
             )
             Text(
                 name,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 fontFamily = inter,
                 fontWeight = FontWeight.Black,
                 maxLines = 1,
@@ -387,5 +448,33 @@ fun RowScope.LeftTeamScore(name: String, score: Int, fouls: Int) {
         }
         Spacer(modifier = Modifier.width(16.dp))
         LeftAnimatedScore(score)
+    }
+}
+
+@Composable
+fun RowScope.OppScoreButton(
+    label: String,
+    type: EventType,
+    onEvent: (EventType, ShotMeta?) -> Unit,
+    enabled: Boolean
+) {
+    Button(
+        onClick = { onEvent(type, null) },
+        enabled = enabled,
+        modifier = Modifier
+            .weight(1f)
+            .height(30.dp)
+            .padding(0.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+    ) {
+        Text(
+            text = label,
+            color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold
+        )
     }
 }

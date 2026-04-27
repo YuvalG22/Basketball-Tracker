@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -18,9 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,22 +25,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.remote.core.serialize.SerializeTags
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,18 +46,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import androidx.room.util.TableInfo
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.core.ui.components.SectionDivider
+import com.example.basketballtracker.features.livegame.domain.EventType
+import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.PlayerBox
 import com.example.basketballtracker.features.livegame.domain.formatMinutes
 import com.example.basketballtracker.features.livegame.ui.components.FoulDots
-import com.example.basketballtracker.features.livegame.ui.components.StatRow
 import com.example.basketballtracker.ui.theme.inter
-import com.example.basketballtracker.utils.formatPlayerName
 
 enum class PlayerCardMode {
     ON_COURT,
@@ -76,10 +65,13 @@ enum class PlayerCardMode {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayersPanel(
+    gameDate: Long,
     onCourtPlayers: List<PlayerEntity>,
     benchPlayers: List<PlayerEntity>,
     selectedId: Long?,
     isEnded: Boolean,
+    events: List<LiveEvent>,
+    opponentName: String,
     box: Map<Long, PlayerBox>,
     plusMinusById: Map<Long, Int>,
     secondsPlayedById: Map<Long, Int>,
@@ -92,6 +84,20 @@ fun PlayersPanel(
 
     var sheetPlayerId by rememberSaveable { mutableStateOf<Long?>(null) }
     if (sheetPlayerId != null) {
+        val shots = events.mapNotNull { event ->
+            if (event.playerId != sheetPlayerId) return@mapNotNull null
+            if (!event.type.isShotEvent()) return@mapNotNull null
+
+            val x = event.shotX ?: return@mapNotNull null
+            val y = event.shotY ?: return@mapNotNull null
+
+            ShotUi(
+                x = x,
+                y = y,
+                made = event.type == EventType.TWO_MADE || event.type == EventType.THREE_MADE,
+                isThree = event.type == EventType.THREE_MADE || event.type == EventType.THREE_MISS
+            )
+        }
         val pid = sheetPlayerId!!
         val p = (onCourtPlayers + benchPlayers).firstOrNull { it.id == pid }
         val b = box[pid]
@@ -105,13 +111,9 @@ fun PlayersPanel(
                     Text("Close")
                 }
             },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
             properties = DialogProperties(usePlatformDefaultWidth = false),
-            title = {
-                Text(
-                    text = "#${p?.number} ${p?.name}",
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
             text = {
                 Box(
                     modifier = Modifier.width(300.dp)
@@ -122,19 +124,18 @@ fun PlayersPanel(
                             .heightIn(max = 500.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
-                        PlayerDetailsSheetContent(
+                        PlayerGameSummaryCard(
                             player = p,
-                            box = b,
-                            plusMinus = pm,
+                            playerBox = b,
                             secondsPlayed = secPlayed,
-                            modifier = Modifier.fillMaxWidth(),
+                            plusMinus = pm,
+                            opponentName = opponentName,
+                            gameDate = gameDate,
+                            shots = shots
                         )
                     }
                 }
-            },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+            }
         )
     }
 
@@ -149,7 +150,8 @@ fun PlayersPanel(
         ) {
             Text(
                 "On Court",
-                style = MaterialTheme.typography.titleSmall
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.White.copy(alpha = 0.5f)
             )
             Spacer(Modifier.height(4.dp))
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -168,7 +170,11 @@ fun PlayersPanel(
                 }
             }
             SectionDivider()
-            Text("Bench", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Bench",
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.White.copy(alpha = 0.5f)
+            )
             Spacer(Modifier.height(4.dp))
 
             LazyColumn(
@@ -191,73 +197,6 @@ fun PlayersPanel(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun PlayerDetailsSheetContent(
-    player: PlayerEntity?,
-    box: PlayerBox?,
-    secondsPlayed: Int,
-    plusMinus: Int,
-    modifier: Modifier = Modifier
-) {
-    val p = player
-    if (p == null) {
-        Text("Player not found", modifier = modifier)
-        return
-    }
-
-    val pts = box?.pts ?: 0
-    val reb = box?.rebTotal ?: 0
-    val dreb = box?.rebDef ?: 0
-    val oreb = box?.rebOff ?: 0
-    val ast = box?.ast ?: 0
-    val stl = box?.stl ?: 0
-    val blk = box?.blk ?: 0
-    val tov = box?.tov ?: 0
-    val pf = box?.pf ?: 0
-
-    val twofg = box?.let { "${it.twom}/${it.twoa} (${it.twoPct}%)" } ?: "0/0 (0%)"
-    val fg = box?.let { "${it.fgm}/${it.fga} (${it.fgPct}%)" } ?: "0/0 (0%)"
-    val tp = box?.let { "${it.threem}/${it.threea} (${it.threePct}%)" } ?: "0/0 (0%)"
-    val ft = box?.let { "${it.ftm}/${it.fta} (${it.ftPct}%)" } ?: "0/0 (0%)"
-
-    val plusMinusText = if (plusMinus > 0) "+$plusMinus" else plusMinus
-
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        StatRow("Minutes", formatMinutes(secondsPlayed))
-        HorizontalDivider(
-            thickness = 2.dp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-        )
-
-        StatRow("Points", pts.toString())
-        StatRow("Free throws", ft)
-        StatRow("2 pointers", twofg)
-        StatRow("3 pointers", tp)
-        StatRow("Field goals", fg)
-
-        HorizontalDivider(
-            thickness = 2.dp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-        )
-
-        StatRow("Rebounds", reb.toString())
-        StatRow("Defensive rebounds", dreb.toString())
-        StatRow("Offensive rebounds", oreb.toString())
-
-        HorizontalDivider(
-            thickness = 2.dp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-        )
-
-        StatRow("Assists", ast.toString())
-        StatRow("Steals", stl.toString())
-        StatRow("Blocks", blk.toString())
-        StatRow("Turnovers", tov.toString())
-        StatRow("Personal fouls", pf.toString())
-        StatRow("+/-", plusMinusText.toString())
     }
 }
 

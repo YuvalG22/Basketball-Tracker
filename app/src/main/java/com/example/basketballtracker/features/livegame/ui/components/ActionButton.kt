@@ -108,6 +108,12 @@ fun RowScope.ActionButton(
     onEvent: (EventType, ShotMeta?) -> Unit,
     enabled: Boolean
 ) {
+    val buttonColor = when (type) {
+        EventType.FT_MADE -> Color(0x663AB47A)
+        EventType.FT_MISS -> MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
+        EventType.PF -> Color(0x66FF8C00)
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
     Button(
         onClick = { onEvent(type, null) },
         enabled = enabled,
@@ -116,7 +122,7 @@ fun RowScope.ActionButton(
             .height(40.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = buttonColor
         ),
     ) {
         Text(

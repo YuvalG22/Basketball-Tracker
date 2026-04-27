@@ -292,7 +292,7 @@ fun MyTextField(
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedContainerColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent,
-                focusedBorderColor = MaterialTheme.colorScheme.outline
+                focusedBorderColor = Color.White,
             ),
             placeholder = {
                 Text(

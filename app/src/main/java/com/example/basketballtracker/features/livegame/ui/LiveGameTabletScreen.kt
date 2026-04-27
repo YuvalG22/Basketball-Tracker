@@ -19,6 +19,8 @@ import com.example.basketballtracker.features.livegame.ui.panels.ScoreBoardPanel
 
 enum class EventFilter { All, Score }
 
+enum class PeriodFilter { All, Q1, Q2, Q3, Q4, OT, OT1, OT2, OT3, OT4 }
+
 @Composable
 fun LiveGameTabletScreen(
     vm: LiveGameViewModel,
@@ -67,9 +69,9 @@ fun LiveGameTabletScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(4.dp)
+                .padding(0.dp)
                 .windowInsetsPadding(WindowInsets.systemBars),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             ScoreBoardPanel(
                 gameDateEpoch = s.gameDateEpoch,
@@ -81,6 +83,8 @@ fun LiveGameTabletScreen(
                 isHomeGame = s.isHomeGame,
                 onToggleClock = vm::toggleClock,
                 onNextQuarter = vm::nextQuarter,
+                onEvent = { type, shotMeta -> vm.addEvent(type, shotMeta = shotMeta) },
+                enabled = true,
                 isEnded = s.isEnded,
                 onEndGame = onEndGameNavigate,
                 homeFouls = teamFoulsThisQ,
@@ -90,14 +94,18 @@ fun LiveGameTabletScreen(
                     .fillMaxWidth()
             )
             Row(
-                modifier = Modifier.weight(0.9f)
+                modifier = Modifier.weight(0.9f),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 PlayersPanel(
+                    gameDate = s.gameDateEpoch,
                     onCourtPlayers = onCourtPlayers,
                     benchPlayers = benchPlayers,
                     selectedId = s.selectedPlayerId,
                     isEnded = s.isEnded,
                     box = box,
+                    events = s.events,
+                    opponentName = s.opponentName,
                     plusMinusById = s.plusMinusById,
                     secondsPlayedById = s.secondsPlayedById,
                     onSelect = vm::selectPlayer,
@@ -106,10 +114,8 @@ fun LiveGameTabletScreen(
                     modifier = Modifier
                         .weight(0.30f)
                         .fillMaxHeight()
+                        .padding(start = 4.dp, bottom = 4.dp)
                 )
-
-                Spacer(Modifier.width(6.dp))
-
                 GameControlPanel(
                     opponentName = s.opponentName,
                     events = s.events,
@@ -119,19 +125,19 @@ fun LiveGameTabletScreen(
                     modifier = Modifier
                         .weight(0.40f)
                         .fillMaxHeight()
+                        .padding(bottom = 4.dp)
                 )
-
-                Spacer(Modifier.width(6.dp))
-
                 ActionsPanel(
                     enabled = actionsEnabled,
                     box = box,
+                    players = playersById,
                     selectedId = s.selectedPlayerId,
                     events = s.events,
                     onEvent = { type, shotMeta -> vm.addEvent(type, shotMeta = shotMeta) },
                     modifier = Modifier
                         .weight(0.30f)
                         .fillMaxHeight()
+                        .padding(end = 4.dp, bottom = 4.dp)
                 )
             }
         }
