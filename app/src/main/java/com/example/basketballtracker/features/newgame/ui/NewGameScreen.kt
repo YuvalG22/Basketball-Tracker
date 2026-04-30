@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.core.data.db.dao.RosterDao
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.core.data.db.entities.RosterEntity
+import com.example.basketballtracker.core.data.remote.RetrofitClient
+import com.example.basketballtracker.core.data.remote.roster.RosterUploadDto
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.players.data.PlayersRepository
 import kotlinx.coroutines.launch
@@ -62,9 +64,32 @@ fun NewGameScreen(
         scope.launch {
             val gameId = gamesRepo.createGame(opp, isHomeGame, round, gameDateEpoch, quarterLen)
 
-            rosterDao.insertAll(
-                ids.map { pid -> RosterEntity(gameId = gameId, playerId = pid) }
-            )
+            ids.forEach { pid ->
+                val roster = RosterEntity(
+                    gameId = gameId,
+                    playerId = pid,
+                    syncStatus = "PENDING"
+                )
+
+                rosterDao.insert(roster)
+
+                try {
+                    val response = RetrofitClient.rosterApi.uploadRoster(
+                        RosterUploadDto(
+                            gameId = gameId,
+                            playerId = pid
+                        )
+                    )
+
+                    rosterDao.markSynced(
+                        gameId = gameId,
+                        playerId = pid,
+                        remoteId = response.remoteId
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
 
             onStart(gameId)
         }

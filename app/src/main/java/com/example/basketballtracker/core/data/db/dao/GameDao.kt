@@ -12,11 +12,13 @@ interface GameDao {
     @Query("SELECT * FROM games WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): GameEntity?
 
-    @Query("""
+    @Query(
+        """
     SELECT id FROM games
     ORDER BY createdAt DESC
     LIMIT 1
-""")
+"""
+    )
     fun observeLastGameId(): kotlinx.coroutines.flow.Flow<Long?>
 
     @Query("SELECT * FROM games ORDER BY createdAt DESC")
@@ -25,11 +27,13 @@ interface GameDao {
     @Query("SELECT * FROM games WHERE id = :id LIMIT 1")
     fun observeGame(id: Long): Flow<GameEntity?>
 
-    @Query("""
+    @Query(
+        """
     UPDATE games
     SET teamScore = :teamScore, opponentScore = :opponentScore
     WHERE id = :gameId
-""")
+"""
+    )
     suspend fun updateGameResult(
         gameId: Long,
         teamScore: Int,
@@ -38,4 +42,16 @@ interface GameDao {
 
     @Query("DELETE FROM games WHERE id = :gameId")
     suspend fun deleteById(gameId: Long)
+
+    @Query(
+        """
+    UPDATE games 
+    SET syncStatus = 'SYNCED', remoteId = :remoteId 
+    WHERE id = :localId
+    """
+        )
+    suspend fun markSynced(localId: Long, remoteId: String)
+
+    @Query("SELECT * FROM games WHERE syncStatus = 'PENDING'")
+    suspend fun getPendingGames(): List<GameEntity>
 }

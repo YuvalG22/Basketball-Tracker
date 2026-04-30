@@ -7,5 +7,7 @@ import androidx.room.PrimaryKey
 data class PlayerEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
-    val number: Int
+    val number: Int,
+    val remoteId: String? = null,
+    val syncStatus: String = "PENDING"
 )

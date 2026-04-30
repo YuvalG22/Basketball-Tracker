@@ -2,6 +2,8 @@ package com.example.basketballtracker.features.livegame.data
 
 import com.example.basketballtracker.core.data.db.dao.EventDao
 import com.example.basketballtracker.core.data.db.entities.EventEntity
+import com.example.basketballtracker.core.data.mapper.toUploadDto
+import com.example.basketballtracker.core.data.remote.events.EventApi
 import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.ShotMeta
@@ -9,7 +11,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class LiveGameRepository(
-    private val eventDao: EventDao
+    private val eventDao: EventDao,
+    private val eventApi: EventApi
 ) {
     fun observeLiveEvents(gameId: Long): Flow<List<LiveEvent>> =
         eventDao.observeEvents(gameId).map { list -> list.map { it.toDomain() } }
@@ -24,21 +27,35 @@ class LiveGameRepository(
         opponentScoreAtEvent: Int? = null,
         shotMeta: ShotMeta?
     ) {
-        eventDao.insert(
-            EventEntity(
-                gameId = gameId,
-                playerId = playerId,
-                type = type.name,
-                period = period,
-                clockSecRemaining = clockSecRemaining,
-                createdAt = System.currentTimeMillis(),
-                teamScoreAtEvent = teamScoreAtEvent,
-                opponentScoreAtEvent = opponentScoreAtEvent,
-                shotX = shotMeta?.x,
-                shotY = shotMeta?.y,
-                shotDistance = shotMeta?.distance
-            )
+        val event = EventEntity(
+            gameId = gameId,
+            playerId = playerId,
+            type = type.name,
+            period = period,
+            clockSecRemaining = clockSecRemaining,
+            createdAt = System.currentTimeMillis(),
+            teamScoreAtEvent = teamScoreAtEvent,
+            opponentScoreAtEvent = opponentScoreAtEvent,
+            shotX = shotMeta?.x,
+            shotY = shotMeta?.y,
+            shotDistance = shotMeta?.distance,
+            syncStatus = "PENDING"
         )
+
+        val localId = eventDao.insert(event)
+
+        try {
+            val response = eventApi.uploadEvent(
+                event.copy(id = localId).toUploadDto()
+            )
+            eventDao.markSynced(
+                localId = localId,
+                remoteId = response.remoteId
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // נשאר PENDING → יסונכרן אחר כך
+        }
     }
 
     suspend fun deleteEventsByGame(gameId: Long) {

@@ -8,5 +8,7 @@ import androidx.room.Entity
 )
 data class RosterEntity(
     val gameId: Long,
-    val playerId: Long
+    val playerId: Long,
+    val remoteId: String? = null,
+    val syncStatus: String = "PENDING"
 )

@@ -14,5 +14,7 @@ data class GameEntity(
     val quarterLengthSec: Int = 600,
     val quartersCount: Int = 4,
     val teamScore: Int = 0,
-    val opponentScore: Int = 0
+    val opponentScore: Int = 0,
+    val remoteId: String? = null,
+    val syncStatus: String = "PENDING"
 )

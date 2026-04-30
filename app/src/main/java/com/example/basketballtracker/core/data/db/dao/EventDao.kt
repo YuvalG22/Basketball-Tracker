@@ -56,4 +56,10 @@ interface EventDao {
         gameId: Long,
         playerId: Long
     ): Flow<List<EventEntity>>
+
+    @Query("SELECT * FROM events WHERE syncStatus = 'PENDING'")
+    suspend fun getPendingEvents(): List<EventEntity>
+
+    @Query("UPDATE events SET syncStatus = 'SYNCED', remoteId = :remoteId WHERE id = :localId")
+    suspend fun markSynced(localId: Long, remoteId: String)
 }

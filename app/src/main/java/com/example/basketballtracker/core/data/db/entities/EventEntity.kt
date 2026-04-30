@@ -16,5 +16,7 @@ data class EventEntity(
     val opponentScoreAtEvent: Int? = null,
     val shotX: Float? = null,
     val shotY: Float? = null,
-    val shotDistance: Float? = null
+    val shotDistance: Float? = null,
+    val remoteId: String? = null,
+    val syncStatus: String = "PENDING",
 )
