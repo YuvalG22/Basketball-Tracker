@@ -65,6 +65,8 @@ fun AppNavGraph(
                 gamesRepo = gamesRepo,
                 playersRepo = playersRepo,
                 rosterDao = db.rosterDao(),
+                playerDao = db.playerDao(),
+                gameDao = db.gameDao(),
                 onStart = { gameId -> nav.navigate(Routes.live(gameId)) }
             )
         }

@@ -6,8 +6,17 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PlayerDao {
+
+    @Query("SELECT * FROM players WHERE id = :playerId LIMIT 1")
+    suspend fun getPlayerById(playerId: Long): PlayerEntity?
     @Query("SELECT COUNT(*) FROM players")
     suspend fun countPlayers(): Int
+
+    @Query("DELETE FROM players WHERE syncStatus = 'SYNCED'")
+    suspend fun deleteSyncedPlayers()
+
+    @Query("SELECT id FROM players WHERE remoteId = :remoteId LIMIT 1")
+    suspend fun getLocalIdByRemoteId(remoteId: String?): Long?
 
     @Query("SELECT * FROM players ORDER BY name ASC")
     fun observePlayers(): Flow<List<PlayerEntity>>

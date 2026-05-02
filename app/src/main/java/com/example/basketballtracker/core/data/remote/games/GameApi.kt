@@ -1,6 +1,7 @@
 package com.example.basketballtracker.core.data.remote.games
 
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 
@@ -13,6 +14,9 @@ interface GameApi {
 
     @PATCH("games/score")
     suspend fun updateGameScore(@Body body: GameScoreUpdateDto)
+
+    @GET("games")
+    suspend fun getGames(): List<GameRemoteDto>
 }
 
 data class GameUploadResponse(

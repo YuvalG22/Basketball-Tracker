@@ -17,10 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.basketballtracker.core.data.db.dao.GameDao
+import com.example.basketballtracker.core.data.db.dao.PlayerDao
 import com.example.basketballtracker.core.data.db.dao.RosterDao
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.core.data.db.entities.RosterEntity
 import com.example.basketballtracker.core.data.remote.RetrofitClient
+import com.example.basketballtracker.core.data.remote.RetrofitClient.rosterApi
 import com.example.basketballtracker.core.data.remote.roster.RosterUploadDto
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.players.data.PlayersRepository
@@ -33,6 +36,8 @@ fun NewGameScreen(
     gamesRepo: GamesRepository,
     playersRepo: PlayersRepository,
     rosterDao: RosterDao,
+    playerDao: PlayerDao,
+    gameDao: GameDao,
     onStart: (createdGameId: Long) -> Unit
 ) {
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
@@ -74,10 +79,18 @@ fun NewGameScreen(
                 rosterDao.insert(roster)
 
                 try {
-                    val response = RetrofitClient.rosterApi.uploadRoster(
+                    val game = gameDao.getById(roster.gameId)
+                    val gameRemoteId = game?.remoteId ?: return@forEach
+
+                    val player = playerDao.getPlayerById(roster.playerId)
+                    val playerRemoteId = player?.remoteId ?: return@forEach
+
+                    val response = rosterApi.uploadRoster(
                         RosterUploadDto(
-                            gameId = gameId,
-                            playerId = pid
+                            gameId = roster.gameId,
+                            playerId = roster.playerId,
+                            gameRemoteId = gameRemoteId,
+                            playerRemoteId = playerRemoteId,
                         )
                     )
 

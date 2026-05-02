@@ -1,9 +1,12 @@
 package com.example.basketballtracker.features.livegame.data
 
 import com.example.basketballtracker.core.data.db.dao.EventDao
+import com.example.basketballtracker.core.data.db.dao.GameDao
+import com.example.basketballtracker.core.data.db.dao.PlayerDao
 import com.example.basketballtracker.core.data.db.entities.EventEntity
 import com.example.basketballtracker.core.data.mapper.toUploadDto
 import com.example.basketballtracker.core.data.remote.events.EventApi
+import com.example.basketballtracker.core.data.remote.events.EventUploadDto
 import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.ShotMeta
@@ -12,8 +15,11 @@ import kotlinx.coroutines.flow.map
 
 class LiveGameRepository(
     private val eventDao: EventDao,
-    private val eventApi: EventApi
-) {
+    private val gameDao: GameDao,
+    private val playerDao: PlayerDao,
+    private val eventApi: EventApi,
+
+    ) {
     fun observeLiveEvents(gameId: Long): Flow<List<LiveEvent>> =
         eventDao.observeEvents(gameId).map { list -> list.map { it.toDomain() } }
 
@@ -45,8 +51,32 @@ class LiveGameRepository(
         val localId = eventDao.insert(event)
 
         try {
+            val savedEvent = event.copy(id = localId)
+
+            val game = gameDao.getById(savedEvent.gameId)
+            val gameRemoteId = game?.remoteId ?: return
+
+            val playerRemoteId = savedEvent.playerId?.let { id ->
+                playerDao.getPlayerById(id)?.remoteId
+            }
+
             val response = eventApi.uploadEvent(
-                event.copy(id = localId).toUploadDto()
+                EventUploadDto(
+                    localId = savedEvent.id,
+                    gameId = savedEvent.gameId,
+                    playerId = savedEvent.playerId,
+                    gameRemoteId = gameRemoteId,
+                    playerRemoteId = playerRemoteId,
+                    type = savedEvent.type,
+                    period = savedEvent.period,
+                    clockSecRemaining = savedEvent.clockSecRemaining,
+                    createdAt = savedEvent.createdAt,
+                    teamScoreAtEvent = savedEvent.teamScoreAtEvent,
+                    opponentScoreAtEvent = savedEvent.opponentScoreAtEvent,
+                    shotX = savedEvent.shotX,
+                    shotY = savedEvent.shotY,
+                    shotDistance = savedEvent.shotDistance
+                )
             )
             eventDao.markSynced(
                 localId = localId,

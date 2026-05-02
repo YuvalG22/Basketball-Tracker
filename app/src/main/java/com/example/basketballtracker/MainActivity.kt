@@ -70,11 +70,12 @@ class MainActivity : ComponentActivity() {
                 }
                 LaunchedEffect(Unit) {
                     syncManager.syncPending()
+                    //syncManager.fetchAllFromCloud()
                 }
 
                 val gamesRepo = remember { GamesRepository(db.gameDao(), RetrofitClient.gameApi) }
                 val liveRepo =
-                    remember { LiveGameRepository(db.eventDao(), RetrofitClient.eventApi) }
+                    remember { LiveGameRepository(db.eventDao(), db.gameDao(), db.playerDao(), RetrofitClient.eventApi) }
                 val statsRepo = remember { SeasonStatsRepository(db.playerDao(), db.eventDao()) }
 
                 AppNavGraph(

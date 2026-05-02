@@ -9,6 +9,15 @@ interface GameDao {
     @Insert
     suspend fun insert(game: GameEntity): Long
 
+    @Query("DELETE FROM games WHERE syncStatus = 'SYNCED'")
+    suspend fun deleteSyncedGames()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(games: List<GameEntity>)
+
+    @Query("SELECT id FROM games WHERE remoteId = :remoteId LIMIT 1")
+    suspend fun getLocalIdByRemoteId(remoteId: String?): Long?
+
     @Query("SELECT * FROM games WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): GameEntity?
 

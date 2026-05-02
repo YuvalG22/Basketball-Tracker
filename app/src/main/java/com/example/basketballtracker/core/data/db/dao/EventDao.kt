@@ -9,6 +9,12 @@ interface EventDao {
     @Insert
     suspend fun insert(e: EventEntity): Long
 
+    @Query("DELETE FROM events WHERE syncStatus = 'SYNCED'")
+    suspend fun deleteSyncedEvents()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(events: List<EventEntity>)
+
     @Query("""
         SELECT * FROM events
         WHERE gameId = :gameId

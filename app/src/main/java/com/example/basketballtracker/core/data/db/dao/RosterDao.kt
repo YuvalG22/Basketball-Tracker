@@ -9,6 +9,9 @@ interface RosterDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: RosterEntity)
 
+    @Query("DELETE FROM roster WHERE syncStatus = 'SYNCED'")
+    suspend fun deleteSyncedRoster()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<RosterEntity>)
 
