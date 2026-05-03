@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
                 }
                 LaunchedEffect(Unit) {
                     syncManager.syncPending()
-                    //syncManager.fetchAllFromCloud()
+                    syncManager.fetchAllFromCloud()
                 }
 
                 val gamesRepo = remember { GamesRepository(db.gameDao(), RetrofitClient.gameApi) }
