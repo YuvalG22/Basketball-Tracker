@@ -393,12 +393,12 @@ fun PlayerGameStatsCard(
                 value = pts.toString(),
             )
             StatColumn(
-                title = "AST",
-                value = ast.toString(),
-            )
-            StatColumn(
                 title = "REB",
                 value = reb.toString(),
+            )
+            StatColumn(
+                title = "AST",
+                value = ast.toString(),
             )
             StatColumn(
                 title = "STL",
@@ -411,10 +411,6 @@ fun PlayerGameStatsCard(
             StatColumn(
                 title = "TO",
                 value = tov.toString(),
-            )
-            StatColumn(
-                title = "PF",
-                value = pf.toString(),
             )
         }
         HorizontalDivider(

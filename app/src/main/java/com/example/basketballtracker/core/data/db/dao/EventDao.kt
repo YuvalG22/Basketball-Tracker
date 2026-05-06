@@ -15,6 +15,12 @@ interface EventDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(events: List<EventEntity>)
 
+    @Query("SELECT id FROM events WHERE remoteId = :remoteId LIMIT 1")
+    suspend fun getLocalIdByRemoteId(remoteId: String): Long?
+
+    @Update
+    suspend fun update(event: EventEntity)
+
     @Query("""
         SELECT * FROM events
         WHERE gameId = :gameId

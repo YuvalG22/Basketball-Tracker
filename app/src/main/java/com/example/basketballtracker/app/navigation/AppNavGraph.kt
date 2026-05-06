@@ -19,6 +19,7 @@ import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.history.state.GamesHistoryViewModel
 import com.example.basketballtracker.features.history.ui.GamesHistoryScreen
 import com.example.basketballtracker.features.home.ui.HomeScreen
+import com.example.basketballtracker.features.home.ui.HomeViewModel
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
 import com.example.basketballtracker.features.livegame.ui.LiveGameTabletScreen
 import com.example.basketballtracker.features.livegame.ui.LiveGameViewModel
@@ -50,7 +51,7 @@ fun AppNavGraph(
 
         composable(Routes.HOME) {
             HomeScreen(
-                gamesRepo = gamesRepo,
+                viewModel = remember { HomeViewModel(gamesRepo) },
                 onNewGame = { nav.navigate(Routes.NEW_GAME) },
                 onContinue = { gameId -> nav.navigate(Routes.live(gameId)) },
                 onPlayers = { nav.navigate(Routes.PLAYERS) },

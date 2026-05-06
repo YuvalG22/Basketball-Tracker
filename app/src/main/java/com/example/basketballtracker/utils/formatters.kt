@@ -1,5 +1,8 @@
 package com.example.basketballtracker.utils
 
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.max
 import kotlin.math.sqrt
 
@@ -38,4 +41,9 @@ fun calculateShotDistance(x: Float, y: Float): Float {
     val dy = y - hoopY
 
     return sqrt(dx * dx + dy * dy)
+}
+
+fun formatDate(gameDate: Long, pattern: String): String {
+    return SimpleDateFormat(pattern, Locale.ENGLISH)
+        .format(Date(gameDate))
 }

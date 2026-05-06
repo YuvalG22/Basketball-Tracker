@@ -32,9 +32,9 @@ enum class EventType {
         else -> false
     }
 
-    fun isShotEvent(): Boolean = when(this) {
-         TWO_MADE, TWO_MISS, THREE_MADE, THREE_MISS -> true
-         else -> false
+    fun isShotEvent(): Boolean = when (this) {
+        TWO_MADE, TWO_MISS, THREE_MADE, THREE_MISS -> true
+        else -> false
     }
 
     fun requiresPlayer(): Boolean = when (this) {
@@ -85,17 +85,19 @@ data class LiveEvent(
 
 data class PlayerBox(
     val playerId: Long,
-    val pts: Int,
-    val twom: Int, val twoa: Int,
-    val threem: Int, val threea: Int,
-    val ftm: Int, val fta: Int,
-    val rebOff: Int,
-    val rebDef: Int,
-    val ast: Int,
-    val tov: Int,
-    val stl: Int,
-    val blk: Int,
-    val pf: Int,
+    var secondsPlayed: Int = 0,
+    var plusMinus: Int = 0,
+    var pts: Int = 0,
+    var twom: Int = 0, var twoa: Int = 0,
+    var threem: Int = 0, var threea: Int = 0,
+    var ftm: Int = 0, var fta: Int = 0,
+    var rebOff: Int = 0,
+    var rebDef: Int = 0,
+    var ast: Int = 0,
+    var tov: Int = 0,
+    var stl: Int = 0,
+    var blk: Int = 0,
+    var pf: Int = 0,
 ) {
     val fgm get() = twom + threem
     val fga get() = twoa + threea
@@ -103,7 +105,6 @@ data class PlayerBox(
 
     val ftPct get() = pct(ftm, fta)
     val fgPct get() = pct(fgm, fga)
-    val twoPct get() = pct(twom, twoa)
     val threePct get() = pct(threem, threea)
 
     private fun pct(made: Int, att: Int): Int {
@@ -112,40 +113,65 @@ data class PlayerBox(
     }
 }
 
-fun computeBoxByPlayer(events: List<LiveEvent>): Map<Long, PlayerBox> {
-    val plusMinusById = computePlusMinusByPlayer(events)
-    val grouped = events.filter { it.playerId != null }.groupBy { it.playerId!! }
-    return grouped.mapValues { (pid, evs) ->
-        fun c(t: EventType) = evs.count { it.type == t }
+fun computeBoxByPlayer(
+    events: List<LiveEvent>,
+    quarterLengthSec: Int,
+    currentPeriod: Int,
+    currentClockSecRemaining: Int,
+): Map<Long, PlayerBox> {
 
-        val ftm = c(EventType.FT_MADE)
-        val ftmiss = c(EventType.FT_MISS)
+    val minutesMap = computeSecondsPlayedByPlayer(
+        events,
+        quarterLengthSec,
+        currentPeriod,
+        currentClockSecRemaining
+    )
+    val plusMinusMap = computePlusMinusByPlayer(events)
 
-        val twom = c(EventType.TWO_MADE)
-        val twomiss = c(EventType.TWO_MISS)
+    val boxMap = mutableMapOf<Long, PlayerBox>()
 
-        val threemiss = c(EventType.THREE_MISS)
-        val threem = c(EventType.THREE_MADE)
+    for (e in events) {
+        val pid = e.playerId ?: continue
 
-        val fta = ftm + ftmiss
-        val twoa = twom + twomiss
-        val threea = threem + threemiss
+        val box = boxMap.getOrPut(pid) {
+            PlayerBox(
+                playerId = pid,
+                plusMinus = plusMinusMap[pid] ?: 0,
+                secondsPlayed = minutesMap[pid] ?: 0
+            )
+        }
 
-        PlayerBox(
-            playerId = pid,
-            pts = ftm * 1 + twom * 2 + threem * 3,
-            ftm = ftm, fta = fta,
-            twom = twom, twoa = twoa,
-            threem = threem, threea = threea,
-            rebOff = c(EventType.REB_OFF),
-            rebDef = c(EventType.REB_DEF),
-            ast = c(EventType.AST),
-            tov = c(EventType.TOV),
-            stl = c(EventType.STL),
-            blk = c(EventType.BLK),
-            pf = c(EventType.PF),
-        )
+        when (e.type) {
+            EventType.FT_MADE -> {
+                box.ftm++; box.fta++; box.pts += 1
+            }
+
+            EventType.FT_MISS -> box.fta++
+
+            EventType.TWO_MADE -> {
+                box.twom++; box.twoa++; box.pts += 2
+            }
+
+            EventType.TWO_MISS -> box.twoa++
+
+            EventType.THREE_MADE -> {
+                box.threem++; box.threea++; box.pts += 3
+            }
+
+            EventType.THREE_MISS -> box.threea++
+
+            EventType.REB_OFF -> box.rebOff++
+            EventType.REB_DEF -> box.rebDef++
+            EventType.AST -> box.ast++
+            EventType.TOV -> box.tov++
+            EventType.STL -> box.stl++
+            EventType.BLK -> box.blk++
+            EventType.PF -> box.pf++
+
+            else -> Unit
+        }
     }
+    return boxMap
 }
 
 fun computeTeamScore(events: List<LiveEvent>): Int {

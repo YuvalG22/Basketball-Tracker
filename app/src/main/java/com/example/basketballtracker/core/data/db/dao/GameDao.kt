@@ -9,6 +9,9 @@ interface GameDao {
     @Insert
     suspend fun insert(game: GameEntity): Long
 
+    @Update
+    suspend fun update(game: GameEntity)
+
     @Query("DELETE FROM games WHERE syncStatus = 'SYNCED'")
     suspend fun deleteSyncedGames()
 
@@ -28,7 +31,7 @@ interface GameDao {
     LIMIT 1
 """
     )
-    fun observeLastGameId(): kotlinx.coroutines.flow.Flow<Long?>
+    fun observeLastGameId(): Flow<Long?>
 
     @Query("SELECT * FROM games ORDER BY createdAt DESC")
     fun observeAllGames(): Flow<List<GameEntity>>

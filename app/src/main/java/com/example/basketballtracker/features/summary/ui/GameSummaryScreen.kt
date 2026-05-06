@@ -2,6 +2,8 @@ package com.example.basketballtracker.features.summary.ui
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +39,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.lang.System.console
 import java.text.SimpleDateFormat
 import java.util.Date
 import kotlin.math.roundToInt
@@ -62,6 +66,7 @@ fun GameSummaryScreen(
             val g = gamesRepo.getById(gameId) ?: return@withContext null
             val ids = db.rosterDao().observeRosterPlayerIds(gameId).first()
             val players = if (ids.isEmpty()) emptyList() else db.playerDao().getPlayersByIds(ids)
+            Log.d("GameSummaryScreen", "players: $gameId")
             GameInfo(
                 opponentName = g.opponentName,
                 roundNumber = g.roundNumber,
@@ -90,7 +95,7 @@ fun GameSummaryScreen(
         return
     }
 
-    val box = remember(events) { computeBoxByPlayer(events) }
+    val box = remember(events) { computeBoxByPlayer(events, 600, 4, 0) }
 
     val secondsPlayedById = remember(events, info.quarterLengthSec, info.quartersCount) {
         computeSecondsPlayedByPlayer(
@@ -210,10 +215,10 @@ fun GameSummaryScreen(
                 }
                 Spacer(Modifier.height(12.dp))
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
                 ) {
                     Column(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(0.dp),
                     ) {
                         TableHeader()
 
@@ -334,7 +339,7 @@ fun TableHeader() {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
         ProvideTextStyle(
             value = MaterialTheme.typography.bodyLarge.copy(
@@ -468,9 +473,7 @@ private fun RowScope.StatCell(text: String, cellWeight: Float = 1f, bold: Boolea
         text = text,
         modifier = Modifier.weight(cellWeight),
         textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.bodyLarge.copy(
-            fontFamily = FontFamily.Monospace
-        ),
+        style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurface
     )
 }

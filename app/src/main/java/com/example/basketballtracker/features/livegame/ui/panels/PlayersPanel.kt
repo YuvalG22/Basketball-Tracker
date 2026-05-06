@@ -300,27 +300,20 @@ private fun PlayerCard(
                         val seconds = secondsByPlayer ?: 0
                         val minText = formatMinutes(seconds)
                         Text(
-                            text = "MIN",
-                            fontFamily = inter,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
                             text = minText,
                             fontFamily = inter,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.bodySmall
                         )
-                        Spacer(modifier = Modifier.width(spacing))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "PTS",
+                            text = "MIN",
                             fontFamily = inter,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                             style = MaterialTheme.typography.bodySmall
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(spacing))
                         Text(
                             text = pts.toString(),
                             fontFamily = inter,
@@ -328,14 +321,14 @@ private fun PlayerCard(
                             color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.bodySmall
                         )
-                        Spacer(modifier = Modifier.width(spacing))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "REB",
+                            text = "PTS",
                             fontFamily = inter,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                             style = MaterialTheme.typography.bodySmall
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(spacing))
                         Text(
                             text = reb.toString(),
                             fontFamily = inter,
@@ -343,14 +336,14 @@ private fun PlayerCard(
                             color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.bodySmall
                         )
-                        Spacer(modifier = Modifier.width(spacing))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "AST",
+                            text = "REB",
                             fontFamily = inter,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                             style = MaterialTheme.typography.bodySmall
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(spacing))
                         Text(
                             text = ast.toString(),
                             fontFamily = inter,
@@ -358,9 +351,15 @@ private fun PlayerCard(
                             color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.bodySmall
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "AST",
+                            fontFamily = inter,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
-
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(
                         modifier = Modifier.size(24.dp),

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 interface PlayerDao {
 
     @Query("SELECT * FROM players WHERE id = :playerId LIMIT 1")
+
     suspend fun getPlayerById(playerId: Long): PlayerEntity?
     @Query("SELECT COUNT(*) FROM players")
     suspend fun countPlayers(): Int
@@ -26,6 +27,9 @@ interface PlayerDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(player: PlayerEntity): Long
+
+    @Update
+    suspend fun update(player: PlayerEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(players: List<PlayerEntity>): List<Long>

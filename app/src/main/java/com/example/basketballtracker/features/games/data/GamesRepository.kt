@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.basketballtracker.core.data.db.dao.GameDao
 import com.example.basketballtracker.core.data.db.entities.GameEntity
 import com.example.basketballtracker.core.data.mapper.toUploadDto
+import com.example.basketballtracker.core.data.remote.games.DeleteGameDto
 import com.example.basketballtracker.core.data.remote.games.GameApi
 import com.example.basketballtracker.core.data.remote.games.GameScoreUpdateDto
 import kotlinx.coroutines.flow.Flow
@@ -79,6 +80,16 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
     }
 
     suspend fun deleteGame(gameId: Long) {
+        val game = gameDao.getById(gameId)
+
         gameDao.deleteById(gameId)
+
+        val remoteId = game?.remoteId ?: return
+
+        try {
+            gameApi.deleteGameFromCloud(remoteId)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

@@ -27,7 +27,14 @@ fun LiveGameTabletScreen(
     onEndGameNavigate: () -> Unit
 ) {
     val s by vm.ui.collectAsState()
-    val box = remember(s.events) { computeBoxByPlayer(s.events) }
+    val box = remember(s.events) {
+        computeBoxByPlayer(
+            s.events,
+            quarterLengthSec = 600,
+            s.clock.period,
+            s.clock.secRemaining
+        )
+    }
     val teamScore = remember(s.events) { computeTeamScore(s.events) }
     val opponentScore = remember(s.events) { computeOppScore(s.events) }
     val playersById = remember(s.players) { s.players.associateBy { it.id } }
