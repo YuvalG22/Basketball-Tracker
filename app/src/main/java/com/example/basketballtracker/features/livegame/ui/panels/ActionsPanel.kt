@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -50,7 +51,10 @@ import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.PlayerBox
 import com.example.basketballtracker.features.livegame.domain.ShotMeta
+import com.example.basketballtracker.features.livegame.domain.ShotZone
+import com.example.basketballtracker.features.livegame.domain.ZoneStats
 import com.example.basketballtracker.features.livegame.domain.formatMinutes
+import com.example.basketballtracker.features.livegame.domain.zoneColor
 import com.example.basketballtracker.features.livegame.ui.EventFilter
 import com.example.basketballtracker.features.livegame.ui.PeriodFilter
 import com.example.basketballtracker.features.livegame.ui.components.ActionButton
@@ -104,6 +108,28 @@ fun ActionsPanel(
             isThree = event.type == EventType.THREE_MADE || event.type == EventType.THREE_MISS
         )
     }
+
+    val zoneStats = ShotZone.entries.map { zone ->
+
+        val zoneShots = filteredEvents.filter { event ->
+
+            event.playerId == selectedId &&
+                    event.type.isShotEvent() &&
+                    event.shotZone == zone.name
+        }
+
+        val made = zoneShots.count {
+            it.type == EventType.TWO_MADE ||
+                    it.type == EventType.THREE_MADE
+        }
+
+        ZoneStats(
+            zone = zone,
+            made = made,
+            attempted = zoneShots.size
+        )
+    }
+
     Card(
         modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -195,7 +221,7 @@ fun ActionsPanel(
 @Composable
 fun HalfCourtClickable(
     onEvent: (EventType, ShotMeta?) -> Unit,
-    shots: List<ShotUi> = emptyList()
+    shots: List<ShotUi> = emptyList(),
 ) {
     var courtSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -217,19 +243,9 @@ fun HalfCourtClickable(
                         onTap = { tap ->
                             if (courtSize.width == 0 || courtSize.height == 0) return@detectTapGestures
 
-                            val svgPoint = Offset(
-                                x = (tap.x / courtSize.width) * 15f,
-                                y = (tap.y / courtSize.height) * 14f
-                            )
+                            val shotMeta = buildShotMeta(tap, courtSize)
 
-                            val isThreePoint = isThreePointShot(svgPoint.x, svgPoint.y)
-
-                            val shotMeta = ShotMeta(
-                                x = svgPoint.x,
-                                y = svgPoint.y,
-                                distance = calculateShotDistance(svgPoint.x, svgPoint.y)
-                            )
-                            if (isThreePoint) {
+                            if (isThreePointShot(shotMeta.x, shotMeta.y)) {
                                 onEvent(EventType.THREE_MISS, shotMeta)
                             } else {
                                 onEvent(EventType.TWO_MISS, shotMeta)
@@ -238,19 +254,9 @@ fun HalfCourtClickable(
                         onLongPress = { press ->
                             if (courtSize.width == 0 || courtSize.height == 0) return@detectTapGestures
 
-                            val svgPoint = Offset(
-                                x = (press.x / courtSize.width) * 15f,
-                                y = (press.y / courtSize.height) * 14f
-                            )
+                            val shotMeta = buildShotMeta(press, courtSize)
 
-                            val isThreePoint = isThreePointShot(svgPoint.x, svgPoint.y)
-
-                            val shotMeta = ShotMeta(
-                                x = svgPoint.x,
-                                y = svgPoint.y,
-                                distance = calculateShotDistance(svgPoint.x, svgPoint.y)
-                            )
-                            if (isThreePoint) {
+                            if (isThreePointShot(shotMeta.x, shotMeta.y)) {
                                 onEvent(EventType.THREE_MADE, shotMeta)
                             } else {
                                 onEvent(EventType.TWO_MADE, shotMeta)
@@ -304,6 +310,71 @@ fun HalfCourtClickable(
     }
 }
 
+@Composable
+fun ShotZonesOverlay(
+    zoneStats: List<ZoneStats>,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+
+        val scaleX = size.width / 15f
+        val scaleY = size.height / 14f
+
+        zoneStats.forEach { stats ->
+
+            val color = zoneColor(stats.percentage)
+                .copy(alpha = 0.35f)
+
+            when (stats.zone) {
+
+                ShotZone.PAINT -> {
+
+                    drawRect(
+                        color = color,
+                        topLeft = Offset(
+                            x = 4.8f * scaleX,
+                            y = 0f
+                        ),
+                        size = Size(
+                            width = (10.2f - 4.8f) * scaleX,
+                            height = 5.8f * scaleY
+                        )
+                    )
+                }
+
+                ShotZone.LEFT_CORNER_3 -> {
+
+                    drawRect(
+                        color = color,
+                        topLeft = Offset(0f, 0f),
+                        size = Size(
+                            width = 0.9f * scaleX,
+                            height = 2.99f * scaleY
+                        )
+                    )
+                }
+
+                ShotZone.RIGHT_CORNER_3 -> {
+
+                    drawRect(
+                        color = color,
+                        topLeft = Offset(
+                            x = 14.1f * scaleX,
+                            y = 0f
+                        ),
+                        size = Size(
+                            width = (15f - 14.1f) * scaleX,
+                            height = 2.99f * scaleY
+                        )
+                    )
+                }
+
+                else -> {}
+            }
+        }
+    }
+}
+
 fun isThreePointShot(x: Float, y: Float): Boolean {
 
     // corner three (above straight lines)
@@ -323,6 +394,108 @@ fun isThreePointShot(x: Float, y: Float): Boolean {
     return distance >= 6.75f
 }
 
+fun getShotZone(x: Float, y: Float): ShotZone {
+
+    val hoopX = 7.5f
+    val hoopY = 1.575f
+
+    val dx = x - hoopX
+    val dy = y - hoopY
+
+    val distance = sqrt(dx * dx + dy * dy)
+
+    // -------------------------
+    // RESTRICTED AREA
+    // -------------------------
+
+    if (distance <= 1.25f) {
+        return ShotZone.RESTRICTED_AREA
+    }
+
+    // -------------------------
+    // PAINT
+    // -------------------------
+
+    if (x in 4.8f..10.2f && y <= 5.8f) {
+        return ShotZone.PAINT
+    }
+
+    // -------------------------
+    // CORNER 3
+    // -------------------------
+
+    if (y <= 2.99f) {
+
+        if (x <= 0.9f) {
+            return ShotZone.LEFT_CORNER_3
+        }
+
+        if (x >= 14.1f) {
+            return ShotZone.RIGHT_CORNER_3
+        }
+    }
+
+    // -------------------------
+    // OTHER 3PT
+    // -------------------------
+
+    if (distance >= 6.75f) {
+
+        return when {
+
+            x < 5f ->
+                ShotZone.LEFT_WING_3
+
+            x > 10f ->
+                ShotZone.RIGHT_WING_3
+
+            else ->
+                ShotZone.TOP_3
+        }
+    }
+
+    // -------------------------
+    // SHORT MID
+    // -------------------------
+
+    if (y <= 5.8f) {
+
+        return when {
+
+            x < 4.8f ->
+                ShotZone.LEFT_SHORT_MID
+
+            x > 10.2f ->
+                ShotZone.RIGHT_SHORT_MID
+
+            else ->
+                ShotZone.PAINT
+        }
+    }
+
+    // -------------------------
+    // MID RANGE
+    // -------------------------
+
+    return when {
+
+        x < 3f ->
+            ShotZone.LEFT_CORNER_MID
+
+        x > 12f ->
+            ShotZone.RIGHT_CORNER_MID
+
+        x < 6f ->
+            ShotZone.LEFT_WING_MID
+
+        x > 9f ->
+            ShotZone.RIGHT_WING_MID
+
+        else ->
+            ShotZone.TOP_MID
+    }
+}
+
 data class ShotUi(
     val x: Float,
     val y: Float,
@@ -330,12 +503,24 @@ data class ShotUi(
     val isThree: Boolean
 )
 
+private fun buildShotMeta(tap: Offset, courtSize: IntSize): ShotMeta {
+    val svgX = (tap.x / courtSize.width) * 15f
+    val svgY = (tap.y / courtSize.height) * 14f
+
+    return ShotMeta(
+        x = svgX,
+        y = svgY,
+        distance = calculateShotDistance(svgX, svgY),
+        shotZone = getShotZone(svgX, svgY),
+    )
+}
+
 @Composable
 fun PlayerGameStatsCard(
     playerBox: PlayerBox?,
     player: PlayerEntity?,
     onEvent: (EventType, ShotMeta?) -> Unit,
-    shots: List<ShotUi> = emptyList()
+    shots: List<ShotUi> = emptyList(),
 ) {
     val playerName = player?.name ?: ""
     val playerNumber = player?.number ?: ""
@@ -442,7 +627,7 @@ fun PlayerGameStatsCard(
     Spacer(Modifier.height(8.dp))
     HalfCourtClickable(
         onEvent = onEvent,
-        shots = shots
+        shots = shots,
     )
 }
 

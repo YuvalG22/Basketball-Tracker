@@ -14,5 +14,6 @@ data class EventUploadDto(
     val opponentScoreAtEvent: Int?,
     val shotX: Float?,
     val shotY: Float?,
-    val shotDistance: Float?
+    val shotDistance: Float?,
+    val shotZone: String?
 )

@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -13,6 +14,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.basketballtracker.core.data.BasketballApp
 import com.example.basketballtracker.core.data.db.AppDatabase
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.games.data.GamesRepository
@@ -95,6 +97,8 @@ fun AppNavGraph(
                 return@composable
             }
 
+            val app = LocalContext.current.applicationContext as BasketballApp
+
 
             val vm: LiveGameViewModel = viewModel(
                 viewModelStoreOwner = backStackEntry,
@@ -105,6 +109,7 @@ fun AppNavGraph(
                         return LiveGameViewModel(
                             repo = liveRepo,
                             gamesRepo = gamesRepo,
+                            syncManager = app.syncManager,
                             gameId = gameId,
                             players = rosterPlayers,
                             quarterLengthSec = quarterLengthDefault

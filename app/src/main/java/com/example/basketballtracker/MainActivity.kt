@@ -12,7 +12,15 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkRequest
 import com.example.basketballtracker.app.navigation.AppNavGraph
+import com.example.basketballtracker.core.data.BasketballApp
 import com.example.basketballtracker.core.data.db.AppDatabase
 import com.example.basketballtracker.core.data.db.MIGRATION_10_11
 import com.example.basketballtracker.core.data.db.MIGRATION_3_4
@@ -23,11 +31,13 @@ import com.example.basketballtracker.core.data.db.MIGRATION_7_8
 import com.example.basketballtracker.core.data.db.MIGRATION_8_9
 import com.example.basketballtracker.core.data.db.MIGRATION_9_10
 import com.example.basketballtracker.core.data.db.SyncManager
+import com.example.basketballtracker.core.data.db.SyncWorker
 import com.example.basketballtracker.core.data.remote.RetrofitClient
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
 import com.example.basketballtracker.features.stats.data.SeasonStatsRepository
 import com.example.basketballtracker.ui.theme.BasketballTrackerTheme
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,57 +48,46 @@ class MainActivity : ComponentActivity() {
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
 
+        setupBackgroundSync()
+
         setContent {
             BasketballTrackerTheme {
-                val ctx = LocalContext.current
                 val nav = rememberNavController()
 
-                val db = remember {
-                    Room.databaseBuilder(ctx, AppDatabase::class.java, "basketball.db")
-                        .addMigrations(
-                            MIGRATION_3_4,
-                            MIGRATION_4_5,
-                            MIGRATION_5_6,
-                            MIGRATION_6_7,
-                            MIGRATION_7_8,
-                            MIGRATION_8_9,
-                            MIGRATION_9_10,
-                            MIGRATION_10_11,
-                        )
-                        .build()
-                }
-
-                val syncManager = remember {
-                    SyncManager(
-                        db.gameDao(),
-                        db.playerDao(),
-                        db.rosterDao(),
-                        db.eventDao(),
-                        RetrofitClient.gameApi,
-                        RetrofitClient.playerApi,
-                        RetrofitClient.rosterApi,
-                        RetrofitClient.eventApi
-                    )
-                }
-                LaunchedEffect(Unit) {
-                    syncManager.fetchAllFromCloud()
-                    syncManager.syncPending()
-                }
-
-                val gamesRepo = remember { GamesRepository(db.gameDao(), RetrofitClient.gameApi) }
-                val liveRepo =
-                    remember { LiveGameRepository(db.eventDao(), db.gameDao(), db.playerDao(), RetrofitClient.eventApi) }
-                val statsRepo = remember { SeasonStatsRepository(db.playerDao(), db.eventDao()) }
+                val app = LocalContext.current.applicationContext as BasketballApp
+                val db = app.database
 
                 AppNavGraph(
                     nav = nav,
                     db = db,
-                    gamesRepo = gamesRepo,
-                    liveRepo = liveRepo,
-                    statsRepository = statsRepo,
+                    gamesRepo = app.gamesRepo,
+                    liveRepo = app.liveRepo,
+                    statsRepository = app.statsRepo,
                     quarterLengthDefault = 600
                 )
             }
         }
+    }
+
+    private fun setupBackgroundSync() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .setRequiresBatteryNotLow(true)
+            .build()
+
+        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(1, TimeUnit.HOURS)
+            .setConstraints(constraints)
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,
+                WorkRequest.MIN_BACKOFF_MILLIS,
+                TimeUnit.MILLISECONDS
+            )
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "BasketballSync",
+            ExistingPeriodicWorkPolicy.KEEP,
+            syncRequest
+        )
     }
 }

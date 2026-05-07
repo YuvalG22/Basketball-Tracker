@@ -60,5 +60,9 @@ data class EventRemoteDto(
     val shot_y: Float?,
 
     @SerializedName("shot_distance")
-    val shot_distance: Float?
+    val shot_distance: Float?,
+
+    @SerializedName("shot_zone")
+    val shot_zone: String?
+
 )

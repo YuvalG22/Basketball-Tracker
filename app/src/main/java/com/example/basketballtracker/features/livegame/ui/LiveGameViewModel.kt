@@ -2,6 +2,7 @@ package com.example.basketballtracker.features.livegame.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.basketballtracker.core.data.db.SyncManager
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
@@ -36,6 +37,7 @@ data class LiveUiState(
 class LiveGameViewModel(
     private val repo: LiveGameRepository,
     private val gamesRepo: GamesRepository,
+    private val syncManager: SyncManager,
     gameId: Long,
     players: List<PlayerEntity>,
     private val quarterLengthSec: Int = 600
@@ -215,6 +217,7 @@ class LiveGameViewModel(
         val gameId = _base.value.gameId
         val events = ui.value.events
 
+
         val team = computeTeamScore(events)
         val opp = computeOppScore(events)
 
@@ -224,6 +227,7 @@ class LiveGameViewModel(
                 teamScore = team,
                 opponentScore = opp
             )
+            syncManager.syncPending()
         }
     }
 

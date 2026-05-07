@@ -1,5 +1,7 @@
 package com.example.basketballtracker.features.livegame.domain
 
+import androidx.compose.ui.graphics.Color
+import com.example.basketballtracker.core.data.db.entities.EventEntity
 import kotlin.collections.iterator
 import kotlin.math.max
 
@@ -66,7 +68,28 @@ data class ShotMeta(
     val x: Float,
     val y: Float,
     val distance: Float,
+    val shotZone: ShotZone
 )
+
+enum class ShotZone {
+    RESTRICTED_AREA,
+    PAINT,
+
+    LEFT_SHORT_MID,
+    RIGHT_SHORT_MID,
+
+    LEFT_CORNER_MID,
+    RIGHT_CORNER_MID,
+    LEFT_WING_MID,
+    RIGHT_WING_MID,
+    TOP_MID,
+
+    LEFT_CORNER_3,
+    RIGHT_CORNER_3,
+    LEFT_WING_3,
+    RIGHT_WING_3,
+    TOP_3
+}
 
 data class LiveEvent(
     val id: Long,
@@ -80,7 +103,8 @@ data class LiveEvent(
     val opponentScoreAtEvent: Int?,
     val shotX: Float? = null,
     val shotY: Float? = null,
-    val shotDistance: Float? = null
+    val shotDistance: Float? = null,
+    val shotZone: String? = null
 )
 
 data class PlayerBox(
@@ -110,6 +134,58 @@ data class PlayerBox(
     private fun pct(made: Int, att: Int): Int {
         if (att == 0) return 0
         return ((made * 100.0) / att).roundToInt()
+    }
+}
+
+fun String?.toShotZoneOrNull(): ShotZone? {
+    return try {
+        if (this == null) null
+        else ShotZone.valueOf(this)
+    } catch (e: Exception) {
+        null
+    }
+}
+
+data class ZoneStats(
+    val zone: ShotZone,
+    val made: Int,
+    val attempted: Int
+) {
+    val percentage: Float
+        get() = if (attempted == 0) 0f
+        else made.toFloat() / attempted
+}
+
+fun zoneColor(percent: Float): Color {
+    return when {
+        percent >= 0.6f -> Color(0xFF4CAF50)
+        percent >= 0.45f -> Color(0xFFFFC107)
+        else -> Color(0xFFF44336)
+    }
+}
+
+fun calculateZoneStats(events: List<EventEntity>): List<ZoneStats> {
+
+    val shotEvents = events.filter {
+        it.shotZone != null
+    }
+
+    return ShotZone.entries.map { zone ->
+
+        val zoneShots = shotEvents.filter {
+            it.shotZone == zone.name
+        }
+
+        val made = zoneShots.count {
+            it.type == EventType.TWO_MADE.name ||
+                    it.type == EventType.THREE_MADE.name
+        }
+
+        ZoneStats(
+            zone = zone,
+            made = made,
+            attempted = zoneShots.size
+        )
     }
 }
 

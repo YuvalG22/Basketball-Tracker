@@ -79,3 +79,9 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_events_remoteId` ON `events` (`remoteId`)")
     }
 }
+
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE events ADD COLUMN shotZone TEXT")
+    }
+}
