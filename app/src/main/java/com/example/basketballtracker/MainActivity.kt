@@ -14,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
 import com.example.basketballtracker.app.navigation.AppNavGraph
 import com.example.basketballtracker.core.data.db.AppDatabase
+import com.example.basketballtracker.core.data.db.MIGRATION_10_11
 import com.example.basketballtracker.core.data.db.MIGRATION_3_4
 import com.example.basketballtracker.core.data.db.MIGRATION_4_5
 import com.example.basketballtracker.core.data.db.MIGRATION_5_6
@@ -51,7 +52,8 @@ class MainActivity : ComponentActivity() {
                             MIGRATION_6_7,
                             MIGRATION_7_8,
                             MIGRATION_8_9,
-                            MIGRATION_9_10
+                            MIGRATION_9_10,
+                            MIGRATION_10_11,
                         )
                         .build()
                 }
@@ -69,8 +71,8 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 LaunchedEffect(Unit) {
-                    syncManager.syncPending()
                     syncManager.fetchAllFromCloud()
+                    syncManager.syncPending()
                 }
 
                 val gamesRepo = remember { GamesRepository(db.gameDao(), RetrofitClient.gameApi) }

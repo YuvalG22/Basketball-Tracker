@@ -56,6 +56,7 @@ fun HomeScreen(
         ) {
             Text("🏀 Basketball Tracker", style = MaterialTheme.typography.displayMedium)
             Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onNewGame) { Text("New Game") }
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

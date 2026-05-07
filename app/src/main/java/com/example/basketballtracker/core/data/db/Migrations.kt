@@ -64,3 +64,18 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
         db.execSQL("ALTER TABLE roster ADD COLUMN syncStatus TEXT NOT NULL DEFAULT 'PENDING'")
     }
 }
+
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_games_remoteId` ON `games` (`remoteId`)")
+
+        // יצירת אינדקס ייחודי לטבלת players
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_players_remoteId` ON `players` (`remoteId`)")
+
+        // יצירת אינדקס ייחודי לטבלת rosters
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_rosters_remoteId` ON `roster` (`remoteId`)")
+
+        // יצירת אינדקס ייחודי לטבלת events
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_events_remoteId` ON `events` (`remoteId`)")
+    }
+}

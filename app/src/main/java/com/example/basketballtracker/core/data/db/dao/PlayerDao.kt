@@ -6,6 +6,17 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PlayerDao {
+    @Transaction
+    suspend fun upsertPlayersFromCloud(players: List<PlayerEntity>) {
+        players.forEach { player ->
+            val localId = player.remoteId?.let { getLocalIdByRemoteId(it) }
+            if (localId != null) {
+                update(player.copy(id = localId))
+            } else {
+                insert(player)
+            }
+        }
+    }
 
     @Query("SELECT * FROM players WHERE id = :playerId LIMIT 1")
 

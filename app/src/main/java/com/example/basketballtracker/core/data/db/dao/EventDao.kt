@@ -6,6 +6,19 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EventDao {
+    @Transaction
+    suspend fun upsertEventsFromCloud(events: List<EventEntity>) {
+        events.forEach { event ->
+            // חיפוש לפי remoteId של האירוע
+            val localId = getLocalIdByRemoteId(event.remoteId)
+            if (localId != null) {
+                update(event.copy(id = localId))
+            } else {
+                insert(event)
+            }
+        }
+    }
+
     @Insert
     suspend fun insert(e: EventEntity): Long
 
@@ -16,7 +29,7 @@ interface EventDao {
     suspend fun insertAll(events: List<EventEntity>)
 
     @Query("SELECT id FROM events WHERE remoteId = :remoteId LIMIT 1")
-    suspend fun getLocalIdByRemoteId(remoteId: String): Long?
+    suspend fun getLocalIdByRemoteId(remoteId: String?): Long?
 
     @Update
     suspend fun update(event: EventEntity)

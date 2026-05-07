@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3.window.size.class1)
     implementation(libs.androidx.ui.test.junit4)
+    implementation(libs.androidx.work.runtime.ktx)
     val room_version = "2.8.4"
     val nav_version = "2.9.6"
     implementation(libs.androidx.core.ktx)

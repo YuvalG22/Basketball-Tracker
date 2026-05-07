@@ -31,8 +31,8 @@ class SyncManager(
 ) {
 
     suspend fun syncPending() {
-        syncPendingGames()
         syncPendingPlayers()
+        syncPendingGames()
         syncPendingRoster()
         syncPendingEvents()
     }
@@ -46,6 +46,7 @@ class SyncManager(
 
     private suspend fun syncPendingGames() {
         val pendingGames = gameDao.getPendingGames()
+        Log.d("Games Upload", "Pending games: ${pendingGames.size}")
 
         pendingGames.forEach { game ->
             try {
@@ -59,6 +60,7 @@ class SyncManager(
 
     private suspend fun syncPendingPlayers() {
         val pendingPlayers = playerDao.getPendingPlayers()
+        Log.d("Players Upload", "Pending players: ${pendingPlayers.size}")
 
         pendingPlayers.forEach { player ->
             try {
@@ -102,15 +104,21 @@ class SyncManager(
 
     private suspend fun syncPendingEvents() {
         val pendingEvents = eventDao.getPendingEvents()
+        if (pendingEvents.isEmpty()) return
+
+        val gameIds = pendingEvents.map { it.gameId }.distinct()
+        val gamesMap = gameIds.associateWith { gameDao.getById(it) }
 
         pendingEvents.forEach { event ->
             try {
-                val game = gameDao.getById(event.gameId)
-                val gameRemoteId = game?.remoteId ?: return@forEach
+                val game = gamesMap[event.gameId]
+                val gameRemoteId = game?.remoteId
 
-                val playerRemoteId = event.playerId?.let { playerId ->
-                    playerDao.getPlayerById(playerId)?.remoteId
+                if (gameRemoteId == null) {
+                    Log.w("SYNC", "Skipping event ${event.id}: Game not yet synced to cloud")
+                    return@forEach
                 }
+                val playerRemoteId = event.playerId?.let { playerDao.getPlayerById(it)?.remoteId }
 
                 val response = eventApi.uploadEvent(
                     EventUploadDto(
@@ -131,8 +139,9 @@ class SyncManager(
                     )
                 )
                 eventDao.markSynced(event.id, response.remoteId)
+
             } catch (e: Exception) {
-                Log.e("SYNC", "Fetch failed", e)
+                Log.e("SYNC", "Failed to upload event ${event.id}", e)
             }
         }
     }
@@ -141,12 +150,8 @@ class SyncManager(
         try {
             val remoteGames = RetrofitClient.gameApi.getGames()
 
-            remoteGames.forEach { dto ->
-
-                val existingLocalId = gameDao.getLocalIdByRemoteId(dto.id)
-
-                val entity = GameEntity(
-                    id = existingLocalId ?: 0,
+            val entities = remoteGames.map { dto ->
+                GameEntity(
                     opponentName = dto.opponent_name ?: "Unknown",
                     isHomeGame = dto.is_home_game,
                     roundNumber = dto.round_number,
@@ -159,70 +164,62 @@ class SyncManager(
                     remoteId = dto.id,
                     syncStatus = "SYNCED"
                 )
-
-                if (existingLocalId == null) {
-                    gameDao.insert(entity)
-                } else {
-                    gameDao.update(entity)
-                }
             }
-
+            gameDao.upsertFromCloud(entities)
+            Log.d("Fetch games", "Sync completed successfully")
         } catch (e: Exception) {
             e.printStackTrace()
+            Log.e("SYNC games", "Game fetch failed", e)
         }
     }
 
     private suspend fun fetchPlayersFromCloud() {
         try {
             val remotePlayers = playerApi.getPlayers()
-
-            remotePlayers.forEach { dto ->
-
-                val existingLocalId =
-                    playerDao.getLocalIdByRemoteId(dto.id)
-
-                val entity = PlayerEntity(
-                    id = existingLocalId ?: 0,
+            val entities = remotePlayers.map { dto ->
+                val existingId = dto.id?.let { playerDao.getLocalIdByRemoteId(it) }
+                PlayerEntity(
+                    id = existingId ?: 0,
                     name = dto.name,
                     number = dto.number,
                     remoteId = dto.id,
                     syncStatus = "SYNCED"
                 )
-
-                if (existingLocalId == null) {
-                    playerDao.insert(entity)
-                } else {
-                    playerDao.update(entity)
-                }
             }
-
+            playerDao.upsertPlayersFromCloud(entities)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("SYNC", "Player fetch failed", e)
         }
     }
 
-    suspend fun fetchRosterFromCloud() {
+    private suspend fun fetchRosterFromCloud() {
         try {
+            Log.d("SYNC", "Starting Roster fetch")
             val remoteRoster = rosterApi.getRoster()
 
-            remoteRoster.forEach { dto ->
-                val gameRemoteId = dto.game_remote_id ?: return@forEach
-                val playerRemoteId = dto.player_remote_id ?: return@forEach
+            val entities = remoteRoster.mapNotNull { dto ->
+                val gameRemoteId = dto.game_remote_id ?: return@mapNotNull null
+                val playerRemoteId = dto.player_remote_id ?: return@mapNotNull null
 
                 val localGameId = gameDao.getLocalIdByRemoteId(gameRemoteId)
-                    ?: return@forEach
-
                 val localPlayerId = playerDao.getLocalIdByRemoteId(playerRemoteId)
-                    ?: return@forEach
 
-                rosterDao.insert(
-                    RosterEntity(
-                        gameId = localGameId,
-                        playerId = localPlayerId,
-                        remoteId = dto.id,
-                        syncStatus = "SYNCED"
-                    )
+                if (localGameId == null || localPlayerId == null) {
+                    Log.w("SYNC", "Skipping roster item: Game or Player not found locally")
+                    return@mapNotNull null
+                }
+
+                RosterEntity(
+                    gameId = localGameId,
+                    playerId = localPlayerId,
+                    remoteId = dto.id,
+                    syncStatus = "SYNCED"
                 )
+            }
+
+            if (entities.isNotEmpty()) {
+                rosterDao.insertAll(entities)
+                Log.d("SYNC", "Roster sync completed: ${entities.size} items")
             }
 
         } catch (e: Exception) {
@@ -232,23 +229,22 @@ class SyncManager(
 
     private suspend fun fetchEventsFromCloud() {
         try {
-            Log.d("SYNC", "Fetching events")
             val remoteEvents = eventApi.getEvents()
 
-            remoteEvents.forEach { dto ->
-                val gameRemoteId = dto.game_remote_id ?: return@forEach
-
-                val localGameId = gameDao.getLocalIdByRemoteId(gameRemoteId)
-                    ?: return@forEach
-
-                val localPlayerId = dto.player_remote_id?.let {
-                    playerDao.getLocalIdByRemoteId(it)
+            val entities = remoteEvents.mapNotNull { dto ->
+                val localGameId = gameDao.getLocalIdByRemoteId(dto.game_remote_id)
+                if (localGameId == null) {
+                    Log.w(
+                        "SYNC",
+                        "Skipping event ${dto.id}: Game ${dto.game_remote_id} not found locally"
+                    )
+                    return@mapNotNull null // מדלג רק על האירוע הבעייתי
                 }
 
-                val existingLocalId = eventDao.getLocalIdByRemoteId(dto.id)
+                val localPlayerId = dto.player_remote_id?.let { playerDao.getLocalIdByRemoteId(it) }
 
-                val entity = EventEntity(
-                    id = existingLocalId ?: 0,
+                EventEntity(
+                    id = eventDao.getLocalIdByRemoteId(dto.id) ?: 0,
                     gameId = localGameId,
                     playerId = localPlayerId,
                     type = dto.type,
@@ -263,14 +259,8 @@ class SyncManager(
                     remoteId = dto.id,
                     syncStatus = "SYNCED"
                 )
-
-                if (existingLocalId == null) {
-                    eventDao.insert(entity)
-                } else {
-                    eventDao.update(entity)
-                }
             }
-
+            eventDao.upsertEventsFromCloud(entities)
         } catch (e: Exception) {
             Log.e("SYNC", "Events fetch failed", e)
         }

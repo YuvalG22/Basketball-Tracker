@@ -6,6 +6,17 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GameDao {
+    @Transaction
+    suspend fun upsertFromCloud(games: List<GameEntity>) {
+        games.forEach { game ->
+            val localId = getLocalIdByRemoteId(game.remoteId)
+            if (localId != null) {
+                update(game.copy(id = localId))
+            } else {
+                insert(game)
+            }
+        }
+    }
     @Insert
     suspend fun insert(game: GameEntity): Long
 

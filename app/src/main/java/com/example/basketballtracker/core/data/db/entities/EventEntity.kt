@@ -1,9 +1,13 @@
 package com.example.basketballtracker.core.data.db.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "events")
+@Entity(
+    tableName = "events",
+    indices = [Index(value = ["remoteId"], unique = true)]
+)
 data class EventEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val gameId: Long,

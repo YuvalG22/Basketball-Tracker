@@ -45,7 +45,6 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
 
         } catch (e: Exception) {
             e.printStackTrace()
-            // נשאר PENDING → יסונכרן בהמשך
         }
 
         return localId
