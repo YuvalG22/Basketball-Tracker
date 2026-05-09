@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,7 +57,16 @@ fun HomeScreen(
         ) {
             Text("🏀 Basketball Tracker", style = MaterialTheme.typography.displayMedium)
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onNewGame) { Text("New Game") }
+            Button(
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3AB47A)),
+                shape = RoundedCornerShape(8.dp),
+                onClick = onNewGame,
+            ) { Text(
+                "NEW GAME",
+                fontFamily = inter,
+                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.titleMedium,
+            ) }
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -118,7 +128,7 @@ fun HomeScreen(
                 MenuCard(
                     onClick = { onPlayersStats() },
                     icon = "📊",
-                    title =  "Stats",
+                    title = "Stats",
                     secondary = "Season averages, leaders, and individual game logs"
                 )
                 MenuCard(
@@ -144,7 +154,7 @@ fun LastGameScore(
             if (isHomeGame) "$teamScore" else "$opponentScore",
             style = MaterialTheme.typography.displayMedium,
             color = if (isWin && isHomeGame) Color.White else Color.White.copy(alpha = 0.5f),
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.Black,
             fontFamily = inter
         )
         Text(
@@ -156,8 +166,8 @@ fun LastGameScore(
             if (isHomeGame) "$opponentScore" else "$teamScore",
             style = MaterialTheme.typography.displayMedium,
             color = if (isWin && isHomeGame) Color.White.copy(alpha = 0.5f) else Color.White,
-            fontWeight = FontWeight.Bold,
-            fontFamily = inter
+            fontWeight = FontWeight.Black,
+            fontFamily = inter,
         )
     }
 }

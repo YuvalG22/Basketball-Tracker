@@ -59,20 +59,21 @@ fun SeasonStatsScreen(vm: SeasonStatsViewModel, gamesVm: GamesHistoryViewModel) 
                 .fillMaxWidth()
                 .padding(0.dp)
         ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(0.3f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                GamesHistoryScreen(
-                    vm = gamesVm,
-                    onGameClick = { id ->
-                        vm.setSelectedGameId(id)
-                    }
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
+//            Card(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .weight(0.3f),
+//                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+//            ) {
+////                GamesHistoryScreen(
+////                    vm = gamesVm,
+////                    onGameClick = { id ->
+////                        vm.setSelectedGameId(id)
+////                    }
+////                )
+//            }
+            //Spacer(modifier = Modifier.width(8.dp))
+            vm.setSelectedGameId(7)
             Card(
                 modifier = Modifier
                     .fillMaxSize()
@@ -105,7 +106,7 @@ fun SeasonStatsScreen(vm: SeasonStatsViewModel, gamesVm: GamesHistoryViewModel) 
                     LazyColumn(
                         Modifier
                             .fillMaxWidth()
-                            .weight(1f)
+
                     ) {
                         itemsIndexed(rows) { i, row ->
                             PlayerRowSeasonal(

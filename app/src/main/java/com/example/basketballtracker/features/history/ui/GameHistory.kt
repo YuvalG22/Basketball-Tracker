@@ -154,7 +154,7 @@ fun GamesHistoryScreen(
                                     Text(
                                         "${game.opponentScore}",
                                         style = MaterialTheme.typography.titleMedium,
-                                        //color = if (isWin) Color.Red else Color.Green
+                                        fontWeight = if (isWin) FontWeight.Normal else FontWeight.Bold,
                                     )
                                 }
                                 HorizontalDivider(

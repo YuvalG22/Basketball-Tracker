@@ -73,6 +73,7 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.11.1")
     implementation("androidx.navigation:navigation-compose:${nav_version}")
     implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
     implementation("com.google.firebase:firebase-analytics")

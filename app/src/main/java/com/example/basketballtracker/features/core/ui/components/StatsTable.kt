@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -143,7 +144,7 @@ fun TableHeaderSeasonal(
                     .horizontalScroll(scrollState)
                     .width(1200.dp)
             ) {
-                StatHeaderCell("GP", onSort = { onSort(StatsSort.GP) })
+                //StatHeaderCell("GP", onSort = { onSort(StatsSort.GP) })
                 StatHeaderCell("PTS", onSort = { onSort(StatsSort.PTS) })
                 StatHeaderCell("AST", onSort = { onSort(StatsSort.AST) })
                 StatHeaderCell("REB", onSort = { onSort(StatsSort.REB) })
@@ -173,10 +174,11 @@ fun TableHeaderSeasonal(
 
 @Composable
 fun PlayerRowSeasonal(row: PlayerRowUi, index: Int, size: Int, scrollState: ScrollState) {
+    val baseColor = MaterialTheme.colorScheme.surface
     val backgroundColor = when {
-        index == size - 1 -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f) // Total row
-        index % 2 == 0 -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        else -> Color.Transparent
+        index == size - 1 -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f).compositeOver(baseColor) // Total row
+        index % 2 == 0 -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f).compositeOver(baseColor)
+        else -> baseColor
     }
     val isBold = index == size - 1
     Row(
@@ -213,7 +215,7 @@ fun PlayerRowSeasonal(row: PlayerRowUi, index: Int, size: Int, scrollState: Scro
                 .horizontalScroll(scrollState)
                 .width(1200.dp)
         ) {
-            StatCell(row.games, bold = isBold)
+            //StatCell(row.games, bold = isBold)
             StatCell(row.pts, bold = isBold)
             StatCell(row.ast, bold = isBold)
             StatCell(row.reb, bold = isBold)
