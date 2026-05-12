@@ -63,7 +63,8 @@ class MainActivity : ComponentActivity() {
                     gamesRepo = app.gamesRepo,
                     liveRepo = app.liveRepo,
                     statsRepository = app.statsRepo,
-                    quarterLengthDefault = 600
+                    quarterLengthDefault = 600,
+                    syncManager = app.syncManager
                 )
             }
         }

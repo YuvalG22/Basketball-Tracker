@@ -20,5 +20,6 @@ data class GameEntity(
     val teamScore: Int = 0,
     val opponentScore: Int = 0,
     val remoteId: String? = null,
-    val syncStatus: String = "PENDING"
+    val syncStatus: String = "PENDING",
+    val isDeleted: Boolean = false
 )

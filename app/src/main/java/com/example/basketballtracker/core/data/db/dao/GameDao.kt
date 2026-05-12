@@ -69,7 +69,7 @@ interface GameDao {
     @Query(
         """
     UPDATE games 
-    SET syncStatus = 'SYNCED', remoteId = :remoteId 
+    SET syncStatus = 'SYNCED', remoteId = :remoteId
     WHERE id = :localId
     """
         )
@@ -77,4 +77,18 @@ interface GameDao {
 
     @Query("SELECT * FROM games WHERE syncStatus = 'PENDING'")
     suspend fun getPendingGames(): List<GameEntity>
+
+    @Query("SELECT * FROM games WHERE isDeleted = 0 ORDER BY gameDateEpoch DESC")
+    fun getAllActiveGames(): Flow<List<GameEntity>>
+
+    // 2. סימון מחיקה רכה
+    @Query("UPDATE games SET isDeleted = 1, syncStatus = 'PENDING' WHERE id = :gameId")
+    suspend fun markAsDeleted(gameId: Long)
+
+    // 3. שליפת אלו שממתינים למחיקה בענן
+    @Query("SELECT * FROM games WHERE isDeleted = 1")
+    suspend fun getPendingDeletion(): List<GameEntity>
+
+    @Query("SELECT * FROM games WHERE remoteId IS NOT NULL")
+    suspend fun getAllWithRemoteIdNow(): List<GameEntity>
 }

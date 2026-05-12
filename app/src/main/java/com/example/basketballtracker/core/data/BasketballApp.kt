@@ -27,10 +27,12 @@ class BasketballApp: Application() {
             playerDao = database.playerDao(),
             rosterDao = database.rosterDao(),
             eventDao = database.eventDao(),
+            playerSeasonStatsDao = database.playerSeasonStatsDao(),
             gameApi = RetrofitClient.gameApi,
             playerApi = RetrofitClient.playerApi,
             rosterApi = RetrofitClient.rosterApi,
-            eventApi = RetrofitClient.eventApi
+            eventApi = RetrofitClient.eventApi,
+            statsApi = RetrofitClient.statsApi,
         )
     }
 
@@ -48,6 +50,6 @@ class BasketballApp: Application() {
     }
 
     val statsRepo by lazy {
-        SeasonStatsRepository(database.playerDao(), database.eventDao())
+        SeasonStatsRepository(database.playerSeasonStatsDao())
     }
 }

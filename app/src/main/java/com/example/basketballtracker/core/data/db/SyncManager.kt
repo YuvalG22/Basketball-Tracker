@@ -4,10 +4,12 @@ import android.util.Log
 import com.example.basketballtracker.core.data.db.dao.EventDao
 import com.example.basketballtracker.core.data.db.dao.GameDao
 import com.example.basketballtracker.core.data.db.dao.PlayerDao
+import com.example.basketballtracker.core.data.db.dao.PlayerSeasonStatsDao
 import com.example.basketballtracker.core.data.db.dao.RosterDao
 import com.example.basketballtracker.core.data.db.entities.EventEntity
 import com.example.basketballtracker.core.data.db.entities.GameEntity
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
+import com.example.basketballtracker.core.data.db.entities.PlayerSeasonStatsEntity
 import com.example.basketballtracker.core.data.db.entities.RosterEntity
 import com.example.basketballtracker.core.data.mapper.toUploadDto
 import com.example.basketballtracker.core.data.remote.RetrofitClient
@@ -17,17 +19,20 @@ import com.example.basketballtracker.core.data.remote.games.GameApi
 import com.example.basketballtracker.core.data.remote.players.PlayerApi
 import com.example.basketballtracker.core.data.remote.roster.RosterApi
 import com.example.basketballtracker.core.data.remote.roster.RosterUploadDto
+import com.example.basketballtracker.core.data.remote.stats.StatsApi
 
 class SyncManager(
     private val gameDao: GameDao,
     private val playerDao: PlayerDao,
     private val rosterDao: RosterDao,
     private val eventDao: EventDao,
+    private val playerSeasonStatsDao: PlayerSeasonStatsDao,
 
     private val gameApi: GameApi,
     private val playerApi: PlayerApi,
     private val rosterApi: RosterApi,
-    private val eventApi: EventApi
+    private val eventApi: EventApi,
+    private val statsApi: StatsApi
 ) {
 
     suspend fun syncPending() {
@@ -42,18 +47,29 @@ class SyncManager(
         fetchGamesFromCloud()
         fetchRosterFromCloud()
         fetchEventsFromCloud()
+        fetchSeasonStatsFromCloud()
     }
 
     private suspend fun syncPendingGames() {
-        val pendingGames = gameDao.getPendingGames()
-        Log.d("Games Upload", "Pending games: ${pendingGames.size}")
+        // 1. טיפול במחיקות שתקועות
+        val gamesToDelete = gameDao.getPendingDeletion()
+        gamesToDelete.forEach { game ->
+            try {
+                game.remoteId?.let { gameApi.deleteGameFromCloud(it) }
+                gameDao.deleteById(game.id)
+            } catch (e: Exception) {
+                Log.e("SYNC", "Failed to delete remote game ${game.id}")
+            }
+        }
 
+        // 2. טיפול בהעלאות רגילות (רק משחקים שלא מחוקים!)
+        val pendingGames = gameDao.getPendingGames() // תוודא שהשאילתה הזו מוסיפה WHERE isDeleted = 0
         pendingGames.forEach { game ->
             try {
                 val response = gameApi.uploadGame(game.toUploadDto())
                 gameDao.markSynced(game.id, response.remoteId)
             } catch (e: Exception) {
-                Log.e("SYNC", "Fetch failed", e)
+                Log.e("SYNC", "Upload failed", e)
             }
         }
     }
@@ -150,7 +166,9 @@ class SyncManager(
     private suspend fun fetchGamesFromCloud() {
         try {
             val remoteGames = RetrofitClient.gameApi.getGames()
+            val remoteIdsFromCloud = remoteGames.map { it.id }
 
+            // 1. עדכון/הכנסה של משחקים קיימים
             val entities = remoteGames.map { dto ->
                 GameEntity(
                     opponentName = dto.opponent_name ?: "Unknown",
@@ -163,13 +181,23 @@ class SyncManager(
                     teamScore = dto.team_score,
                     opponentScore = dto.opponent_score,
                     remoteId = dto.id,
-                    syncStatus = "SYNCED"
+                    syncStatus = "SYNCED",
+                    isDeleted = false
                 )
             }
             gameDao.upsertFromCloud(entities)
-            Log.d("Fetch games", "Sync completed successfully")
+
+            // 2. זיהוי ומחיקה של משחקים שאינם בענן יותר
+            val localGamesWithRemoteId = gameDao.getAllWithRemoteIdNow() // שאילתה פשוטה שמביאה הכל
+            localGamesWithRemoteId.forEach { localGame ->
+                if (localGame.remoteId !in remoteIdsFromCloud) {
+                    // המשחק נמחק מהענן על ידי מכשיר אחר -> מחק אותו גם פה
+                    gameDao.deleteById(localGame.id)
+                }
+            }
+
+            Log.d("Fetch games", "Sync and Reconciliation completed")
         } catch (e: Exception) {
-            e.printStackTrace()
             Log.e("SYNC games", "Game fetch failed", e)
         }
     }
@@ -265,6 +293,53 @@ class SyncManager(
             eventDao.upsertEventsFromCloud(entities)
         } catch (e: Exception) {
             Log.e("SYNC", "Events fetch failed", e)
+        }
+    }
+
+    private suspend fun fetchSeasonStatsFromCloud() {
+        try {
+            statsApi.refreshSeasonStats()
+
+            val remoteStats = statsApi.getSeasonStats()
+            Log.d("STATS_SYNC", "Remote stats size: ${remoteStats.size}")
+
+            val entities = remoteStats.mapNotNull { dto ->
+                Log.d("STATS_SYNC", "DTO player_id=${dto.player_id}, name=${dto.player_name}")
+                val localPlayerId = playerDao.getLocalIdByRemoteId(dto.player_id)
+                Log.d("STATS_SYNC", "Mapped localPlayerId=$localPlayerId for remoteId=${dto.player_id}")
+
+                if (localPlayerId == null) {
+                    Log.w("STATS_SYNC", "Skipping stats. No local player for remoteId=${dto.player_id}")
+                    return@mapNotNull null
+                }
+
+                PlayerSeasonStatsEntity(
+                    playerId = localPlayerId,
+                    playerName = dto.player_name,
+                    playerNumber = dto.player_number,
+                    gp = dto.gp,
+                    pts = dto.pts,
+                    ast = dto.ast,
+                    rebTotal = dto.reb_total,
+                    rebDef = dto.reb_def,
+                    rebOff = dto.reb_off,
+                    stl = dto.stl,
+                    blk = dto.blk,
+                    tov = dto.tov,
+                    pf = dto.pf,
+                    fgm = dto.fgm,
+                    fga = dto.fga,
+                    threem = dto.threem,
+                    threea = dto.threea,
+                    ftm = dto.ftm,
+                    fta = dto.fta
+                )
+            }
+
+            playerSeasonStatsDao.replaceAll(entities)
+
+        } catch (e: Exception) {
+            Log.e("SYNC", "Failed to fetch season stats", e)
         }
     }
 }

@@ -4,6 +4,7 @@ import com.example.basketballtracker.core.data.remote.events.EventApi
 import com.example.basketballtracker.core.data.remote.games.GameApi
 import com.example.basketballtracker.core.data.remote.players.PlayerApi
 import com.example.basketballtracker.core.data.remote.roster.RosterApi
+import com.example.basketballtracker.core.data.remote.stats.StatsApi
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -41,5 +42,13 @@ object RetrofitClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(RosterApi::class.java)
+    }
+
+    val statsApi: StatsApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(StatsApi::class.java)
     }
 }

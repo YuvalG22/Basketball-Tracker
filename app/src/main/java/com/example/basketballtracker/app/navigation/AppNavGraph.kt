@@ -1,5 +1,6 @@
 package com.example.basketballtracker.app.navigation
 
+import android.util.Log
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.basketballtracker.core.data.BasketballApp
 import com.example.basketballtracker.core.data.db.AppDatabase
+import com.example.basketballtracker.core.data.db.SyncManager
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.history.state.GamesHistoryViewModel
@@ -45,7 +47,8 @@ fun AppNavGraph(
     gamesRepo: GamesRepository,
     liveRepo: LiveGameRepository,
     statsRepository: SeasonStatsRepository,
-    quarterLengthDefault: Int = 600
+    quarterLengthDefault: Int = 600,
+    syncManager: SyncManager
 ) {
     val playersRepo = remember { PlayersRepository(db.playerDao()) }
 
@@ -53,7 +56,7 @@ fun AppNavGraph(
 
         composable(Routes.HOME) {
             HomeScreen(
-                viewModel = remember { HomeViewModel(gamesRepo) },
+                viewModel = remember { HomeViewModel(gamesRepo, syncManager) },
                 onNewGame = { nav.navigate(Routes.NEW_GAME) },
                 onContinue = { gameId -> nav.navigate(Routes.live(gameId)) },
                 onPlayers = { nav.navigate(Routes.PLAYERS) },
@@ -79,7 +82,6 @@ fun AppNavGraph(
             arguments = listOf(navArgument("gameId") { type = NavType.LongType })
         ) { backStackEntry ->
             val gameId = backStackEntry.arguments!!.getLong("gameId")
-
             val rosterPlayers by produceState<List<PlayerEntity>>(
                 initialValue = emptyList(),
                 key1 = gameId
@@ -150,8 +152,7 @@ fun AppNavGraph(
             val vm = remember { SeasonStatsViewModel(statsRepository) }
             val gamesVm = remember { GamesHistoryViewModel(gamesRepo, liveRepo) }
             SeasonStatsScreen(
-                vm = vm,
-                gamesVm = gamesVm
+                viewModel = vm
             )
         }
 

@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.*
@@ -69,6 +70,7 @@ fun LiveGameTabletScreen(
     val benchPlayers = remember(s.players, onCourtIds) {
         s.players.filter { it.id !in onCourtIds }
     }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -123,17 +125,6 @@ fun LiveGameTabletScreen(
                         .fillMaxHeight()
                         .padding(start = 4.dp, bottom = 4.dp)
                 )
-                GameControlPanel(
-                    opponentName = s.opponentName,
-                    events = s.events,
-                    playersById = playersById,
-                    isHomeGame = s.isHomeGame,
-                    onUndo = vm::undoLast,
-                    modifier = Modifier
-                        .weight(0.40f)
-                        .fillMaxHeight()
-                        .padding(bottom = 4.dp)
-                )
                 ActionsPanel(
                     enabled = actionsEnabled,
                     box = box,
@@ -145,6 +136,17 @@ fun LiveGameTabletScreen(
                         .weight(0.30f)
                         .fillMaxHeight()
                         .padding(end = 4.dp, bottom = 4.dp)
+                )
+                GameControlPanel(
+                    opponentName = s.opponentName,
+                    events = s.events,
+                    playersById = playersById,
+                    isHomeGame = s.isHomeGame,
+                    onUndo = vm::undoLast,
+                    modifier = Modifier
+                        .weight(0.40f)
+                        .fillMaxHeight()
+                        .padding(bottom = 4.dp)
                 )
             }
         }

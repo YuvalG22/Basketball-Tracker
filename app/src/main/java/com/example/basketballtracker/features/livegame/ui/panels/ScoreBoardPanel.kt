@@ -65,6 +65,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.Locale.getDefault
+import androidx.compose.ui.platform.LocalLocale
 
 @Composable
 fun ScoreBoardPanel(
@@ -249,12 +250,10 @@ fun LeftAnimatedScore(score: Int) {
         }
     ) { target ->
         Text(
-            //modifier = Modifier.width(100.dp),
             text = target.toString(),
             style = MaterialTheme.typography.displayLarge,
-            //fontFamily = Monospace,
             textAlign = TextAlign.End,
-            fontWeight = FontWeight.ExtraBold
+            fontWeight = FontWeight.Bold
         )
     }
 }
@@ -269,12 +268,10 @@ fun RightAnimatedScore(score: Int) {
         }
     ) { target ->
         Text(
-            //modifier = Modifier.width(100.dp),
             text = target.toString(),
             style = MaterialTheme.typography.displayLarge,
-            //fontFamily = Monospace,
             textAlign = TextAlign.Start,
-            fontWeight = FontWeight.ExtraBold
+            fontWeight = FontWeight.Bold
         )
     }
 }
@@ -300,13 +297,13 @@ fun ScoreBoard(
             color = Color.White.copy(alpha = 0.2f)
         )
         LeftTeamScore(
-            if (isHomeGame) "AFEKA" else opponentName.uppercase(getDefault()),
+            if (isHomeGame) "AFEKA" else opponentName.uppercase(LocalLocale.current.platformLocale),
             if (isHomeGame) teamScore else opponentScore,
             fouls = if (isHomeGame) homeFouls else awayFouls,
         )
         ScoreBoardClock(clock)
         RightTeamScore(
-            if (isHomeGame) opponentName.uppercase(getDefault()) else "AFEKA",
+            if (isHomeGame) opponentName.uppercase(LocalLocale.current.platformLocale) else "AFEKA",
             if (isHomeGame) opponentScore else teamScore,
             fouls = if (isHomeGame) awayFouls else homeFouls,
         )

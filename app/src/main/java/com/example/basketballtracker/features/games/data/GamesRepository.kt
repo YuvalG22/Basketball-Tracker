@@ -79,15 +79,20 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
     }
 
     suspend fun deleteGame(gameId: Long) {
+        // 1. סימון ב-DB המקומי (המשחק נעלם מיד מה-UI בגלל ה-WHERE isDeleted = 0)
+        gameDao.markAsDeleted(gameId)
+
+        // 2. ניסיון מחיקה מהענן
         val game = gameDao.getById(gameId)
-
-        gameDao.deleteById(gameId)
-
         val remoteId = game?.remoteId ?: return
 
         try {
             gameApi.deleteGameFromCloud(remoteId)
+            // אם הצליח - אפשר למחוק פיזית מהמכשיר
+            gameDao.deleteById(gameId)
         } catch (e: Exception) {
+            // אם נכשל (אין אינטרנט), המשחק נשאר ב-DB עם isDeleted = 1
+            // וה-syncPending יטפל בו מאוחר יותר
             e.printStackTrace()
         }
     }

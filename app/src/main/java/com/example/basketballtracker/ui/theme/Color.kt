@@ -40,8 +40,8 @@ val LightOnSurfaceVariant = Color(0xFF333333)
 
 
 // Extra useful colors
-val Outline = Color(0xFFFF7A00)
-val OutlineVariant = Color(0xFFFF7A00)
+val Outline = Color(0xFFFFFFFF)
+val OutlineVariant = Color(0xFFFFFFFF)
 
 
 val Success = Color(0xFF2ECC71)

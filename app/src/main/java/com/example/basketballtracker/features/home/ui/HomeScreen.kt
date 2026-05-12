@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.home.ui
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +12,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,6 +64,26 @@ fun HomeScreen(
             Button(
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3AB47A)),
                 shape = RoundedCornerShape(8.dp),
+                onClick = { viewModel.manualSync() },
+                enabled = !viewModel.isSyncing
+            ) {
+                if (viewModel.isSyncing) {
+                    // אנימציית טעינה קטנה במקום האייקון בזמן סנכרון
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.White
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.CloudUpload,
+                        contentDescription = "Sync Now"
+                    )
+                }
+            }
+            Button(
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3AB47A)),
+                shape = RoundedCornerShape(8.dp),
                 onClick = onNewGame,
             ) { Text(
                 "NEW GAME",
@@ -67,6 +91,7 @@ fun HomeScreen(
                 fontWeight = FontWeight.Black,
                 style = MaterialTheme.typography.titleMedium,
             ) }
+            Log.d("HomeScreen", "Rendering HomeScreen with lastGameId: $lastGameId")
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
