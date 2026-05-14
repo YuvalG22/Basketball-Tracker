@@ -17,6 +17,7 @@ interface GameDao {
             }
         }
     }
+
     @Insert
     suspend fun insert(game: GameEntity): Long
 
@@ -72,7 +73,7 @@ interface GameDao {
     SET syncStatus = 'SYNCED', remoteId = :remoteId
     WHERE id = :localId
     """
-        )
+    )
     suspend fun markSynced(localId: Long, remoteId: String)
 
     @Query("SELECT * FROM games WHERE syncStatus = 'PENDING'")
@@ -91,4 +92,14 @@ interface GameDao {
 
     @Query("SELECT * FROM games WHERE remoteId IS NOT NULL")
     suspend fun getAllWithRemoteIdNow(): List<GameEntity>
+
+    @Query(
+        """
+    UPDATE games
+    SET status = :status,
+        syncStatus = 'PENDING'
+    WHERE id = :gameId
+"""
+    )
+    suspend fun updateGameStatus(gameId: Long, status: String)
 }

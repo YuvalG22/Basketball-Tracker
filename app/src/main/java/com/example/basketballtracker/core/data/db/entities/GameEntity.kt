@@ -21,5 +21,11 @@ data class GameEntity(
     val opponentScore: Int = 0,
     val remoteId: String? = null,
     val syncStatus: String = "PENDING",
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    val status: String = GameStatus.FINISHED
 )
+
+object GameStatus {
+    const val LIVE = "LIVE"
+    const val FINISHED = "FINISHED"
+}

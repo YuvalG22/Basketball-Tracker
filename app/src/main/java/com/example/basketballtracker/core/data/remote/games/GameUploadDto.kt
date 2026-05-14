@@ -12,7 +12,8 @@ data class GameUploadDto(
     val quarterLengthSec: Int,
     val quartersCount: Int,
     val teamScore: Int,
-    val opponentScore: Int
+    val opponentScore: Int,
+    val status: String
 )
 
 data class GameRemoteDto(
@@ -46,5 +47,8 @@ data class GameRemoteDto(
     val team_score: Int,
 
     @SerializedName("opponent_score")
-    val opponent_score: Int
+    val opponent_score: Int,
+
+    @SerializedName("status")
+    val status: String
 )

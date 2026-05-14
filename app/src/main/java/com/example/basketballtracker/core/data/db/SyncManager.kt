@@ -51,25 +51,36 @@ class SyncManager(
     }
 
     private suspend fun syncPendingGames() {
-        // 1. טיפול במחיקות שתקועות
         val gamesToDelete = gameDao.getPendingDeletion()
+
         gamesToDelete.forEach { game ->
             try {
                 game.remoteId?.let { gameApi.deleteGameFromCloud(it) }
                 gameDao.deleteById(game.id)
             } catch (e: Exception) {
-                Log.e("SYNC", "Failed to delete remote game ${game.id}")
+                Log.e("SYNC", "Failed to delete remote game ${game.id}", e)
             }
         }
 
-        // 2. טיפול בהעלאות רגילות (רק משחקים שלא מחוקים!)
-        val pendingGames = gameDao.getPendingGames() // תוודא שהשאילתה הזו מוסיפה WHERE isDeleted = 0
+        val pendingGames = gameDao.getPendingGames()
+
         pendingGames.forEach { game ->
             try {
-                val response = gameApi.uploadGame(game.toUploadDto())
-                gameDao.markSynced(game.id, response.remoteId)
+                val remoteId = game.remoteId
+
+                if (remoteId == null) {
+                    val response = gameApi.uploadGame(game.toUploadDto())
+                    gameDao.markSynced(game.id, response.remoteId)
+                } else {
+                    gameApi.updateGame(
+                        remoteId = remoteId,
+                        body = game.toUploadDto()
+                    )
+
+                    gameDao.markSynced(game.id, remoteId)
+                }
             } catch (e: Exception) {
-                Log.e("SYNC", "Upload failed", e)
+                Log.e("SYNC", "Game sync failed ${game.id}", e)
             }
         }
     }

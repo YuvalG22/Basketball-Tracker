@@ -123,3 +123,14 @@ val MIGRATION_13_14 = object : Migration(13, 14) {
         )
     }
 }
+
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            ALTER TABLE games
+            ADD COLUMN status TEXT NOT NULL DEFAULT 'FINISHED'
+            """.trimIndent()
+        )
+    }
+}

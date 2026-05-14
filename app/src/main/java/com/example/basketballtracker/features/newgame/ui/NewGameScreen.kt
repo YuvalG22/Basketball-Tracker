@@ -103,7 +103,6 @@ fun NewGameScreen(
                     e.printStackTrace()
                 }
             }
-
             onStart(gameId)
         }
     }

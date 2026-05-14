@@ -96,4 +96,8 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
             e.printStackTrace()
         }
     }
+
+    suspend fun updateGameStatus(gameId: Long, status: String) {
+        gameDao.updateGameStatus(gameId, status)
+    }
 }

@@ -5,6 +5,7 @@ import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface GameApi {
@@ -13,6 +14,12 @@ interface GameApi {
     suspend fun uploadGame(
         @Body game: GameUploadDto
     ): GameUploadResponse
+
+    @PUT("games/{remoteId}")
+    suspend fun updateGame(
+        @Path("remoteId") remoteId: String,
+        @Body body: GameUploadDto
+    )
 
     @PATCH("games/score")
     suspend fun updateGameScore(@Body body: GameScoreUpdateDto)
