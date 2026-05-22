@@ -3,7 +3,9 @@ package com.example.basketballtracker.features.livegame.ui.panels
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +40,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -239,30 +242,46 @@ fun HalfCourtClickable(
                 .fillMaxSize()
                 .onSizeChanged { courtSize = it }
                 .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { tap ->
-                            if (courtSize.width == 0 || courtSize.height == 0) return@detectTapGestures
+                    awaitPointerEventScope {
+                        while (true) {
+                            val down = awaitFirstDown()
 
-                            val shotMeta = buildShotMeta(tap, courtSize)
-
-                            if (isThreePointShot(shotMeta.x, shotMeta.y)) {
-                                onEvent(EventType.THREE_MISS, shotMeta)
-                            } else {
-                                onEvent(EventType.TWO_MISS, shotMeta)
+                            if (down.type != PointerType.Stylus) {
+                                continue
                             }
-                        },
-                        onLongPress = { press ->
-                            if (courtSize.width == 0 || courtSize.height == 0) return@detectTapGestures
 
-                            val shotMeta = buildShotMeta(press, courtSize)
+                            if (courtSize.width == 0 || courtSize.height == 0) continue
 
-                            if (isThreePointShot(shotMeta.x, shotMeta.y)) {
-                                onEvent(EventType.THREE_MADE, shotMeta)
+                            val shotMeta = buildShotMeta(down.position, courtSize)
+
+                            val longPress = withTimeoutOrNull(500) {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id }
+
+                                    if (change == null || !change.pressed) {
+                                        return@withTimeoutOrNull false
+                                    }
+                                }
+                            } == null
+
+                            if (longPress) {
+                                if (isThreePointShot(shotMeta.x, shotMeta.y)) {
+                                    onEvent(EventType.THREE_MADE, shotMeta)
+                                } else {
+                                    onEvent(EventType.TWO_MADE, shotMeta)
+                                }
+
+                                waitForUpOrCancellation()
                             } else {
-                                onEvent(EventType.TWO_MADE, shotMeta)
+                                if (isThreePointShot(shotMeta.x, shotMeta.y)) {
+                                    onEvent(EventType.THREE_MISS, shotMeta)
+                                } else {
+                                    onEvent(EventType.TWO_MISS, shotMeta)
+                                }
                             }
                         }
-                    )
+                    }
                 }
         ) {
             Image(

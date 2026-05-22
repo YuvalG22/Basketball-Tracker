@@ -8,8 +8,10 @@ object Routes {
     const val STATS = "stats"
     const val SUMMARY = "summary/{gameId}"
     const val HISTORY = "history"
+    const val SETTINGS = "settings"
+    const val PLAYER_DETAILS = "player_details/{playerId}"
 
 
     fun live(gameId: Long) = "live/$gameId"
     fun summary(gameId: Long) = "summary/$gameId"
-}
+    fun playerDetails(playerId: Long) = "player_details/$playerId" }

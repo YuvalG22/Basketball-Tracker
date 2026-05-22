@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.R
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
+import com.example.basketballtracker.features.core.ui.components.CustomFilterChip
 import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.formatEventPBP
@@ -94,9 +95,15 @@ fun GameControlPanel(
                 Row(
                     horizontalArrangement = Arrangement.End
                 ) {
-                    PlayByPlayFilter(
-                        selected = filter,
-                        onSelected = { filter = it }
+                    CustomFilterChip(
+                        text = "All",
+                        active = filter == EventFilter.All,
+                        onClick = { filter = EventFilter.All }
+                    )
+                    CustomFilterChip(
+                        text = "Score",
+                        active = filter == EventFilter.Score,
+                        onClick = { filter = EventFilter.Score }
                     )
                     Spacer(Modifier.width(8.dp))
                     IconButton(
@@ -395,42 +402,6 @@ private fun PlayByPlayCenter(
                     textAlign = TextAlign.Center
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun PlayByPlayFilter(
-    selected: EventFilter,
-    onSelected: (EventFilter) -> Unit
-) {
-    SingleChoiceSegmentedButtonRow {
-        SegmentedButton(
-            selected = selected == EventFilter.All,
-            onClick = { onSelected(EventFilter.All) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-            colors = SegmentedButtonDefaults.colors(
-                activeContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                activeContentColor = Color.White,
-                activeBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                inactiveBorderColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Text("All")
-        }
-
-        SegmentedButton(
-            selected = selected == EventFilter.Score,
-            onClick = { onSelected(EventFilter.Score) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-            colors = SegmentedButtonDefaults.colors(
-                activeContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                activeContentColor = Color.White,
-                activeBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                inactiveBorderColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Text("Score")
         }
     }
 }

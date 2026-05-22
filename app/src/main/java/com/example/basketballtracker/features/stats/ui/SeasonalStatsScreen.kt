@@ -2,45 +2,30 @@ package com.example.basketballtracker.features.stats.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FilterChipDefaults.filterChipColors
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,20 +37,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.basketballtracker.features.history.state.GamesHistoryViewModel
-import com.example.basketballtracker.features.history.ui.GamesHistoryScreen
 import com.example.basketballtracker.features.stats.domain.PlayerSeasonStats
 import com.example.basketballtracker.features.stats.state.SeasonStatsViewModel
 import com.example.basketballtracker.features.stats.state.StatsDisplayMode
-import java.nio.file.WatchEvent
+import com.example.basketballtracker.features.summary.ui.SummaryTopBar
+
+private val StatsAccent = Color(0xFF2ECC71)
+private val CardDark = Color(0xFF101820)
+private val CardBorder = Color.White.copy(alpha = 0.10f)
 
 @Composable
 fun SeasonStatsScreen(
-    viewModel: SeasonStatsViewModel
+    viewModel: SeasonStatsViewModel,
+    onBack: () -> Unit
 ) {
     val seasonStats by viewModel.seasonStats.collectAsStateWithLifecycle()
     var displayMode by remember { mutableStateOf(StatsDisplayMode.PER_GAME) }
@@ -74,39 +61,59 @@ fun SeasonStatsScreen(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Card(
+        LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface)
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    "SEASON BOX SCORE",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
+            item {
+                SummaryTopBar(
+                    title = "SEASON STATS",
+                    subTitle = "Team overview & stats leaders",
+                    onBack = onBack,
                 )
-                StatsModeDropdown(displayMode) { displayMode = it }
             }
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                stickyHeader { TableHeader() }
-                itemsIndexed(seasonStats) { index, player ->
-                    PlayerSeasonStatsRow(player, displayMode, index)
-//                    HorizontalDivider(
-//                        modifier = Modifier.fillMaxWidth(),
-//                        thickness = 1.dp,
-//                        color = Color.White.copy(alpha = 0.08f)
-//                    )
+
+            item {
+                StatsModeDropdown(displayMode) {
+                    displayMode = it
+                }
+            }
+
+            if (seasonStats.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No season stats yet",
+                            color = Color.White.copy(alpha = 0.65f)
+                        )
+                    }
+                }
+            } else {
+                item {
+                    TeamOverviewCard(
+                        stats = seasonStats,
+                        mode = displayMode
+                    )
+                }
+
+                item {
+                    Text(
+                        text = "CATEGORY LEADERS",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+
+                items(buildLeaderCategories(seasonStats, displayMode)) { category ->
+                    LeaderCategoryCard(category)
                 }
             }
         }
@@ -114,206 +121,466 @@ fun SeasonStatsScreen(
 }
 
 @Composable
-fun PlayerSeasonStatsRow(
-    player: PlayerSeasonStats,
-    mode: StatsDisplayMode,
-    index: Int
+fun TeamOverviewCard(
+    stats: List<PlayerSeasonStats>,
+    mode: StatsDisplayMode
 ) {
-    val backgroundColor = if (index % 2 == 0) {
-        Color.Transparent
-    } else {
-        Color.LightGray.copy(alpha = 0.05f)
+    val gp = stats.maxOfOrNull { it.gp } ?: 0
+
+    val pts = stats.sumOf { it.pts }
+    val reb = stats.sumOf { it.rebTotal }
+    val ast = stats.sumOf { it.ast }
+    val stl = stats.sumOf { it.stl }
+    val blk = stats.sumOf { it.blk }
+    val tov = stats.sumOf { it.tov }
+    val pf = stats.sumOf { it.pf }
+
+    val fgm = stats.sumOf { it.fgm }
+    val fga = stats.sumOf { it.fga }
+    val threem = stats.sumOf { it.threem }
+    val threea = stats.sumOf { it.threea }
+    val ftm = stats.sumOf { it.ftm }
+    val fta = stats.sumOf { it.fta }
+
+    StatDashboardCard {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            SectionTitle("TEAM OVERVIEW")
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                BigTeamStat(
+                    title = "GAMES",
+                    value = gp.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+
+                BigTeamStat(
+                    title = if (mode == StatsDisplayMode.PER_GAME) "PPG" else "POINTS",
+                    value = formatTeamStat(pts, gp, mode),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SmallTeamStat("REB", formatTeamStat(reb, gp, mode), Modifier.weight(1f))
+                SmallTeamStat("AST", formatTeamStat(ast, gp, mode), Modifier.weight(1f))
+                SmallTeamStat("STL", formatTeamStat(stl, gp, mode), Modifier.weight(1f))
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SmallTeamStat("BLK", formatTeamStat(blk, gp, mode), Modifier.weight(1f))
+                SmallTeamStat("TOV", formatTeamStat(tov, gp, mode), Modifier.weight(1f))
+                SmallTeamStat("PF", formatTeamStat(pf, gp, mode), Modifier.weight(1f))
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+
+            SectionTitle("SHOOTING")
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ShootingStat("FG%", formatPercent(fgm, fga), "$fgm/$fga", Modifier.weight(1f))
+                ShootingStat(
+                    "3P%",
+                    formatPercent(threem, threea),
+                    "$threem/$threea",
+                    Modifier.weight(1f)
+                )
+                ShootingStat("FT%", formatPercent(ftm, fta), "$ftm/$fta", Modifier.weight(1f))
+            }
+        }
     }
-    val textColor = Color.White
+}
+
+@Composable
+fun BigTeamStat(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(120.dp)
+            .background(
+                Color.White.copy(alpha = 0.035f),
+                RoundedCornerShape(18.dp)
+            )
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.align(Alignment.CenterStart)
+        ) {
+            Text(
+                text = title,
+                color = Color.White.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = value,
+                color = StatsAccent,
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Black
+            )
+        }
+    }
+}
+
+@Composable
+fun SmallTeamStat(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .background(
+                Color.White.copy(alpha = 0.035f),
+                RoundedCornerShape(16.dp)
+            )
+            .padding(vertical = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = title,
+            color = Color.White,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(Modifier.height(6.dp))
+
+        Text(
+            text = value,
+            color = StatsAccent,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Black
+        )
+    }
+}
+
+@Composable
+fun ShootingStat(
+    title: String,
+    value: String,
+    attempts: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .background(
+                Color.White.copy(alpha = 0.035f),
+                RoundedCornerShape(16.dp)
+            )
+            .padding(vertical = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = title,
+            color = Color.White,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            text = value,
+            color = StatsAccent,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Black
+        )
+
+        Text(
+            text = attempts,
+            color = Color.White.copy(alpha = 0.45f),
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+data class LeaderCategory(
+    val title: String,
+    val subtitle: String,
+    val leaders: List<LeaderItem>
+)
+
+data class LeaderItem(
+    val rank: Int,
+    val playerName: String,
+    val playerNumber: Int,
+    val value: String
+)
+
+@Composable
+fun LeaderCategoryCard(
+    category: LeaderCategory
+) {
+    StatDashboardCard {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = category.title,
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black
+                    )
+
+                    Text(
+                        text = category.subtitle,
+                        color = Color.White.copy(alpha = 0.45f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                Text(
+                    text = "TOP 3",
+                    color = Color.White.copy(alpha = 0.45f),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            category.leaders.forEach { leader ->
+                LeaderPlayerRow(leader)
+            }
+        }
+    }
+}
+
+@Composable
+fun LeaderPlayerRow(
+    leader: LeaderItem
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(backgroundColor)
-            .padding(12.dp),
+            .padding(vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.weight(0.6f),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .size(26.dp)
+                .background(
+                    Color.White.copy(alpha = 0.10f),
+                    RoundedCornerShape(50)
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "${player.playerNumber}",
-                modifier = Modifier.width(32.dp),
-                color = textColor.copy(alpha = 0.5f),
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.End
+                text = leader.rank.toString(),
+                color = StatsAccent,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.width(16.dp))
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = player.playerName,
-                color = textColor,
-                style = MaterialTheme.typography.bodyLarge,
+                text = leader.playerName,
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+
+            Text(
+                text = "#${leader.playerNumber}",
+                color = Color.White.copy(alpha = 0.42f),
+                style = MaterialTheme.typography.bodySmall
+            )
         }
-        StatCell(player.gp.toString(), 0.2f, TextAlign.Center, textColor)
-        StatCell(formatStat(player.pts, player.gp, mode), 0.2f, TextAlign.Center, textColor)
-        StatCell(formatStat(player.rebTotal, player.gp, mode), 0.2f, TextAlign.Center, textColor)
-        StatCell(formatStat(player.ast, player.gp, mode), 0.2f, TextAlign.Center, textColor)
-        StatCell(formatStat(player.stl, player.gp, mode), 0.2f, TextAlign.Center, textColor)
-        StatCell(formatStat(player.blk, player.gp, mode), 0.2f, TextAlign.Center, textColor)
-        StatCell(
-            formatShootingStat(player.fgm, player.fga, player.gp, mode),
-            0.2f,
-            TextAlign.Center,
-            textColor
+
+        Text(
+            text = leader.value,
+            color = StatsAccent,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Black
         )
-        StatCell(
-            formatShootingStat(player.threem, player.threea, player.gp, mode),
-            0.2f,
-            TextAlign.Center,
-            textColor
-        )
-        StatCell(
-            formatShootingStat(player.ftm, player.fta, player.gp, mode),
-            0.2f,
-            TextAlign.Center,
-            textColor
-        )
-        StatCell(formatStat(player.tov, player.gp, mode), 0.2f, TextAlign.Center, textColor)
-        StatCell(formatStat(player.pf, player.gp, mode), 0.2f, TextAlign.Center, textColor)
     }
 }
 
 @Composable
-fun RowScope.StatCell(stat: String, w: Float, alignment: TextAlign? = null, color: Color) {
-    Text(
-        text = stat,
-        modifier = Modifier.weight(w),
-        style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.SemiBold,
-        textAlign = alignment,
-        color = color
-    )
-}
-
-@Composable
-fun TableHeader() {
-    val textColor = Color.White.copy(alpha = 0.5f)
-    HorizontalDivider(
-        modifier = Modifier.fillMaxWidth(),
-        thickness = 1.dp,
-        color = Color.White.copy(alpha = 0.08f)
-    )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White.copy(alpha = 0.05f))
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(
-            modifier = Modifier.weight(0.6f),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "#",
-                modifier = Modifier.width(32.dp),
-                color = textColor.copy(alpha = 0.5f),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.End,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = "PLAYER",
-                color = textColor.copy(alpha = 0.5f),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-        StatCell("GAMES", 0.2f, TextAlign.Center, textColor)
-        StatCell("PTS", 0.2f, TextAlign.Center, textColor)
-        StatCell("REB", 0.2f, TextAlign.Center, textColor)
-        StatCell("AST", 0.2f, TextAlign.Center, textColor)
-        StatCell("STL", 0.2f, TextAlign.Center, textColor)
-        StatCell("BLK", 0.2f, TextAlign.Center, textColor)
-        StatCell("FG%", 0.2f, TextAlign.Center, textColor)
-        StatCell("3P%", 0.2f, TextAlign.Center, textColor)
-        StatCell("FT%", 0.2f, TextAlign.Center, textColor)
-        StatCell("TOV", 0.2f, TextAlign.Center, textColor)
-        StatCell("PF", 0.2f, TextAlign.Center, textColor)
-    }
-    HorizontalDivider(
-        modifier = Modifier.fillMaxWidth(),
-        thickness = 1.dp,
-        color = Color.White.copy(alpha = 0.08f)
-    )
-}
-
-@Composable
-fun StatsModeDropdown(
-    selectedMode: StatsDisplayMode,
-    onModeSelected: (StatsDisplayMode) -> Unit
+fun StatDashboardCard(
+    content: @Composable () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        contentAlignment = Alignment.CenterEnd
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, CardBorder)
     ) {
-        Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
-            OutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier.height(36.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp),
-                shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = Color.White.copy(alpha = 0.08f)
-                )
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = if (selectedMode == StatsDisplayMode.TOTAL) "Total" else "Per Game",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                StatsDisplayMode.entries.forEach { mode ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = if (mode == StatsDisplayMode.TOTAL) "Total" else "Average",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        },
-                        onClick = {
-                            onModeSelected(mode)
-                            expanded = false
-                        },
-                        leadingIcon = {
-                            if (selectedMode == mode) {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    )
-                }
-            }
-        }
+        content()
     }
+}
+
+@Composable
+fun SectionTitle(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(22.dp)
+                .background(StatsAccent, RoundedCornerShape(50))
+        )
+
+        Spacer(Modifier.width(10.dp))
+
+        Text(
+            text = text,
+            color = Color.White,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Black
+        )
+    }
+}
+
+fun buildLeaderCategories(
+    stats: List<PlayerSeasonStats>,
+    mode: StatsDisplayMode
+): List<LeaderCategory> {
+    return listOf(
+        LeaderCategory(
+            title = "POINTS",
+            subtitle = if (mode == StatsDisplayMode.PER_GAME) "PPG" else "TOTAL",
+            leaders = stats.top3By(
+                selector = { valueByMode(it.pts, it.gp, mode) },
+                value = { formatStat(it.pts, it.gp, mode) }
+            )
+        ),
+        LeaderCategory(
+            title = "REBOUNDS",
+            subtitle = if (mode == StatsDisplayMode.PER_GAME) "RPG" else "TOTAL",
+            leaders = stats.top3By(
+                selector = { valueByMode(it.rebTotal, it.gp, mode) },
+                value = { formatStat(it.rebTotal, it.gp, mode) }
+            )
+        ),
+        LeaderCategory(
+            title = "ASSISTS",
+            subtitle = if (mode == StatsDisplayMode.PER_GAME) "APG" else "TOTAL",
+            leaders = stats.top3By(
+                selector = { valueByMode(it.ast, it.gp, mode) },
+                value = { formatStat(it.ast, it.gp, mode) }
+            )
+        ),
+        LeaderCategory(
+            title = "STEALS",
+            subtitle = if (mode == StatsDisplayMode.PER_GAME) "SPG" else "TOTAL",
+            leaders = stats.top3By(
+                selector = { valueByMode(it.stl, it.gp, mode) },
+                value = { formatStat(it.stl, it.gp, mode) }
+            )
+        ),
+        LeaderCategory(
+            title = "BLOCKS",
+            subtitle = if (mode == StatsDisplayMode.PER_GAME) "BPG" else "TOTAL",
+            leaders = stats.top3By(
+                selector = { valueByMode(it.blk, it.gp, mode) },
+                value = { formatStat(it.blk, it.gp, mode) }
+            )
+        ),
+        LeaderCategory(
+            title = "TURNOVERS",
+            subtitle = if (mode == StatsDisplayMode.PER_GAME) "TOPG" else "TOTAL",
+            leaders = stats.top3By(
+                selector = { valueByMode(it.tov, it.gp, mode) },
+                value = { formatStat(it.tov, it.gp, mode) }
+            )
+        ),
+        LeaderCategory(
+            title = "FG%",
+            subtitle = "MIN 1 FGA",
+            leaders = stats
+                .filter { it.fga > 0 }
+                .top3By(
+                    selector = { it.fgm.toFloat() / it.fga },
+                    value = { formatPercent(it.fgm, it.fga) }
+                )
+        ),
+        LeaderCategory(
+            title = "3P%",
+            subtitle = "MIN 1 3PA",
+            leaders = stats
+                .filter { it.threea > 0 }
+                .top3By(
+                    selector = { it.threem.toFloat() / it.threea },
+                    value = { formatPercent(it.threem, it.threea) }
+                )
+        ),
+        LeaderCategory(
+            title = "FT%",
+            subtitle = "MIN 1 FTA",
+            leaders = stats
+                .filter { it.fta > 0 }
+                .top3By(
+                    selector = { it.ftm.toFloat() / it.fta },
+                    value = { formatPercent(it.ftm, it.fta) }
+                )
+        )
+    )
+}
+
+fun List<PlayerSeasonStats>.top3By(
+    selector: (PlayerSeasonStats) -> Float,
+    value: (PlayerSeasonStats) -> String
+): List<LeaderItem> {
+    return sortedByDescending(selector)
+        .take(3)
+        .mapIndexed { index, player ->
+            LeaderItem(
+                rank = index + 1,
+                playerName = player.playerName,
+                playerNumber = player.playerNumber,
+                value = value(player)
+            )
+        }
+}
+
+fun valueByMode(
+    value: Int,
+    gamesPlayed: Int,
+    mode: StatsDisplayMode
+): Float {
+    return if (mode == StatsDisplayMode.TOTAL || gamesPlayed <= 0) {
+        value.toFloat()
+    } else {
+        value.toFloat() / gamesPlayed
+    }
+}
+
+fun formatTeamStat(
+    value: Int,
+    gamesPlayed: Int,
+    mode: StatsDisplayMode
+): String {
+    return if (mode == StatsDisplayMode.TOTAL || gamesPlayed <= 0) {
+        value.toString()
+    } else {
+        "%.1f".format(value.toFloat() / gamesPlayed)
+    }
+}
+
+fun formatPercent(
+    made: Int,
+    attempted: Int
+): String {
+    if (attempted == 0) return "0%"
+    return "${((made.toFloat() / attempted) * 100).toInt()}%"
 }
 
 fun formatStat(value: Int, gamesPlayed: Int, mode: StatsDisplayMode): String {
@@ -324,18 +591,50 @@ fun formatStat(value: Int, gamesPlayed: Int, mode: StatsDisplayMode): String {
     }
 }
 
-fun formatShootingStat(
-    made: Int,
-    attempted: Int,
-    gamesPlayed: Int,
-    mode: StatsDisplayMode
-): String {
-    val pct = (made.toFloat() / attempted * 100).toInt()
-    return if (mode == StatsDisplayMode.TOTAL || gamesPlayed <= 1) {
-        "$pct% ($made/$attempted)"
-    } else {
-        "%d%%".format(
-            pct
-        )
+@Composable
+fun StatsModeDropdown(
+    selectedMode: StatsDisplayMode,
+    onModeSelected: (StatsDisplayMode) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        OutlinedButton(
+            onClick = { expanded = true },
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
+        ) {
+            Text(
+                text = if (selectedMode == StatsDisplayMode.TOTAL) "Total" else "Per Game",
+                color = Color.White
+            )
+
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.7f)
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Per Game") },
+                onClick = {
+                    onModeSelected(StatsDisplayMode.PER_GAME)
+                    expanded = false
+                }
+            )
+
+            DropdownMenuItem(
+                text = { Text("Total") },
+                onClick = {
+                    onModeSelected(StatsDisplayMode.TOTAL)
+                    expanded = false
+                }
+            )
+        }
     }
 }

@@ -1,203 +1,180 @@
 package com.example.basketballtracker.features.players.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
-import com.example.basketballtracker.features.players.state.PlayersViewModel
-import com.example.basketballtracker.ui.theme.Surface
+import com.example.basketballtracker.features.summary.ui.SummaryTopBar
+
+private val RosterAccent = Color(0xFF2ECC71)
 
 @Composable
-fun PlayersScreen(
-    vm: PlayersViewModel,
+fun RosterScreen(
+    players: List<PlayerEntity>,
+    onPlayerClick: (Long) -> Unit,
+    onAddPlayerClick: () -> Unit = {},
+    onBack: () -> Unit
 ) {
-    val players by vm.players.collectAsState()
-    var showAdd by rememberSaveable { mutableStateOf(false) }
-    var name by rememberSaveable { mutableStateOf("") }
-    var numberText by rememberSaveable { mutableStateOf("") }
-    var editing by rememberSaveable { mutableStateOf<PlayerEntity?>(null) }
-    var editName by rememberSaveable { mutableStateOf("") }
-    var editNumberText by rememberSaveable { mutableStateOf("") }
-
-
-    if (showAdd) {
-        AlertDialog(
-            onDismissRequest = { showAdd = false },
-            title = { Text("Add player") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = numberText,
-                        onValueChange = { input ->
-                            // מאפשר רק ספרות
-                            numberText = input.filter { it.isDigit() }.take(2)
-                        },
-                        label = { Text("Number") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val num = numberText.toIntOrNull() ?: 0
-                        vm.add(name, num)
-                        name = ""
-                        numberText = ""
-                        showAdd = false
-                    },
-                    enabled = name.trim().isNotEmpty()
-                ) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showAdd = false
-                }) { Text("Cancel") }
-            }
-        )
-    }
-
-    if (editing != null) {
-        AlertDialog(
-            onDismissRequest = { editing = null },
-            title = { Text("Edit player") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = editName,
-                        onValueChange = { editName = it },
-                        label = { Text("Name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = editNumberText,
-                        onValueChange = { input ->
-                            editNumberText = input.filter { it.isDigit() }.take(2)
-                        },
-                        label = { Text("Number") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = editName.trim().isNotEmpty(),
-                    onClick = {
-                        val p = editing ?: return@TextButton
-                        val num = editNumberText.toIntOrNull() ?: 0
-                        vm.update(p.id, editName, num)
-                        editing = null
-                    }
-                ) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = { editing = null }) { Text("Cancel") }
-            }
-        )
-    }
     Surface(
-        Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Box(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
-            contentAlignment = Alignment.Center
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Column(
-                Modifier
-                    .widthIn(max = 500.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("Roster Management", style = MaterialTheme.typography.displaySmall)
-                Spacer(modifier = Modifier.height(32.dp))
-                Button(
-                    onClick = { showAdd = true },
-                    modifier = Modifier
-                        .height(56.dp)
-                        .align(Alignment.Start)
-                ) { Text("Add Player") }
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface)
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    LazyColumn(
-                        contentPadding = PaddingValues(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    Column {
+                        SummaryTopBar(
+                            title = "ROSTER",
+                            subTitle = "${players.size} players available",
+                            onBack = onBack
+                        )
+                    }
+
+                    Button(
+                        onClick = onAddPlayerClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        shape = RoundedCornerShape(14.dp)
                     ) {
-                        items(players, key = { it.id }) { p ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row() {
-                                        Text(
-                                            modifier = Modifier.width(48.dp),
-                                            text = "#${p.number}",
-                                            textAlign = TextAlign.Start,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            text = p.name,
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
-                                    }
-                                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                                        IconButton(onClick = {
-                                            editing = p
-                                            editName = p.name
-                                            editNumberText = p.number.toString()
-                                        }) {
-                                            Icon(Icons.Default.Edit, contentDescription = "Edit")
-                                        }
-                                        IconButton(onClick = { vm.delete(p.id) }) {
-                                            Icon(
-                                                Icons.Default.Delete,
-                                                contentDescription = "Delete"
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        Text("Add")
                     }
                 }
             }
+
+            if (players.isEmpty()) {
+                item {
+                    EmptyRosterCard()
+                }
+            } else {
+                items(players, key = { it.id }) { player ->
+                    RosterPlayerCard(
+                        player = player,
+                        onClick = { onPlayerClick(player.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RosterPlayerCard(
+    player: PlayerEntity,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            NumberBadge(player.number)
+
+            Spacer(Modifier.width(16.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = player.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = "Player ID ${player.id}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NumberBadge(
+    number: Int
+) {
+    Box(
+        modifier = Modifier
+            .size(58.dp)
+            .background(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "#$number",
+            color = RosterAccent,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Black
+        )
+    }
+}
+
+@Composable
+private fun EmptyRosterCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+        )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No players yet",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                style = MaterialTheme.typography.titleMedium
+            )
         }
     }
 }

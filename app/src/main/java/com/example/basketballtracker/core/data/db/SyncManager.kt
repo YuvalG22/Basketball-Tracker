@@ -309,10 +309,13 @@ class SyncManager(
 
     private suspend fun fetchSeasonStatsFromCloud() {
         try {
+            Log.d("STATS_SYNC", "Refreshing season stats")
             statsApi.refreshSeasonStats()
+            Log.d("STATS_SYNC", "Refresh success")
 
+            Log.d("STATS_SYNC", "Fetching season stats")
             val remoteStats = statsApi.getSeasonStats()
-            Log.d("STATS_SYNC", "Remote stats size: ${remoteStats.size}")
+            Log.d("STATS_SYNC", "Remote stats size: $remoteStats")
 
             val entities = remoteStats.mapNotNull { dto ->
                 Log.d("STATS_SYNC", "DTO player_id=${dto.player_id}, name=${dto.player_name}")
@@ -350,7 +353,7 @@ class SyncManager(
             playerSeasonStatsDao.replaceAll(entities)
 
         } catch (e: Exception) {
-            Log.e("SYNC", "Failed to fetch season stats", e)
+            Log.e("SYNC_ERROR", "Failed to fetch season stats", e)
         }
     }
 }

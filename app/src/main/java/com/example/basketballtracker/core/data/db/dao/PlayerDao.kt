@@ -19,8 +19,11 @@ interface PlayerDao {
     }
 
     @Query("SELECT * FROM players WHERE id = :playerId LIMIT 1")
-
     suspend fun getPlayerById(playerId: Long): PlayerEntity?
+
+    @Query("SELECT * FROM players WHERE id = :playerId LIMIT 1")
+    fun observePlayerById(playerId: Long): Flow<PlayerEntity?>
+
     @Query("SELECT COUNT(*) FROM players")
     suspend fun countPlayers(): Int
 

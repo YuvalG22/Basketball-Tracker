@@ -49,7 +49,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
-import com.example.basketballtracker.features.core.ui.components.SectionDivider
 import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.PlayerBox
@@ -169,7 +168,7 @@ fun PlayersPanel(
                     )
                 }
             }
-            SectionDivider()
+            Spacer(Modifier.height(16.dp))
             Text(
                 "Bench",
                 style = MaterialTheme.typography.titleSmall,

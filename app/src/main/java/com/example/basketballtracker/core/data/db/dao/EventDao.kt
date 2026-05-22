@@ -87,4 +87,11 @@ interface EventDao {
 
     @Query("UPDATE events SET syncStatus = 'SYNCED', remoteId = :remoteId WHERE id = :localId")
     suspend fun markSynced(localId: Long, remoteId: String)
+
+    @Query("""
+        SELECT * FROM events
+        WHERE playerId = :playerId
+        ORDER BY gameId ASC, period ASC, clockSecRemaining DESC
+    """)
+    fun observeEventsByPlayer(playerId: Long): Flow<List<EventEntity>>
 }
