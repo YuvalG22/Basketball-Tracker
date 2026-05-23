@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.androidx.compose.runtime.saveable)
     implementation(libs.androidx.compose.remote.creation.core)
     implementation(libs.androidx.foundation)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.tools.core)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3.window.size.class1)

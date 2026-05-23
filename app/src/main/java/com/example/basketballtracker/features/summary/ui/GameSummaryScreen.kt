@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,9 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,94 +45,33 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.basketballtracker.core.data.db.AppDatabase
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
-import com.example.basketballtracker.features.games.data.GamesRepository
-import com.example.basketballtracker.features.livegame.data.LiveGameRepository
-import com.example.basketballtracker.features.livegame.domain.EventType
-import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.PlayerBox
-import com.example.basketballtracker.features.livegame.domain.computeBoxByPlayer
-import com.example.basketballtracker.features.livegame.domain.computePlusMinusByPlayer
-import com.example.basketballtracker.features.livegame.domain.computeSecondsPlayedByPlayer
-import com.example.basketballtracker.features.livegame.domain.formatMinutes
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlin.collections.forEachIndexed
+import kotlin.math.roundToInt
 
 private val SummaryAccent = Color(0xFF2ECC71)
+private val BoxScoreRowHeight = 56.dp
+private val BoxScoreHeaderHeight = 40.dp
 
 @Composable
 fun GameSummaryScreen(
-    gameId: Long,
-    db: AppDatabase,
-    gamesRepo: GamesRepository,
-    liveRepo: LiveGameRepository,
+    viewModel: GameSummaryViewModel,
     onBack: () -> Unit
 ) {
-    val events by liveRepo.observeLiveEvents(gameId).collectAsState(initial = emptyList())
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val gameInfo by produceState<GameInfo?>(initialValue = null, key1 = gameId) {
-        value = withContext(Dispatchers.IO) {
-            val g = gamesRepo.getById(gameId) ?: return@withContext null
-            val ids = db.rosterDao().observeRosterPlayerIds(gameId).first()
-            val players = if (ids.isEmpty()) emptyList() else db.playerDao().getPlayersByIds(ids)
+    val teamTotals = state.teamTotals ?: return
 
-            GameInfo(
-                opponentName = g.opponentName,
-                opponentScore = g.opponentScore,
-                teamScore = g.teamScore,
-                roundNumber = g.roundNumber,
-                gameDateEpoch = g.gameDateEpoch,
-                quarterLengthSec = g.quarterLengthSec,
-                quartersCount = g.quartersCount,
-                players = players
-            )
-        }
-    }
-
-    val info = gameInfo ?: run {
+    if (state.isLoading) {
         LoadingSummary(onBack)
         return
     }
 
-    val box = remember(events) { computeBoxByPlayer(events, 600, 4, 0) }
-
-    val secondsPlayedById = remember(events, info.quarterLengthSec, info.quartersCount) {
-        computeSecondsPlayedByPlayer(
-            events = events,
-            quarterLengthSec = info.quarterLengthSec,
-            currentPeriod = info.quartersCount,
-            currentClockSecRemaining = 0
-        )
-    }
-
-    val pmById = remember(events) { computePlusMinusByPlayer(events) }
-
-    val teamTotals = remember(box, secondsPlayedById) {
-        buildTeamTotals(box.values.toList(), secondsPlayedById)
-    }
-
-    val quarterScores = remember(events, info.quartersCount) {
-        buildQuarterScores(events, info.quartersCount)
-    }
-
-    val teamScore = info.teamScore
-    val opponentScore = info.opponentScore
-    val isWin = teamScore > opponentScore
-
-    val dateText = remember(info.gameDateEpoch) {
-        if (info.gameDateEpoch == 0L) ""
-        else SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-            .format(Date(info.gameDateEpoch))
-    }
-
     Surface(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         LazyColumn(
@@ -146,21 +82,21 @@ fun GameSummaryScreen(
         ) {
             item {
                 SummaryTopBar(
-                    "GAME SUMMARY",
-                    "Box score, team totals and game leaders",
-                    onBack
+                    title = "GAME SUMMARY",
+                    subTitle = "Box score, team totals and game leaders",
+                    onBack = onBack
                 )
             }
 
             item {
                 GameResultCard(
-                    opponentName = info.opponentName,
-                    roundNumber = info.roundNumber,
-                    dateText = dateText,
-                    teamScore = teamScore,
-                    opponentScore = opponentScore,
-                    isWin = isWin,
-                    quarterScores = quarterScores
+                    opponentName = state.opponentName,
+                    roundNumber = state.roundNumber,
+                    dateText = state.dateText,
+                    teamScore = state.teamScore,
+                    opponentScore = state.opponentScore,
+                    isWin = state.isWin,
+                    quarterScores = state.quarterScores
                 )
             }
 
@@ -168,23 +104,10 @@ fun GameSummaryScreen(
                 TeamSummaryCard(teamTotals)
             }
 
-//            item {
-//                GameLeadersCard(
-//                    players = info.players,
-//                    box = box,
-//                    secondsPlayedById = secondsPlayedById,
-//                    pmById = pmById
-//                )
-//            }
-
             item {
                 BoxScoreCard(
-                    players = info.players,
-                    box = box,
-                    secondsPlayedById = secondsPlayedById,
-                    pmById = pmById,
-                    teamTotals = teamTotals,
-                    events = events
+                    rows = state.rows,
+                    teamTotals = teamTotals
                 )
             }
         }
@@ -348,252 +271,292 @@ private fun TeamSummaryCard(t: TeamTotals) {
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
 
-            ShootingDonutsRow(teamTotals = t)
-        }
-    }
-}
-
-@Composable
-private fun GameLeadersCard(
-    players: List<PlayerEntity>,
-    box: Map<Long, PlayerBox>,
-    secondsPlayedById: Map<Long, Int>,
-    pmById: Map<Long, Int>
-) {
-    val leaders = remember(players, box, secondsPlayedById, pmById) {
-        listOf(
-            GameLeader(
-                "Points",
-                players.bestBy(box) { it.pts }?.let { it to "${box[it.id]?.pts ?: 0}" }),
-            GameLeader(
-                "Rebounds",
-                players.bestBy(box) { it.rebTotal }?.let { it to "${box[it.id]?.rebTotal ?: 0}" }),
-            GameLeader(
-                "Assists",
-                players.bestBy(box) { it.ast }?.let { it to "${box[it.id]?.ast ?: 0}" }),
-            GameLeader(
-                "Steals",
-                players.bestBy(box) { it.stl }?.let { it to "${box[it.id]?.stl ?: 0}" }),
-            GameLeader(
-                "Blocks",
-                players.bestBy(box) { it.blk }?.let { it to "${box[it.id]?.blk ?: 0}" }),
-            GameLeader("Minutes", players.maxByOrNull { secondsPlayedById[it.id] ?: 0 }
-                ?.let { it to formatMinutes(secondsPlayedById[it.id] ?: 0) }),
-            GameLeader("+/-", players.maxByOrNull { pmById[it.id] ?: 0 }
-                ?.let {
-                    val pm = pmById[it.id] ?: 0
-                    it to if (pm > 0) "+$pm" else "$pm"
-                })
-        )
-    }
-
-    DashboardCard {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            SectionTitle("GAME LEADERS")
-
-            leaders.forEach { leader ->
-                val data = leader.playerAndValue ?: return@forEach
-                LeaderMiniRow(
-                    title = leader.title,
-                    player = data.first,
-                    value = data.second
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ShootingBox("FG", "${t.fgm}/${t.fga}", "${pct(t.fgm, t.fga)}%", Modifier.weight(1f))
+                ShootingBox(
+                    "3PT",
+                    "${t.threem}/${t.threea}",
+                    "${pct(t.threem, t.threea)}%",
+                    Modifier.weight(1f)
                 )
+                ShootingBox("FT", "${t.ftm}/${t.fta}", "${pct(t.ftm, t.fta)}%", Modifier.weight(1f))
             }
         }
     }
 }
 
-private data class GameLeader(
-    val title: String,
-    val playerAndValue: Pair<PlayerEntity, String>?
-)
+fun pct(made: Int, att: Int): Int {
+    if (att == 0) return 0
+    return ((made * 100.0) / att).roundToInt()
+}
 
 @Composable
-private fun LeaderMiniRow(
-    title: String,
-    player: PlayerEntity,
-    value: String
+private fun BoxScoreCard(
+    rows: List<GameSummaryPlayerRowUi>,
+    teamTotals: TeamTotals
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically
+
+    val horizontalScroll = rememberScrollState()
+
+    val starters = remember(rows) {
+        rows.filter { it.isStarter }
+    }
+
+    val bench = remember(rows) {
+        rows.filter { !it.isStarter }
+    }
+
+    DashboardCard {
+
+        Column {
+
+            Column(
+                modifier = Modifier.padding(18.dp)
+            ) {
+                SectionTitle("BOX SCORE")
+            }
+
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                val fixedPlayerWidth = 170.dp
+                val minStatsWidth = 900.dp
+
+                val statsWidth =
+                    (maxWidth - fixedPlayerWidth)
+                        .coerceAtLeast(minStatsWidth)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+
+                    FixedPlayersColumn(
+                        starters = starters,
+                        bench = bench
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .horizontalScroll(horizontalScroll)
+                            .width(statsWidth)
+                    ) {
+
+                        StatsHeader()
+
+                        starters.forEach { row ->
+
+                            StatsRow(row)
+
+                            DividerLine()
+                        }
+
+                        if (starters.isNotEmpty() && bench.isNotEmpty()) {
+                            BenchDivider()
+                        }
+
+                        bench.forEach { row ->
+
+                            StatsRow(row)
+
+                            DividerLine()
+                        }
+
+                        TeamStatsTotalRow(teamTotals)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FixedPlayersColumn(
+    starters: List<GameSummaryPlayerRowUi>,
+    bench: List<GameSummaryPlayerRowUi>
+) {
+
+    Column(
+        modifier = Modifier.width(170.dp)
     ) {
-        Text(
-            text = title,
-            modifier = Modifier.width(92.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold
-        )
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = player.name,
-                color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+        PlayerHeader()
 
-            Text(
-                text = "#${player.number}",
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
-                style = MaterialTheme.typography.bodySmall
-            )
+        starters.forEach { row ->
+
+            PlayerCell(row)
+
+            DividerLine()
         }
 
+        if (starters.isNotEmpty() && bench.isNotEmpty()) {
+            BenchDivider()
+        }
+
+        bench.forEach { row ->
+
+            PlayerCell(row)
+
+            DividerLine()
+        }
+
+        TeamPlayerTotalCell()
+    }
+}
+
+@Composable
+private fun PlayerHeader() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(BoxScoreHeaderHeight)
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
         Text(
-            text = value,
+            text = "PLAYER",
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun PlayerCell(
+    row: GameSummaryPlayerRowUi
+) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(BoxScoreRowHeight)
+            .padding(horizontal = 14.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+
+        Text(
+            text = row.playerName,
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
+        )
+
+        Text(
+            text = "#${row.playerNumber}",
             color = SummaryAccent,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+@Composable
+private fun TeamPlayerTotalCell() {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(BoxScoreRowHeight)
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Text(
+            text = "TOTAL",
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Black
         )
     }
 }
 
 @Composable
-private fun BoxScoreCard(
-    players: List<PlayerEntity>,
-    box: Map<Long, PlayerBox>,
-    secondsPlayedById: Map<Long, Int>,
-    pmById: Map<Long, Int>,
-    teamTotals: TeamTotals,
-    events: List<LiveEvent>
-) {
-    val horizontalScrollState = rememberScrollState()
-    val starterIds = remember(events) { detectStartersByCreatedAt(events) }
-
-    val starters = remember(players, starterIds) {
-        players.filter { it.id in starterIds }
-    }
-
-    val bench = remember(players, starterIds) {
-        players.filter { it.id !in starterIds }
-    }
-    val minStatsWidth = 900.dp
-    DashboardCard {
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            val statsWidth = (maxWidth - 170.dp).coerceAtLeast(minStatsWidth)
-            Column {
-                Column(
-                    modifier = Modifier.padding(18.dp)
-                ) {
-                    SectionTitle("BOX SCORE")
-                }
-
-                TableHeader(
-                    scrollState = horizontalScrollState,
-                    statsWidth = statsWidth
-                )
-
-                Column {
-                    starters.forEachIndexed { index, p ->
-                        SummaryPlayerRow(
-                            player = p,
-                            box = box[p.id],
-                            sec = secondsPlayedById[p.id] ?: 0,
-                            pm = pmById[p.id] ?: 0,
-                            scrollState = horizontalScrollState,
-                            statsWidth = statsWidth
-                        )
-
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f))
-                    }
-
-                    if (starters.isNotEmpty() && bench.isNotEmpty()) {
-                        BenchDivider()
-                    }
-
-                    bench.forEach { p ->
-                        SummaryPlayerRow(
-                            player = p,
-                            box = box[p.id],
-                            sec = secondsPlayedById[p.id] ?: 0,
-                            pm = pmById[p.id] ?: 0,
-                            scrollState = horizontalScrollState,
-                            statsWidth = statsWidth
-                        )
-
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f))
-                    }
-
-                    TeamTotalRow(
-                        teamTotals,
-                        scrollState = horizontalScrollState,
-                        statsWidth = statsWidth
-                    )
-                }
-            }
-        }
+private fun StatsHeader() {
+    Row(
+        modifier = Modifier
+            .height(BoxScoreHeaderHeight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        HeaderCell("MIN")
+        HeaderCell("PTS")
+        HeaderCell("REB")
+        HeaderCell("AST")
+        HeaderCell("DREB")
+        HeaderCell("OREB")
+        HeaderCell("STL")
+        HeaderCell("BLK")
+        HeaderCell("FG", 1.5f)
+        HeaderCell("3PT", 1.5f)
+        HeaderCell("FT", 1.5f)
+        HeaderCell("TO")
+        HeaderCell("PF")
+        HeaderCell("+/-")
     }
 }
 
 @Composable
-private fun SummaryPlayerRow(
-    player: PlayerEntity,
-    box: PlayerBox?,
-    sec: Int,
-    pm: Int,
-    scrollState: ScrollState,
-    statsWidth: Dp
+private fun StatsRow(
+    row: GameSummaryPlayerRowUi
 ) {
-    val pmText = if (pm > 0) "+$pm" else "$pm"
-
+    val pmText =
+        if (row.plusMinus > 0)
+            "+${row.plusMinus}"
+        else
+            "${row.plusMinus}"
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .height(BoxScoreRowHeight),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-
-        // FIXED PLAYER INFO
-        Column(
-            modifier = Modifier
-                .width(170.dp)
-                .padding(horizontal = 14.dp, vertical = 12.dp)
-        ) {
-            Column {
-                Text(
-                    text = player.name,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
-                )
-            }
-            Text(
-                text = "#${player.number}",
-                color = SummaryAccent,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Normal
-            )
-        }
-        Row(
-            modifier = Modifier
-                .horizontalScroll(scrollState)
-                .width(statsWidth),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            StatCell(formatMinutes(sec))
-            StatCell("${box?.pts ?: 0}", accent = true)
-            StatCell("${box?.rebTotal ?: 0}")
-            StatCell("${box?.ast ?: 0}")
-            StatCell("${box?.rebDef ?: 0}")
-            StatCell("${box?.rebOff ?: 0}")
-            StatCell("${box?.stl ?: 0}")
-            StatCell("${box?.blk ?: 0}")
-            StatCell("${box?.fgm ?: 0}/${box?.fga ?: 0}", false, 1.5f)
-            StatCell("${box?.threem ?: 0}/${box?.threea ?: 0}", false, 1.5f)
-            StatCell("${box?.ftm ?: 0}/${box?.fta ?: 0}", false, 1.5f)
-            StatCell("${box?.tov ?: 0}")
-            StatCell("${box?.pf ?: 0}")
-            StatCell(pmText, accent = true)
-        }
+        StatCell(row.min)
+        StatCell("${row.pts}", accent = true)
+        StatCell("${row.reb}")
+        StatCell("${row.ast}")
+        StatCell("${row.rebDef}")
+        StatCell("${row.rebOff}")
+        StatCell("${row.stl}")
+        StatCell("${row.blk}")
+        StatCell("${row.fgm}/${row.fga}", weight = 1.5f)
+        StatCell("${row.threem}/${row.threea}", weight = 1.5f)
+        StatCell("${row.ftm}/${row.fta}", weight = 1.5f)
+        StatCell("${row.tov}")
+        StatCell("${row.pf}")
+        StatCell(pmText, accent = true)
     }
+}
+
+@Composable
+private fun TeamStatsTotalRow(
+    t: TeamTotals
+) {
+    Row(
+        modifier = Modifier
+            .height(BoxScoreRowHeight),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        StatCell("")
+        StatCell("${t.pts}", accent = true)
+        StatCell("${t.rebTotal}")
+        StatCell("${t.ast}")
+        StatCell("${t.rebDef}")
+        StatCell("${t.rebOff}")
+        StatCell("${t.stl}")
+        StatCell("${t.blk}")
+        StatCell("${t.fgm}/${t.fga}", weight = 1.5f)
+        StatCell("${t.threem}/${t.threea}", weight = 1.5f)
+        StatCell("${t.ftm}/${t.fta}", weight = 1.5f)
+        StatCell("${t.tov}")
+        StatCell("${t.pf}")
+        StatCell("")
+    }
+}
+
+@Composable
+private fun DividerLine() {
+
+    HorizontalDivider(
+        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)
+    )
 }
 
 @Composable
@@ -610,53 +573,6 @@ private fun RowScope.StatCell(
         style = MaterialTheme.typography.bodyMedium,
         fontWeight = if (accent) FontWeight.Black else FontWeight.SemiBold
     )
-}
-
-@Composable
-fun TableHeader(
-    scrollState: ScrollState,
-    statsWidth: Dp
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .width(170.dp)
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Text(
-                text = "PLAYER",
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        Row(
-            modifier = Modifier
-                .horizontalScroll(scrollState)
-                .width(statsWidth)
-        ) {
-            HeaderCell("MIN")
-            HeaderCell("PTS")
-            HeaderCell("REB")
-            HeaderCell("AST")
-            HeaderCell("DREB")
-            HeaderCell("OREB")
-            HeaderCell("STL")
-            HeaderCell("BLK")
-            HeaderCell("FG", 1.5f)
-            HeaderCell("3PT", 1.5f)
-            HeaderCell("FT", 1.5f)
-            HeaderCell("TO")
-            HeaderCell("PF")
-            HeaderCell("+/-")
-        }
-    }
 }
 
 @Composable
@@ -850,121 +766,6 @@ private fun BenchDivider() {
     }
 }
 
-private fun buildTeamTotals(
-    boxes: List<PlayerBox>,
-    secondsPlayedById: Map<Long, Int>
-): TeamTotals {
-    val fgm = boxes.sumOf { it.fgm }
-    val fga = boxes.sumOf { it.fga }
-    val threem = boxes.sumOf { it.threem }
-    val threea = boxes.sumOf { it.threea }
-    val ftm = boxes.sumOf { it.ftm }
-    val fta = boxes.sumOf { it.fta }
-
-    return TeamTotals(
-        totalSec = secondsPlayedById.values.sum(),
-        pts = boxes.sumOf { it.pts },
-        ast = boxes.sumOf { it.ast },
-        rebTotal = boxes.sumOf { it.rebTotal },
-        rebDef = boxes.sumOf { it.rebDef },
-        rebOff = boxes.sumOf { it.rebOff },
-        stl = boxes.sumOf { it.stl },
-        blk = boxes.sumOf { it.blk },
-        tov = boxes.sumOf { it.tov },
-        pf = boxes.sumOf { it.pf },
-        fgm = fgm,
-        fga = fga,
-        threem = threem,
-        threea = threea,
-        ftm = ftm,
-        fta = fta
-    )
-}
-
-private fun List<PlayerEntity>.bestBy(
-    box: Map<Long, PlayerBox>,
-    selector: (PlayerBox) -> Int
-): PlayerEntity? {
-    return maxByOrNull { player ->
-        selector(box[player.id] ?: return@maxByOrNull 0)
-    }
-}
-
-private fun pct(made: Int, attempted: Int): Int {
-    if (attempted == 0) return 0
-    return ((made.toDouble() / attempted.toDouble()) * 100).toInt()
-}
-
-private data class GameInfo(
-    val opponentName: String,
-    val opponentScore: Int,
-    val teamScore: Int,
-    val roundNumber: Int,
-    val gameDateEpoch: Long,
-    val quarterLengthSec: Int,
-    val quartersCount: Int,
-    val players: List<PlayerEntity>
-)
-
-private data class TeamTotals(
-    val totalSec: Int,
-    val pts: Int,
-    val ast: Int,
-    val rebTotal: Int,
-    val rebDef: Int,
-    val rebOff: Int,
-    val stl: Int,
-    val blk: Int,
-    val tov: Int,
-    val pf: Int,
-    val fgm: Int,
-    val fga: Int,
-    val threem: Int,
-    val threea: Int,
-    val ftm: Int,
-    val fta: Int
-)
-
-private fun detectStartersByCreatedAt(
-    events: List<LiveEvent>
-): Set<Long> {
-
-    val sorted = events
-        .asSequence()
-        .filter {
-            it.playerId != null &&
-                    (it.type == EventType.SUB_IN ||
-                            it.type == EventType.SUB_OUT)
-        }
-        .sortedBy { it.createdAt }
-        .toList()
-
-    val onCourt = LinkedHashSet<Long>()
-
-    for (e in sorted) {
-        val pid = e.playerId ?: continue
-
-        when (e.type) {
-
-            EventType.SUB_IN -> {
-                onCourt.add(pid)
-
-                if (onCourt.size == 5) {
-                    return onCourt.toSet()
-                }
-            }
-
-            EventType.SUB_OUT -> {
-                onCourt.remove(pid)
-            }
-
-            else -> Unit
-        }
-    }
-
-    return emptySet()
-}
-
 @Composable
 private fun LoadingSummary(
     onBack: () -> Unit
@@ -997,56 +798,6 @@ private fun LoadingSummary(
             TextButton(onClick = onBack) {
                 Text("Back")
             }
-        }
-    }
-}
-
-@Composable
-private fun TeamTotalRow(
-    t: TeamTotals,
-    scrollState: ScrollState,
-    statsWidth: Dp
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
-            ),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .width(170.dp)
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Text(
-                text = "TOTAL",
-                color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Black
-            )
-        }
-        Row(
-            modifier = Modifier
-                .horizontalScroll(scrollState)
-                .width(statsWidth)
-        ) {
-            StatCell("")
-            StatCell("${t.pts}", accent = true)
-            StatCell("${t.rebTotal}")
-            StatCell("${t.ast}")
-            StatCell("${t.rebDef}")
-            StatCell("${t.rebOff}")
-            StatCell("${t.stl}")
-            StatCell("${t.blk}")
-            StatCell("${t.fgm}/${t.fga}", false, 1.5f)
-            StatCell("${t.threem}/${t.threea}", false, 1.5f)
-            StatCell("${t.ftm}/${t.fta}", false, 1.5f)
-            StatCell("${t.tov}")
-            StatCell("${t.pf}")
-            StatCell("")
         }
     }
 }
@@ -1179,46 +930,6 @@ fun ShootingDonutCard(
                 fontWeight = FontWeight.Normal
             )
         }
-    }
-}
-
-private data class QuarterScore(
-    val period: Int,
-    val teamScore: Int,
-    val opponentScore: Int
-)
-
-private fun buildQuarterScores(
-    events: List<LiveEvent>,
-    quartersCount: Int
-): List<QuarterScore> {
-    return (1..quartersCount).map { period ->
-        val periodEvents = events
-            .filter { it.period == period }
-            .sortedBy { it.createdAt }
-
-        val teamPoints = periodEvents.sumOf { event ->
-            when (event.type) {
-                EventType.TWO_MADE -> 2
-                EventType.THREE_MADE -> 3
-                EventType.FT_MADE -> 1
-                else -> 0
-            }
-        }
-
-        val opponentPoints = periodEvents.sumOf { event ->
-            when (event.type) {
-                EventType.OPP_TWO_MADE -> 2
-                EventType.OPP_THREE_MADE -> 3
-                EventType.OPP_FT_MADE -> 1
-                else -> 0
-            }
-        }
-        QuarterScore(
-            period = period,
-            teamScore = teamPoints,
-            opponentScore = opponentPoints
-        )
     }
 }
 

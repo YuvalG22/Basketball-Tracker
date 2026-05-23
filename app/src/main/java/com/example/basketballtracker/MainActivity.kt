@@ -2,6 +2,7 @@ package com.example.basketballtracker
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +39,7 @@ import com.example.basketballtracker.features.livegame.data.LiveGameRepository
 import com.example.basketballtracker.features.stats.data.SeasonStatsRepository
 import com.example.basketballtracker.ui.theme.BasketballTrackerTheme
 import java.util.concurrent.TimeUnit
+import androidx.core.graphics.toColorInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

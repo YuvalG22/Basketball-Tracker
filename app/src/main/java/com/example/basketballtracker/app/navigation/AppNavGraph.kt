@@ -40,6 +40,7 @@ import com.example.basketballtracker.features.stats.data.SeasonStatsRepository
 import com.example.basketballtracker.features.stats.state.SeasonStatsViewModel
 import com.example.basketballtracker.features.stats.ui.SeasonStatsScreen
 import com.example.basketballtracker.features.summary.ui.GameSummaryScreen
+import com.example.basketballtracker.features.summary.ui.GameSummaryViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -170,28 +171,6 @@ fun AppNavGraph(
             )
         }
 
-        composable(
-            route = Routes.SUMMARY,
-            arguments = listOf(navArgument("gameId") { type = NavType.LongType })
-        ) { backStackEntry ->
-            val gameId = backStackEntry.arguments!!.getLong("gameId")
-            GameSummaryScreen(
-                gameId = gameId,
-                db = db,
-                gamesRepo = gamesRepo,
-                liveRepo = liveRepo,
-                onBack = { nav.popBackStack() }
-            )
-        }
-
-        composable(Routes.STATS) {
-            val vm = remember { SeasonStatsViewModel(statsRepository) }
-            SeasonStatsScreen(
-                viewModel = vm,
-                onBack = { nav.popBackStack() }
-            )
-        }
-
         composable(Routes.HISTORY) {
             val vm = remember { GamesHistoryViewModel(gamesRepo, liveRepo) }
 
@@ -200,6 +179,38 @@ fun AppNavGraph(
                 onGameClick = { gameId ->
                     nav.navigate(Routes.summary(gameId))
                 },
+                onBack = { nav.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Routes.SUMMARY
+        ) { backStackEntry ->
+
+            val gameId = backStackEntry.arguments
+                ?.getString("gameId")
+                ?.toLongOrNull()
+                ?: return@composable
+
+            val vm = remember(gameId) {
+                GameSummaryViewModel(
+                    gameId = gameId,
+                    db = db,
+                    gamesRepo = gamesRepo,
+                    liveRepo = liveRepo
+                )
+            }
+
+            GameSummaryScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() }
+            )
+        }
+
+        composable(Routes.STATS) {
+            val vm = remember { SeasonStatsViewModel(statsRepository) }
+            SeasonStatsScreen(
+                viewModel = vm,
                 onBack = { nav.popBackStack() }
             )
         }
