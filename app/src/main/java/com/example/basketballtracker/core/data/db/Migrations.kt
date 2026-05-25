@@ -3,6 +3,7 @@ package com.example.basketballtracker.core.data.db
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.work.impl.Migration_12_13
+import androidx.work.impl.Migration_15_16
 
 val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -131,6 +132,34 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
             ALTER TABLE games
             ADD COLUMN status TEXT NOT NULL DEFAULT 'FINISHED'
             """.trimIndent()
+        )
+    }
+}
+
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE events ADD COLUMN assistedByPlayerId INTEGER"
+        )
+    }
+}
+
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE games ADD COLUMN currentPeriod INTEGER NOT NULL DEFAULT 1"
+        )
+
+        db.execSQL(
+            "ALTER TABLE games ADD COLUMN clockSecRemaining INTEGER NOT NULL DEFAULT 600"
+        )
+
+        db.execSQL(
+            "ALTER TABLE games ADD COLUMN isClockRunning INTEGER NOT NULL DEFAULT 0"
+        )
+
+        db.execSQL(
+            "ALTER TABLE games ADD COLUMN lastClockStartedAt INTEGER"
         )
     }
 }

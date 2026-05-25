@@ -3,6 +3,7 @@ package com.example.basketballtracker.features.games.data
 import android.util.Log
 import com.example.basketballtracker.core.data.db.dao.GameDao
 import com.example.basketballtracker.core.data.db.entities.GameEntity
+import com.example.basketballtracker.core.data.db.entities.GameStatus
 import com.example.basketballtracker.core.data.mapper.toUploadDto
 import com.example.basketballtracker.core.data.remote.games.DeleteGameDto
 import com.example.basketballtracker.core.data.remote.games.GameApi
@@ -99,5 +100,34 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
 
     suspend fun updateGameStatus(gameId: Long, status: String) {
         gameDao.updateGameStatus(gameId, status)
+    }
+
+    suspend fun updateLiveState(
+        gameId: Long,
+        period: Int,
+        secRemaining: Int,
+        isRunning: Boolean,
+        lastStartedAt: Long?
+    ) {
+        gameDao.updateLiveState(
+            gameId,
+            period,
+            secRemaining,
+            isRunning,
+            lastStartedAt
+        )
+    }
+
+    suspend fun finishGame(
+        gameId: Long,
+        teamScore: Int,
+        opponentScore: Int
+    ) {
+        gameDao.finishGame(
+            gameId = gameId,
+            teamScore = teamScore,
+            opponentScore = opponentScore,
+            status = GameStatus.FINISHED
+        )
     }
 }

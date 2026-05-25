@@ -1,6 +1,5 @@
 package com.example.basketballtracker.app.navigation
 
-import android.util.Log
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -60,13 +59,13 @@ fun AppNavGraph(
 
         composable(Routes.HOME) {
             HomeScreen(
-                viewModel = remember { HomeViewModel(gamesRepo, syncManager) },
+                viewModel = remember { HomeViewModel(gamesRepo, liveRepo, syncManager) },
                 onNewGame = { nav.navigate(Routes.NEW_GAME) },
                 onContinue = { gameId -> nav.navigate(Routes.live(gameId)) },
                 onPlayers = { nav.navigate(Routes.PLAYERS) },
                 onPlayersStats = { nav.navigate(Routes.STATS) },
                 onHistory = { nav.navigate(Routes.HISTORY) },
-                onSettings = { nav.navigate(Routes.SETTINGS) }
+                onGameSummary = { gameId -> nav.navigate(Routes.summary(gameId)) }
             )
         }
 
@@ -78,7 +77,12 @@ fun AppNavGraph(
                 rosterDao = db.rosterDao(),
                 playerDao = db.playerDao(),
                 gameDao = db.gameDao(),
-                onStart = { gameId -> nav.navigate(Routes.live(gameId)) }
+                onStart = { gameId -> nav.navigate(Routes.live(gameId)) {
+                    popUpTo(Routes.NEW_GAME) {
+                        inclusive = true
+                    }
+                } },
+                onBack = { nav.popBackStack() }
             )
         }
 
@@ -143,7 +147,9 @@ fun AppNavGraph(
                 onPlayerClick = { playerId ->
                     nav.navigate(Routes.playerDetails(playerId))
                 },
-
+                onAddPlayer = { name, number ->
+                    vm.add(name, number)
+                },
                 onBack = { nav.popBackStack() }
             )
         }

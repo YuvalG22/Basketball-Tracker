@@ -26,6 +26,7 @@ class LiveGameRepository(
     suspend fun addEvent(
         gameId: Long,
         playerId: Long?,
+        assistedByPlayerId: Long? = null,
         type: EventType,
         period: Int,
         clockSecRemaining: Int,
@@ -36,6 +37,7 @@ class LiveGameRepository(
         val event = EventEntity(
             gameId = gameId,
             playerId = playerId,
+            assistedByPlayerId = assistedByPlayerId,
             type = type.name,
             period = period,
             clockSecRemaining = clockSecRemaining,
@@ -61,11 +63,17 @@ class LiveGameRepository(
                 playerDao.getPlayerById(id)?.remoteId
             }
 
+            val assistedByPlayerRemoteId = savedEvent.assistedByPlayerId?.let { id ->
+                playerDao.getPlayerById(id)?.remoteId
+            }
+
             val response = eventApi.uploadEvent(
                 EventUploadDto(
                     localId = savedEvent.id,
                     gameId = savedEvent.gameId,
                     playerId = savedEvent.playerId,
+                    assistedByPlayerId = savedEvent.assistedByPlayerId,
+                    assistedByPlayerRemoteId = assistedByPlayerRemoteId,
                     gameRemoteId = gameRemoteId,
                     playerRemoteId = playerRemoteId,
                     type = savedEvent.type,
@@ -114,6 +122,7 @@ private fun EventEntity.toDomain() = LiveEvent(
     id = id,
     gameId = gameId,
     playerId = playerId,
+    assistedByPlayerId = assistedByPlayerId,
     type = EventType.valueOf(type),
     period = period,
     clockSecRemaining = clockSecRemaining,
@@ -123,5 +132,5 @@ private fun EventEntity.toDomain() = LiveEvent(
     shotX = shotX,
     shotY = shotY,
     shotDistance = shotDistance,
-    shotZone = shotZone
+    shotZone = shotZone,
 )

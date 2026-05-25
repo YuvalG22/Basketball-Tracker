@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -267,38 +268,54 @@ fun PlayerGameCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        ResultScoreBadge(resultText, game.game.teamScore, game.game.opponentScore)
-                        Text(
-                            text = "vs ${game.game.opponentName}",
-                            color = Color.White,
-                            fontWeight = FontWeight.Normal
-                        )
+                        Row(
+                            modifier = Modifier.weight(2f),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            ResultScoreBadge(
+                                resultText,
+                                game.game.teamScore,
+                                game.game.opponentScore
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "vs ${game.game.opponentName}",
+                                color = Color.White,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                        MiniStatCard("PTS", game.points, Modifier.weight(1f))
+                        MiniStatCard("REB", game.rebounds, Modifier.weight(1f))
+                        MiniStatCard("AST", game.assists, Modifier.weight(1f))
+                        MiniStatCard("STL", game.steals, Modifier.weight(1f))
+                        MiniStatCard("BLK", game.blocks, Modifier.weight(1f))
+                        MiniStatCard("TO", game.turnovers, Modifier.weight(1f))
                     }
                 }
 
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = game.points.toString(),
-                        color = Color(0xFF2ECC71),
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = "PTS",
-                        color = Color.White.copy(alpha = 0.5f),
-                        fontSize = 12.sp
-                    )
-                }
+//                Column(horizontalAlignment = Alignment.End) {
+//                    Text(
+//                        text = game.points.toString(),
+//                        color = Color(0xFF2ECC71),
+//                        fontSize = 24.sp,
+//                        fontWeight = FontWeight.Bold
+//                    )
+//
+//                    Text(
+//                        text = "PTS",
+//                        color = Color.White.copy(alpha = 0.5f),
+//                        fontSize = 12.sp
+//                    )
+//                }
             }
 
-            Spacer(Modifier.height(14.dp))
+            //Spacer(Modifier.height(14.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MiniStatCard("REB", game.rebounds, Modifier.weight(1f))
-                MiniStatCard("AST", game.assists, Modifier.weight(1f))
-                MiniStatCard("STL", game.steals, Modifier.weight(1f))
-            }
+//            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+//                MiniStatCard("REB", game.rebounds, Modifier.weight(1f))
+//                MiniStatCard("AST", game.assists, Modifier.weight(1f))
+//                MiniStatCard("STL", game.steals, Modifier.weight(1f))
+//            }
         }
     }
 }

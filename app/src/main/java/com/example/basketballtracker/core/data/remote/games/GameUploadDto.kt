@@ -13,7 +13,11 @@ data class GameUploadDto(
     val quartersCount: Int,
     val teamScore: Int,
     val opponentScore: Int,
-    val status: String
+    val status: String,
+    val currentPeriod: Int,
+    val clockSecRemaining: Int,
+    val isClockRunning: Boolean,
+    val lastClockStartedAt: Long?
 )
 
 data class GameRemoteDto(
@@ -50,5 +54,17 @@ data class GameRemoteDto(
     val opponent_score: Int,
 
     @SerializedName("status")
-    val status: String
+    val status: String,
+
+    @SerializedName("current_period")
+    val current_period: Int,
+
+    @SerializedName("clock_sec_remaining")
+    val clock_sec_remaining: Int,
+
+    @SerializedName("is_clock_running")
+    val is_clock_running: Boolean,
+
+    @SerializedName("last_clock_started_at")
+    val last_clock_started_at: Long?
 )

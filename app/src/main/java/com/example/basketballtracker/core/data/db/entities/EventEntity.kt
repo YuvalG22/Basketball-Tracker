@@ -12,6 +12,7 @@ data class EventEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val gameId: Long,
     val playerId: Long?,
+    val assistedByPlayerId: Long? = null,
     val type: String,
     val period: Int,
     val clockSecRemaining: Int,

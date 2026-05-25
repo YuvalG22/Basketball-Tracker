@@ -95,6 +95,7 @@ data class LiveEvent(
     val id: Long,
     val gameId: Long,
     val playerId: Long?,
+    val assistedByPlayerId: Long? = null,
     val type: EventType,
     val period: Int,
     val clockSecRemaining: Int,

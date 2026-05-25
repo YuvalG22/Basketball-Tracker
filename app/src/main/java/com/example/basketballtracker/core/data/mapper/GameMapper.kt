@@ -16,7 +16,11 @@ fun GameEntity.toUploadDto(): GameUploadDto {
         quartersCount = quartersCount,
         teamScore = teamScore,
         opponentScore = opponentScore,
-        status = status
+        status = status,
+        currentPeriod = currentPeriod,
+        clockSecRemaining = clockSecRemaining,
+        isClockRunning = isClockRunning,
+        lastClockStartedAt = lastClockStartedAt
     )
 }
 
@@ -34,6 +38,10 @@ fun GameRemoteDto.toEntity(): GameEntity {
         opponentScore = opponent_score,
         remoteId = id,
         syncStatus = "SYNCED",
-        status = status
+        status = status,
+        currentPeriod = current_period,
+        clockSecRemaining = clock_sec_remaining,
+        isClockRunning = is_clock_running,
+        lastClockStartedAt = last_clock_started_at
     )
 }

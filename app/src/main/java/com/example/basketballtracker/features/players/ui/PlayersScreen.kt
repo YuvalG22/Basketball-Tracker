@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.players.ui
 
+import android.widget.Button
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
+import com.example.basketballtracker.features.newgame.ui.StyledTextField
 import com.example.basketballtracker.features.summary.ui.SummaryTopBar
 
 private val RosterAccent = Color(0xFF2ECC71)
@@ -25,9 +27,21 @@ private val RosterAccent = Color(0xFF2ECC71)
 fun RosterScreen(
     players: List<PlayerEntity>,
     onPlayerClick: (Long) -> Unit,
-    onAddPlayerClick: () -> Unit = {},
+    onAddPlayer: (String, Int) -> Unit,
     onBack: () -> Unit
 ) {
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    if (showAddDialog) {
+        AddPlayerDialog(
+            onDismiss = { showAddDialog = false },
+            onAdd = { name, number ->
+                onAddPlayer(name, number)
+                showAddDialog = false
+            }
+        )
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -44,24 +58,23 @@ fun RosterScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
-                        SummaryTopBar(
-                            title = "ROSTER",
-                            subTitle = "${players.size} players available",
-                            onBack = onBack
-                        )
-                    }
-
-                    Button(
-                        onClick = onAddPlayerClick,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("Add")
-                    }
+                    SummaryTopBar(
+                        title = "ROSTER",
+                        subTitle = "${players.size} players available",
+                        onBack = onBack
+                    )
+                }
+            }
+            item {
+                Button(
+                    onClick = { showAddDialog = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text("Add")
                 }
             }
 
@@ -177,4 +190,59 @@ private fun EmptyRosterCard() {
             )
         }
     }
+}
+
+@Composable
+private fun AddPlayerDialog(
+    onDismiss: () -> Unit,
+    onAdd: (String, Int) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var numberText by remember { mutableStateOf("") }
+
+    val number = numberText.toIntOrNull()
+    val canSave = name.isNotBlank() && number != null
+
+    AlertDialog(
+        containerColor = MaterialTheme.colorScheme.surface,
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Add Player")
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StyledTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = "Player name",
+                    placeholder = "Enter player name"
+                )
+                StyledTextField(
+                    value = numberText,
+                    onValueChange = { value ->
+                        numberText = value.filter { it.isDigit() }
+                    },
+                    label = "Player number",
+                    placeholder = "Enter player number"
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = canSave,
+                onClick = {
+                    onAdd(name.trim(), number!!)
+                }
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

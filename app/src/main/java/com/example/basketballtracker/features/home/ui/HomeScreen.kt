@@ -2,24 +2,26 @@ package com.example.basketballtracker.features.home.ui
 
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,14 +29,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.room.util.TableInfo
+import com.example.basketballtracker.core.data.db.entities.GameStatus
+import com.example.basketballtracker.features.livegame.domain.computeOppScore
+import com.example.basketballtracker.features.livegame.domain.computeTeamScore
 import com.example.basketballtracker.ui.theme.inter
+import com.example.basketballtracker.utils.formatClock
 import com.example.basketballtracker.utils.formatDate
 
 @Composable
@@ -45,9 +51,26 @@ fun HomeScreen(
     onPlayers: () -> Unit,
     onPlayersStats: () -> Unit,
     onHistory: () -> Unit,
-    onSettings: () -> Unit
+    onGameSummary: (Long) -> Unit
 ) {
     val lastGame by viewModel.lastGame.collectAsState()
+    val lastGameEvents by viewModel.lastGameEvents.collectAsState()
+
+    val teamScore = remember(lastGame, lastGameEvents) {
+        if (lastGame?.status == GameStatus.LIVE) {
+            computeTeamScore(lastGameEvents)
+        } else {
+            lastGame?.teamScore ?: 0
+        }
+    }
+
+    val opponentScore = remember(lastGame, lastGameEvents) {
+        if (lastGame?.status == GameStatus.LIVE) {
+            computeOppScore(lastGameEvents)
+        } else {
+            lastGame?.opponentScore ?: 0
+        }
+    }
 
     val lastGameId = lastGame?.id
     val gameDateEpoch = lastGame?.gameDateEpoch ?: System.currentTimeMillis()
@@ -104,102 +127,24 @@ fun HomeScreen(
                 }
             }
             Log.d("HomeScreen", "Rendering HomeScreen with lastGameId: $lastGameId")
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onContinue(lastGameId ?: return@clickable) },
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-            ) {
-                Column(
-                    Modifier
-                        .padding(32.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        "LAST GAME • $gameDate",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color(0xFF5F5F5F)
-                    )
-                    BoxWithConstraints(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val isWideScreen = maxWidth > 700.dp
-                        if (isWideScreen) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    modifier = Modifier.weight(1f),
-                                    text = if (lastGameIsHomeGame) "Afeka College" else lastGameOpponentName,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = Color.White
-                                )
-                                LastGameScore(
-                                    isHomeGame = lastGameIsHomeGame,
-                                    teamScore = lastGameTeamScore ?: 0,
-                                    opponentScore = lastGameOppScore ?: 0
-                                )
-                                Text(
-                                    modifier = Modifier.weight(1f),
-                                    text = if (lastGameIsHomeGame) lastGameOpponentName else "Afeka College",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = Color.White,
-                                    textAlign = TextAlign.End
-                                )
-                            }
-                        } else {
-                            val isWin = (lastGameTeamScore ?: 0) > (lastGameOppScore ?: 0)
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Text(
-                                        text = if (lastGameIsHomeGame) "AFEKA" else lastGameOpponentName,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if ((lastGameIsHomeGame && isWin) || (!lastGameIsHomeGame && !isWin)) Color.White else Color.White.copy(
-                                            alpha = 0.5f
-                                        )
-                                    )
-                                    Text(
-                                        text = if (lastGameIsHomeGame) "${lastGameTeamScore ?: 0}" else "${lastGameOppScore ?: 0}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if ((lastGameIsHomeGame && isWin) || (!lastGameIsHomeGame && !isWin)) Color.White else Color.White.copy(
-                                            alpha = 0.5f
-                                        ),
-                                        fontWeight = FontWeight.Black
-                                    )
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Text(
-                                        text = if (lastGameIsHomeGame) lastGameOpponentName else "AFEKA",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if ((lastGameIsHomeGame && isWin) || (!lastGameIsHomeGame && !isWin)) Color.White.copy(alpha = 0.5f) else Color.White
-                                    )
-                                    Text(
-                                        text = if (lastGameIsHomeGame) "${lastGameOppScore ?: 0}" else "${lastGameTeamScore ?: 0}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if ((lastGameIsHomeGame && isWin) || (!lastGameIsHomeGame && !isWin)) Color.White.copy(alpha = 0.5f) else Color.White,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                }
-                            }
+            lastGame?.let { game ->
+                LastGameCard(
+                    opponentName = lastGameOpponentName,
+                    isHomeGame = lastGameIsHomeGame,
+                    teamScore = teamScore,
+                    opponentScore = opponentScore,
+                    status = game.status,
+                    gameDate = gameDate,
+                    period = game.currentPeriod,
+                    secRemaining = game.clockSecRemaining,
+                    onClick = {
+                        when (game.status) {
+                            GameStatus.LIVE -> onContinue(game.id)
+                            GameStatus.FINISHED -> onGameSummary(game.id)
+                            else -> Unit
                         }
                     }
-                }
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -229,7 +174,7 @@ fun HomeScreen(
                             onClick = { onPlayersStats() },
                             icon = "📊",
                             title = "Stats",
-                            secondary = "Season averages, leaders, and individual game logs"
+                            secondary = "Season averages and team leaders"
                         )
 
                         MenuCard(
@@ -278,28 +223,105 @@ fun HomeScreen(
 fun LastGameScore(
     isHomeGame: Boolean,
     teamScore: Int,
-    opponentScore: Int
+    opponentScore: Int,
+    isLive: Boolean = false,
+    secRemaining: Int = 0,
+    period: Int = 0,
 ) {
-    val isWin = teamScore > opponentScore
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    val homeName = "AFEKA"
+    val awayName = "OPP"
+
+    val leftScore = if (isHomeGame) teamScore else opponentScore
+    val rightScore = if (isHomeGame) opponentScore else teamScore
+
+    val isTie = teamScore == opponentScore
+    val teamWon = teamScore > opponentScore
+
+    val leftIsWinner =
+        !isLive && !isTie && ((isHomeGame && teamWon) || (!isHomeGame && !teamWon))
+
+    val rightIsWinner =
+        !isLive && !isTie && !leftIsWinner
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Text(
-            if (isHomeGame) "$teamScore" else "$opponentScore",
-            style = MaterialTheme.typography.displayMedium,
-            color = if ((isWin && isHomeGame) || (!isWin && !isHomeGame)) Color.White else Color.White.copy(alpha = 0.5f),
+            text = if (isLive) "Q$period • ${formatClock(secRemaining)}" else "",
+            color = MaterialTheme.colorScheme.error,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            ScoreBox(
+                score = leftScore,
+                isWinner = leftIsWinner,
+                isLive = isLive
+            )
+
+            Text(
+                text = "-",
+                style = MaterialTheme.typography.displaySmall,
+                color = Color.White.copy(alpha = 0.35f),
+                fontWeight = FontWeight.Bold
+            )
+
+            ScoreBox(
+                score = rightScore,
+                isWinner = rightIsWinner,
+                isLive = isLive
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScoreBox(
+    score: Int,
+    isWinner: Boolean,
+    isLive: Boolean
+) {
+    val background =
+        when {
+            isLive -> Color(0xFF15261E)
+            isWinner -> Color(0xFF2ECC71).copy(alpha = 0.16f)
+            else -> Color.White.copy(alpha = 0.06f)
+        }
+
+    val border =
+        when {
+            isLive -> Color(0xFF2ECC71).copy(alpha = 0.55f)
+            isWinner -> Color(0xFF2ECC71).copy(alpha = 0.75f)
+            else -> Color.White.copy(alpha = 0.12f)
+        }
+
+    val textColor =
+        when {
+            isLive -> Color.White
+            isWinner -> Color.White
+            else -> Color.White.copy(alpha = 0.45f)
+        }
+
+    Box(
+        modifier = Modifier
+            .widthIn(min = 82.dp)
+            .height(68.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(background)
+            .border(
+                width = 1.dp,
+                color = border,
+                shape = RoundedCornerShape(20.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = score.toString(),
+            style = MaterialTheme.typography.displaySmall,
+            color = textColor,
             fontWeight = FontWeight.Black,
             fontFamily = inter
-        )
-        Text(
-            " - ",
-            style = MaterialTheme.typography.displayMedium,
-            color = Color.White.copy(alpha = 0.5f)
-        )
-        Text(
-            if (isHomeGame) "$opponentScore" else "$teamScore",
-            style = MaterialTheme.typography.displayMedium,
-            color = if ((isWin && isHomeGame) || (!isWin && !isHomeGame)) Color.White.copy(alpha = 0.5f) else Color.White,
-            fontWeight = FontWeight.Black,
-            fontFamily = inter,
         )
     }
 }
@@ -339,5 +361,215 @@ fun MenuCard(
                 color = Color.White.copy(alpha = 0.5f)
             )
         }
+    }
+}
+
+@Composable
+fun LastGameCard(
+    opponentName: String,
+    isHomeGame: Boolean,
+    teamScore: Int,
+    opponentScore: Int,
+    status: String,
+    gameDate: String,
+    period: Int,
+    secRemaining: Int,
+    onClick: () -> Unit
+) {
+    val isLive = status == GameStatus.LIVE
+    val isFinished = status == GameStatus.FINISHED
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF181818)
+        ),
+        border = BorderStroke(
+            1.dp,
+            if (isLive) Color(0xFF2ECC71).copy(alpha = 0.35f)
+            else Color.White.copy(alpha = 0.10f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GameStatusBadge(
+                    isLive = isLive,
+                    gameDate = gameDate
+                )
+
+                Text(
+                    text = if (isLive) "Tap to continue" else "Tap for summary",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.45f)
+                )
+            }
+
+            Text(
+                text = if (isLive) {
+                    "Q$period • ${formatClock(secRemaining)}"
+                } else {
+                    "FINAL SCORE"
+                },
+                style = MaterialTheme.typography.titleSmall,
+                color = if (isLive) Color(0xFF2ECC71) else Color.White.copy(alpha = 0.45f),
+                fontWeight = FontWeight.Bold,
+                fontFamily = inter
+            )
+
+            ScoreboardRows(
+                opponentName = opponentName,
+                isHomeGame = isHomeGame,
+                teamScore = teamScore,
+                opponentScore = opponentScore,
+                isLive = isLive,
+                isFinished = isFinished
+            )
+        }
+    }
+}
+
+@Composable
+private fun GameStatusBadge(
+    isLive: Boolean,
+    gameDate: String
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(
+                if (isLive) Color(0xFF2ECC71).copy(alpha = 0.14f)
+                else Color.White.copy(alpha = 0.07f)
+            )
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (isLive) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0xFF2ECC71))
+            )
+        }
+
+        Text(
+            text = if (isLive) "LIVE • $gameDate" else "LAST GAME • $gameDate",
+            style = MaterialTheme.typography.labelLarge,
+            color = if (isLive) Color(0xFF2ECC71) else Color.White.copy(alpha = 0.65f),
+            fontWeight = FontWeight.Bold,
+            fontFamily = inter
+        )
+    }
+}
+
+@Composable
+private fun ScoreboardRows(
+    opponentName: String,
+    isHomeGame: Boolean,
+    teamScore: Int,
+    opponentScore: Int,
+    isLive: Boolean,
+    isFinished: Boolean
+) {
+    val firstTeamName = if (isHomeGame) "AFEKA" else opponentName
+    val secondTeamName = if (isHomeGame) opponentName else "AFEKA"
+
+    val firstScore = if (isHomeGame) teamScore else opponentScore
+    val secondScore = if (isHomeGame) opponentScore else teamScore
+
+    val firstIsAfeka = isHomeGame
+    val secondIsAfeka = !isHomeGame
+
+    val teamWon = teamScore > opponentScore
+    val isTie = teamScore == opponentScore
+
+    ScoreboardTeamRow(
+        name = firstTeamName,
+        score = firstScore,
+        isAfeka = firstIsAfeka,
+        isWinner = isFinished && !isTie && ((firstIsAfeka && teamWon) || (!firstIsAfeka && !teamWon)),
+        isLive = isLive
+    )
+
+    ScoreboardTeamRow(
+        name = secondTeamName,
+        score = secondScore,
+        isAfeka = secondIsAfeka,
+        isWinner = isFinished && !isTie && ((secondIsAfeka && teamWon) || (!secondIsAfeka && !teamWon)),
+        isLive = isLive
+    )
+}
+
+@Composable
+private fun ScoreboardTeamRow(
+    name: String,
+    score: Int,
+    isAfeka: Boolean,
+    isWinner: Boolean,
+    isLive: Boolean
+) {
+    val alpha = when {
+        isLive -> 1f
+        isWinner -> 1f
+        else -> 0.48f
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                if (isWinner) Color(0xFF2ECC71).copy(alpha = 0.12f)
+                else Color.White.copy(alpha = 0.04f)
+            )
+            .border(
+                width = 1.dp,
+                color = if (isWinner) Color(0xFF2ECC71).copy(alpha = 0.35f)
+                else Color.White.copy(alpha = 0.07f),
+                shape = RoundedCornerShape(18.dp)
+            )
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White.copy(alpha = alpha),
+                fontWeight = FontWeight.Bold,
+                fontFamily = inter
+            )
+
+            if (isAfeka) {
+                Text(
+                    text = "Your team",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF2ECC71).copy(alpha = 0.85f),
+                    fontFamily = inter
+                )
+            }
+        }
+
+        Text(
+            text = score.toString(),
+            style = MaterialTheme.typography.displaySmall,
+            color = Color.White.copy(alpha = alpha),
+            fontWeight = FontWeight.Black,
+            fontFamily = inter
+        )
     }
 }

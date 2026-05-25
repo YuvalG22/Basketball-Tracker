@@ -1,35 +1,34 @@
 package com.example.basketballtracker.features.newgame.ui
 
-import android.app.Activity
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.core.data.db.dao.GameDao
 import com.example.basketballtracker.core.data.db.dao.PlayerDao
 import com.example.basketballtracker.core.data.db.dao.RosterDao
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.core.data.db.entities.RosterEntity
-import com.example.basketballtracker.core.data.remote.RetrofitClient
 import com.example.basketballtracker.core.data.remote.RetrofitClient.rosterApi
 import com.example.basketballtracker.core.data.remote.roster.RosterUploadDto
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.players.data.PlayersRepository
+import com.example.basketballtracker.features.summary.ui.SummaryTopBar
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+private val NewGameAccent = Color(0xFF2ECC71)
+
 @Composable
 fun NewGameScreen(
     defaultQuarterLengthSec: Int,
@@ -38,11 +37,9 @@ fun NewGameScreen(
     rosterDao: RosterDao,
     playerDao: PlayerDao,
     gameDao: GameDao,
-    onStart: (createdGameId: Long) -> Unit
+    onStart: (createdGameId: Long) -> Unit,
+    onBack: () -> Unit
 ) {
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
-    val isWide = windowSizeClass.widthSizeClass >= WindowWidthSizeClass.Medium
-
     val scope = rememberCoroutineScope()
 
     var opponent by rememberSaveable { mutableStateOf("") }
@@ -51,7 +48,6 @@ fun NewGameScreen(
     var roundText by rememberSaveable { mutableStateOf("") }
 
     val gameDateEpoch = remember { System.currentTimeMillis() }
-
     val players by playersRepo.observePlayers().collectAsState(initial = emptyList())
     var selectedIds by rememberSaveable { mutableStateOf(setOf<Long>()) }
 
@@ -67,7 +63,13 @@ fun NewGameScreen(
         val ids = selectedIds.toList()
 
         scope.launch {
-            val gameId = gamesRepo.createGame(opp, isHomeGame, round, gameDateEpoch, quarterLen)
+            val gameId = gamesRepo.createGame(
+                opp,
+                isHomeGame,
+                round,
+                gameDateEpoch,
+                quarterLen
+            )
 
             ids.forEach { pid ->
                 val roster = RosterEntity(
@@ -90,7 +92,7 @@ fun NewGameScreen(
                             gameId = roster.gameId,
                             playerId = roster.playerId,
                             gameRemoteId = gameRemoteId,
-                            playerRemoteId = playerRemoteId,
+                            playerRemoteId = playerRemoteId
                         )
                     )
 
@@ -103,243 +105,336 @@ fun NewGameScreen(
                     e.printStackTrace()
                 }
             }
+
             onStart(gameId)
         }
     }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        if (isWide) {
-            NewGameWideLayout(
-                opponent = opponent,
-                onOpponent = { opponent = it },
-                isHomeGame = isHomeGame,
-                onIsHomeGameChange = { isHomeGame = !isHomeGame },
-                roundText = roundText,
-                onRound = { roundText = it.filter(Char::isDigit).take(3) },
-                players = players,
-                selectedIds = selectedIds,
-                onToggle = ::togglePlayer,
-                canStart = canStart,
-                onStartClick = ::startGame
-            )
-        } else {
-            NewGameNarrowLayout(
-                opponent = opponent,
-                onOpponent = { opponent = it },
-                roundText = roundText,
-                onRound = { roundText = it.filter(Char::isDigit).take(3) },
-                players = players,
-                selectedIds = selectedIds,
-                onToggle = ::togglePlayer,
-                canStart = canStart,
-                onStartClick = ::startGame
-            )
-        }
-
-    }
-}
-
-@Composable
-private fun NewGameNarrowLayout(
-    opponent: String,
-    onOpponent: (String) -> Unit,
-    roundText: String,
-    onRound: (String) -> Unit,
-    players: List<PlayerEntity>,
-    selectedIds: Set<Long>,
-    onToggle: (Long) -> Unit,
-    canStart: Boolean,
-    onStartClick: () -> Unit
-) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Text("New Game", style = MaterialTheme.typography.headlineSmall)
-
-        OutlinedTextField(
-            value = opponent,
-            onValueChange = onOpponent,
-            label = { Text("Opponent") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = roundText,
-            onValueChange = onRound,
-            label = { Text("Round") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Card(
+        LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface)
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                items(players, key = { it.id }) { p ->
-                    val checked = p.id in selectedIds
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { onToggle(p.id) }
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(p.name, style = MaterialTheme.typography.bodyLarge)
-                        Checkbox(checked = checked, onCheckedChange = { onToggle(p.id) })
-                    }
-                }
-            }
-        }
-
-        Button(
-            enabled = canStart,
-            onClick = onStartClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-        ) {
-            Text(if (canStart) "Start" else "Select at least 5 players")
-        }
-    }
-}
-
-@Composable
-private fun NewGameWideLayout(
-    opponent: String,
-    onOpponent: (String) -> Unit,
-    isHomeGame: Boolean,
-    onIsHomeGameChange: () -> Unit,
-    roundText: String,
-    onRound: (String) -> Unit,
-    players: List<PlayerEntity>,
-    selectedIds: Set<Long>,
-    onToggle: (Long) -> Unit,
-    canStart: Boolean,
-    onStartClick: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            Modifier
-                .widthIn(max = 400.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("New Game", style = MaterialTheme.typography.headlineSmall)
-            Column() {
-                MyTextField(
-                    text = opponent,
-                    onValueChange = onOpponent,
-                    label = "Opponent",
-                    hint = "Opponent",
-                    modifier = Modifier.fillMaxWidth()
+            item {
+                SummaryTopBar(
+                    title = "NEW GAME",
+                    subTitle = "Set game details and choose at least 5 players",
+                    onBack = onBack
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                MyTextField(
-                    text = roundText,
-                    onValueChange = onRound,
-                    label = "Round",
-                    hint = "Round",
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Is home game?", style = MaterialTheme.typography.bodyMedium)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Checkbox(checked = isHomeGame, onCheckedChange = { onIsHomeGameChange() })
-                }
             }
-            Spacer(modifier = Modifier.height(32.dp))
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface)
-            ) {
-                LazyColumn(
+
+            item {
+                NewGameDetailsCard(
+                    opponent = opponent,
+                    onOpponent = { opponent = it },
+                    roundText = roundText,
+                    onRound = { roundText = it.filter(Char::isDigit).take(3) },
+                    isHomeGame = isHomeGame,
+                    onHomeToggle = { isHomeGame = !isHomeGame },
+                )
+            }
+
+            item {
+                RosterSelectCard(
+                    players = players,
+                    selectedIds = selectedIds,
+                    onToggle = ::togglePlayer
+                )
+            }
+
+            item {
+                Button(
+                    enabled = canStart,
+                    onClick = ::startGame,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                        .height(62.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NewGameAccent,
+                        contentColor = Color.Black,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                    )
                 ) {
-                    items(players, key = { it.id }) { p ->
-                        val checked = p.id in selectedIds
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable { onToggle(p.id) }
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(p.name, style = MaterialTheme.typography.bodyLarge)
-                            Checkbox(checked = checked, onCheckedChange = { onToggle(p.id) })
-                        }
-                    }
+                    Text(
+                        text = if (canStart) {
+                            "START GAME"
+                        } else {
+                            "SELECT ${5 - selectedIds.size} MORE PLAYERS"
+                        },
+                        fontWeight = FontWeight.Black
+                    )
                 }
-            }
-            Spacer(modifier = Modifier.height(32.dp))
-            Button(
-                enabled = canStart,
-                onClick = onStartClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-            ) {
-                Text(if (canStart) "Start" else "Select at least 5 players")
             }
         }
     }
 }
 
 @Composable
-fun MyTextField(
-    text: String,
+private fun NewGameDetailsCard(
+    opponent: String,
+    onOpponent: (String) -> Unit,
+    roundText: String,
+    onRound: (String) -> Unit,
+    isHomeGame: Boolean,
+    onHomeToggle: () -> Unit,
+) {
+    NewGameCard {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            SectionTitle("GAME DETAILS")
+
+            StyledTextField(
+                value = opponent,
+                onValueChange = onOpponent,
+                label = "Opponent",
+                placeholder = "Opponent team"
+            )
+
+            StyledTextField(
+                value = roundText,
+                onValueChange = onRound,
+                label = "Round",
+                placeholder = "Round number"
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        RoundedCornerShape(16.dp)
+                    )
+                    .clickable { onHomeToggle() }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Home game",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = if (isHomeGame) "Playing at home" else "Away game",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                Switch(
+                    checked = isHomeGame,
+                    onCheckedChange = { onHomeToggle() },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = NewGameAccent,
+                        checkedTrackColor = NewGameAccent.copy(alpha = 0.35f)
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RosterSelectCard(
+    players: List<PlayerEntity>,
+    selectedIds: Set<Long>,
+    onToggle: (Long) -> Unit
+) {
+    NewGameCard {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                SectionTitle("SELECT ROSTER")
+
+                Text(
+                    text = "${selectedIds.size}/${players.size}",
+                    color = NewGameAccent,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black
+                )
+            }
+
+            if (players.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No players available",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    )
+                }
+            } else {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    players.forEach { player ->
+                        PlayerSelectRow(
+                            player = player,
+                            checked = player.id in selectedIds,
+                            onClick = { onToggle(player.id) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayerSelectRow(
+    player: PlayerEntity,
+    checked: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                if (checked) {
+                    NewGameAccent.copy(alpha = 0.10f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f)
+                },
+                RoundedCornerShape(16.dp)
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .background(
+                    MaterialTheme.colorScheme.surface,
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "#${player.number}",
+                color = NewGameAccent,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Black
+            )
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        Text(
+            text = player.name,
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Checkbox(
+            checked = checked,
+            onCheckedChange = { onClick() },
+            colors = CheckboxDefaults.colors(
+                checkedColor = NewGameAccent
+            )
+        )
+    }
+}
+
+@Composable
+private fun NewGameCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+        )
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(22.dp)
+                .background(NewGameAccent, RoundedCornerShape(50))
+        )
+
+        Spacer(Modifier.width(10.dp))
+
+        Text(
+            text = text,
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Black
+        )
+    }
+}
+
+@Composable
+fun StyledTextField(
+    value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    hint: String,
-    modifier: Modifier = Modifier
+    placeholder: String
 ) {
-    Column(
-        modifier = modifier,
-    ) {
+    Column {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(6.dp))
+
+        Spacer(Modifier.height(6.dp))
+
         OutlinedTextField(
-            value = text,
+            value = value,
             onValueChange = onValueChange,
+            singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedContainerColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                focusedBorderColor = Color.White,
-            ),
             placeholder = {
                 Text(
-                    text = hint,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
+                    text = placeholder,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                 )
             },
-            textStyle = MaterialTheme.typography.bodyLarge,
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = NewGameAccent,
+                cursorColor = NewGameAccent,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f),
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f)
+            )
         )
     }
 }

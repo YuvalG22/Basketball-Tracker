@@ -2,7 +2,6 @@ package com.example.basketballtracker.features.summary.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -43,11 +42,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.basketballtracker.core.data.db.entities.PlayerEntity
-import com.example.basketballtracker.features.livegame.domain.PlayerBox
+import com.example.basketballtracker.features.core.ui.components.SectionTitle
 import kotlin.collections.forEachIndexed
 import kotlin.math.roundToInt
 
@@ -352,7 +349,7 @@ private fun BoxScoreCard(
                         }
 
                         if (starters.isNotEmpty() && bench.isNotEmpty()) {
-                            BenchDivider()
+                            BenchDivider(false)
                         }
 
                         bench.forEach { row ->
@@ -390,7 +387,7 @@ private fun FixedPlayersColumn(
         }
 
         if (starters.isNotEmpty() && bench.isNotEmpty()) {
-            BenchDivider()
+            BenchDivider(true)
         }
 
         bench.forEach { row ->
@@ -611,27 +608,6 @@ private fun DashboardCard(
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .height(22.dp)
-                .background(SummaryAccent, RoundedCornerShape(50))
-        )
-
-        Spacer(Modifier.width(10.dp))
-
-        Text(
-            text = text,
-            color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Black
-        )
-    }
-}
-
-@Composable
 private fun ResultBadge(text: String) {
     Box(
         modifier = Modifier
@@ -750,7 +726,7 @@ private fun ShootingBox(
 }
 
 @Composable
-private fun BenchDivider() {
+private fun BenchDivider(isTextVisible: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -758,7 +734,7 @@ private fun BenchDivider() {
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
         Text(
-            text = "BENCH",
+            text = if (isTextVisible) "BENCH" else "",
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold

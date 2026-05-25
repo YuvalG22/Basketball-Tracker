@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.basketballtracker.features.core.ui.components.SectionTitle
 import com.example.basketballtracker.features.stats.domain.PlayerSeasonStats
 import com.example.basketballtracker.features.stats.state.SeasonStatsViewModel
 import com.example.basketballtracker.features.stats.state.StatsDisplayMode
@@ -425,27 +426,6 @@ fun StatDashboardCard(
         border = BorderStroke(1.dp, CardBorder)
     ) {
         content()
-    }
-}
-
-@Composable
-fun SectionTitle(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .height(22.dp)
-                .background(StatsAccent, RoundedCornerShape(50))
-        )
-
-        Spacer(Modifier.width(10.dp))
-
-        Text(
-            text = text,
-            color = Color.White,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Black
-        )
     }
 }
 

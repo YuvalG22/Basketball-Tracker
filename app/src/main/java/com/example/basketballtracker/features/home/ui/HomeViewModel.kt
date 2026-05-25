@@ -9,6 +9,8 @@ import com.example.basketballtracker.core.data.db.SyncManager
 import com.example.basketballtracker.core.data.db.dao.GameDao
 import com.example.basketballtracker.core.data.db.entities.GameEntity
 import com.example.basketballtracker.features.games.data.GamesRepository
+import com.example.basketballtracker.features.livegame.data.LiveGameRepository
+import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +22,7 @@ import kotlinx.coroutines.launch
 
 class HomeViewModel(
     private val gamesRepo: GamesRepository,
+    private val liveGameRepo: LiveGameRepository,
     private val syncManager: SyncManager
 ) : ViewModel() {
     var isSyncing by mutableStateOf(false)
@@ -39,6 +42,22 @@ class HomeViewModel(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = null
+            )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val lastGameEvents: StateFlow<List<LiveEvent>> =
+        lastGame
+            .flatMapLatest { game ->
+                if (game == null) {
+                    flowOf(emptyList())
+                } else {
+                    liveGameRepo.observeLiveEvents(game.id)
+                }
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
             )
 
     fun manualSync() {

@@ -2,6 +2,7 @@ package com.example.basketballtracker.core.data.db.dao
 
 import androidx.room.*
 import com.example.basketballtracker.core.data.db.entities.GameEntity
+import com.example.basketballtracker.core.data.db.entities.GameStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -102,4 +103,41 @@ interface GameDao {
 """
     )
     suspend fun updateGameStatus(gameId: Long, status: String)
+
+    @Query(
+        """
+UPDATE games
+SET currentPeriod = :period,
+    clockSecRemaining = :secRemaining,
+    isClockRunning = :isRunning,
+    lastClockStartedAt = :lastStartedAt,
+    syncStatus = 'PENDING'
+WHERE id = :gameId
+"""
+    )
+    suspend fun updateLiveState(
+        gameId: Long,
+        period: Int,
+        secRemaining: Int,
+        isRunning: Boolean,
+        lastStartedAt: Long?
+    )
+
+    @Query(
+        """
+UPDATE games
+SET teamScore = :teamScore,
+    opponentScore = :opponentScore,
+    status = :status,
+    isClockRunning = 0,
+    syncStatus = 'PENDING'
+WHERE id = :gameId
+"""
+    )
+    suspend fun finishGame(
+        gameId: Long,
+        teamScore: Int,
+        opponentScore: Int,
+        status: String
+    )
 }

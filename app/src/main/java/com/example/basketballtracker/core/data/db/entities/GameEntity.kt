@@ -22,7 +22,11 @@ data class GameEntity(
     val remoteId: String? = null,
     val syncStatus: String = "PENDING",
     val isDeleted: Boolean = false,
-    val status: String = GameStatus.FINISHED
+    val status: String = GameStatus.FINISHED,
+    val currentPeriod: Int = 1,
+    val clockSecRemaining: Int = 600,
+    val isClockRunning: Boolean = false,
+    val lastClockStartedAt: Long? = null,
 )
 
 object GameStatus {

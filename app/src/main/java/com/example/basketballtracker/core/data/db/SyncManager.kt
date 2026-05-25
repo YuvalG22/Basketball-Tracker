@@ -146,14 +146,17 @@ class SyncManager(
                     return@forEach
                 }
                 val playerRemoteId = event.playerId?.let { playerDao.getPlayerById(it)?.remoteId }
+                val assistedByPlayerRemoteId = event.assistedByPlayerId?.let { playerDao.getPlayerById(it)?.remoteId }
 
                 val response = eventApi.uploadEvent(
                     EventUploadDto(
                         localId = event.id,
                         gameId = event.gameId,
                         playerId = event.playerId,
+                        assistedByPlayerId = event.assistedByPlayerId,
                         gameRemoteId = gameRemoteId,
                         playerRemoteId = playerRemoteId,
+                        assistedByPlayerRemoteId = assistedByPlayerRemoteId,
                         type = event.type,
                         period = event.period,
                         clockSecRemaining = event.clockSecRemaining,
@@ -191,9 +194,14 @@ class SyncManager(
                     quartersCount = dto.quarters_count,
                     teamScore = dto.team_score,
                     opponentScore = dto.opponent_score,
+                    status = dto.status,
+                    currentPeriod = dto.current_period,
+                    clockSecRemaining = dto.clock_sec_remaining,
+                    isClockRunning = dto.is_clock_running,
+                    lastClockStartedAt = dto.last_clock_started_at,
                     remoteId = dto.id,
                     syncStatus = "SYNCED",
-                    isDeleted = false
+                    isDeleted = false,
                 )
             }
             gameDao.upsertFromCloud(entities)

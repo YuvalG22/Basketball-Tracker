@@ -1,12 +1,17 @@
 package com.example.basketballtracker.features.livegame.ui
 
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.livegame.domain.computeBoxByPlayer
 import com.example.basketballtracker.features.livegame.domain.computeOnCourtIds
 import com.example.basketballtracker.features.livegame.domain.computeOppScore
@@ -28,6 +33,7 @@ fun LiveGameTabletScreen(
     onEndGameNavigate: () -> Unit
 ) {
     val s by vm.ui.collectAsState()
+    val pendingMadeShot by vm.pendingMadeShot.collectAsState()
     val box = remember(s.events) {
         computeBoxByPlayer(
             s.events,
@@ -126,14 +132,14 @@ fun LiveGameTabletScreen(
                         .padding(start = 4.dp, bottom = 4.dp)
                 )
                 ActionsPanel(
-                    enabled = actionsEnabled,
+                    enabled = actionsEnabled && pendingMadeShot == null,
                     box = box,
                     players = playersById,
                     selectedId = s.selectedPlayerId,
                     events = s.events,
                     onEvent = { type, shotMeta -> vm.addEvent(type, shotMeta = shotMeta) },
                     modifier = Modifier
-                        .weight(0.30f)
+                        .weight(0.35f)
                         .fillMaxHeight()
                         .padding(end = 4.dp, bottom = 4.dp)
                 )
@@ -144,11 +150,99 @@ fun LiveGameTabletScreen(
                     isHomeGame = s.isHomeGame,
                     onUndo = vm::undoLast,
                     modifier = Modifier
-                        .weight(0.40f)
+                        .weight(0.35f)
                         .fillMaxHeight()
                         .padding(bottom = 4.dp)
                 )
             }
         }
+        if (pendingMadeShot != null) {
+            AssistPickerDialog(
+                players = onCourtPlayers.filter { it.id != pendingMadeShot!!.playerId },
+                onNoAssist = {
+                    vm.confirmMadeShot(null)
+                },
+                onAssistSelected = { playerId ->
+                    vm.confirmMadeShot(playerId)
+                },
+                onDismiss = {
+                    vm.dismissAssistPicker()
+                }
+            )
+        }
     }
+}
+
+@Composable
+fun AssistPickerDialog(
+    players: List<PlayerEntity>,
+    onNoAssist: () -> Unit,
+    onAssistSelected: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF121212),
+        titleContentColor = Color.White,
+        textContentColor = Color.White,
+        shape = RoundedCornerShape(24.dp),
+        title = {
+            Column {
+                Text(
+                    text = "Assist?",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Who passed the ball?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.55f)
+                )
+            }
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = onNoAssist,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1F1D1D),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("No assist")
+                }
+
+                players.forEach { player ->
+                    OutlinedButton(
+                        onClick = { onAssistSelected(player.id) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            Color.White.copy(alpha = 0.12f)
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color(0xFF1F1D1D),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = "#${player.number}  ${player.name}",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {}
+    )
 }

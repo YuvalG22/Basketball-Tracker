@@ -195,13 +195,13 @@ fun GameHistoryCard(
                     style = MaterialTheme.typography.bodySmall
                 )
 
-//                IconButton(onClick = onDeleteClick) {
-//                    Icon(
-//                        imageVector = Icons.Filled.Delete,
-//                        contentDescription = "Delete game",
-//                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-//                    )
-//                }
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = "Delete game",
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
             }
 
             Row(
