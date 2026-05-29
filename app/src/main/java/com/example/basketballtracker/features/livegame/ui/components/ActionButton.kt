@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.features.livegame.domain.EventType
@@ -114,8 +116,12 @@ fun RowScope.ActionButton(
         EventType.PF -> Color(0x66FF8C00)
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
+    val haptic = LocalHapticFeedback.current
     Button(
-        onClick = { onEvent(type, null) },
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onEvent(type, null)
+        },
         enabled = enabled,
         modifier = Modifier
             .weight(1f)

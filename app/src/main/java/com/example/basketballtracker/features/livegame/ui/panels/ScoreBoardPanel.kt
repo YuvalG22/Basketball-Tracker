@@ -52,6 +52,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontFamily.Companion.Monospace
 import androidx.compose.ui.text.font.FontWeight
@@ -376,14 +378,18 @@ fun ClockControls(
     onToggleClock: () -> Unit,
     onNextQuarter: () -> Unit,
 ) {
+    val haptic = LocalHapticFeedback.current
     Row(
         modifier = Modifier.padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(
-            onClick = onToggleClock,
-            Modifier.size(48.dp)
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onToggleClock()
+            },
+            Modifier.size(64.dp)
         ) {
             Icon(
                 imageVector = if (!clock.isRunning) Icons.Default.PlayCircleOutline else Icons.Default.PauseCircleOutline,
@@ -485,8 +491,12 @@ fun RowScope.OppScoreButton(
     onEvent: (EventType, ShotMeta?) -> Unit,
     enabled: Boolean
 ) {
+    val haptic = LocalHapticFeedback.current
     Button(
-        onClick = { onEvent(type, null) },
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onEvent(type, null)
+        },
         enabled = enabled,
         modifier = Modifier
             .weight(1f)

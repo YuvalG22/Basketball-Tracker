@@ -40,10 +40,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
@@ -227,6 +229,7 @@ fun HalfCourtClickable(
     shots: List<ShotUi> = emptyList(),
 ) {
     var courtSize by remember { mutableStateOf(IntSize.Zero) }
+    val haptic = LocalHapticFeedback.current
 
     Box(
         modifier = Modifier
@@ -266,6 +269,7 @@ fun HalfCourtClickable(
                             } == null
 
                             if (longPress) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (isThreePointShot(shotMeta.x, shotMeta.y)) {
                                     onEvent(EventType.THREE_MADE, shotMeta)
                                 } else {
@@ -274,6 +278,7 @@ fun HalfCourtClickable(
 
                                 waitForUpOrCancellation()
                             } else {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (isThreePointShot(shotMeta.x, shotMeta.y)) {
                                     onEvent(EventType.THREE_MISS, shotMeta)
                                 } else {
