@@ -7,6 +7,9 @@ data class GameUploadDto(
     val opponentName: String?,
     val isHomeGame: Boolean,
     val roundNumber: Int,
+    val isPlayoff: Boolean,
+    val playoffStage: String?,
+    val playoffGameNumber: Int?,
     val gameDateEpoch: Long,
     val createdAt: Long,
     val quarterLengthSec: Int,
@@ -34,6 +37,15 @@ data class GameRemoteDto(
 
     @SerializedName("round_number")
     val round_number: Int,
+
+    @SerializedName("is_playoff")
+    val is_playoff: Boolean,
+
+    @SerializedName("playoff_stage")
+    val playoff_stage: String?,
+
+    @SerializedName("playoff_game_number")
+    val playoff_game_number: Int?,
 
     @SerializedName("game_date_epoch")
     val game_date_epoch: Long,

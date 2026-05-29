@@ -369,7 +369,38 @@ class LiveGameViewModel(
 
         viewModelScope.launch {
             repo.undoLastReturning(gameId) ?: return@launch
+            syncManager.syncPending()
         }
+    }
+
+    fun adjustClock(deltaSeconds: Int) {
+        _base.update { s ->
+            val newSeconds = (s.clock.secRemaining + deltaSeconds)
+                .coerceIn(0, quarterLengthSec)
+
+            s.copy(
+                clock = s.clock.copy(
+                    secRemaining = newSeconds
+                )
+            )
+        }
+
+        persistClock()
+    }
+
+    fun adjustPeriod(delta: Int) {
+        _base.update { s ->
+            val newPeriod = (s.clock.period + delta)
+                .coerceIn(1, 10)
+
+            s.copy(
+                clock = s.clock.copy(
+                    period = newPeriod
+                )
+            )
+        }
+
+        persistClock()
     }
 
     fun endGame() {

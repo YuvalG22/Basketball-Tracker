@@ -102,6 +102,8 @@ fun LiveGameTabletScreen(
                 enabled = true,
                 isEnded = s.isEnded,
                 onEndGame = onEndGameNavigate,
+                adjustClock = vm::adjustClock,
+                onAdjustPeriod = vm::adjustPeriod,
                 homeFouls = teamFoulsThisQ,
                 awayFouls = opponentFoulsThisQ,
                 modifier = Modifier

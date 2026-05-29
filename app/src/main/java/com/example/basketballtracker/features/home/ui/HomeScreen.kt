@@ -77,8 +77,6 @@ fun HomeScreen(
     val gameDate = formatDate(gameDateEpoch, "MMM d")
     val lastGameOpponentName = lastGame?.opponentName ?: "Unknown"
     val lastGameIsHomeGame = lastGame?.isHomeGame ?: false
-    val lastGameTeamScore = lastGame?.teamScore
-    val lastGameOppScore = lastGame?.opponentScore
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -135,6 +133,9 @@ fun HomeScreen(
                     opponentScore = opponentScore,
                     status = game.status,
                     gameDate = gameDate,
+                    isPlayoff = game.isPlayoff,
+                    stage = game.playoffStage,
+                    gameNumber = game.playoffGameNumber ?: game.roundNumber,
                     period = game.currentPeriod,
                     secRemaining = game.clockSecRemaining,
                     onClick = {
@@ -372,12 +373,22 @@ fun LastGameCard(
     opponentScore: Int,
     status: String,
     gameDate: String,
+    isPlayoff: Boolean,
+    stage: String?,
+    gameNumber: Int,
     period: Int,
     secRemaining: Int,
     onClick: () -> Unit
 ) {
     val isLive = status == GameStatus.LIVE
     val isFinished = status == GameStatus.FINISHED
+
+    val gameLabel =
+        if (isPlayoff) {
+            "${stageFormated(stage ?: "")} • Game $gameNumber"
+        } else {
+            "Round"
+        }
 
     Card(
         modifier = Modifier
@@ -406,7 +417,8 @@ fun LastGameCard(
             ) {
                 GameStatusBadge(
                     isLive = isLive,
-                    gameDate = gameDate
+                    gameDate = gameDate,
+                    info = gameLabel
                 )
 
                 Text(
@@ -443,7 +455,8 @@ fun LastGameCard(
 @Composable
 private fun GameStatusBadge(
     isLive: Boolean,
-    gameDate: String
+    gameDate: String,
+    info: String
 ) {
     Row(
         modifier = Modifier
@@ -466,7 +479,7 @@ private fun GameStatusBadge(
         }
 
         Text(
-            text = if (isLive) "LIVE • $gameDate" else "LAST GAME • $gameDate",
+            text = if (isLive) "LIVE • $info" else "LAST GAME • $info",
             style = MaterialTheme.typography.labelLarge,
             color = if (isLive) Color(0xFF2ECC71) else Color.White.copy(alpha = 0.65f),
             fontWeight = FontWeight.Bold,
@@ -571,5 +584,14 @@ private fun ScoreboardTeamRow(
             fontWeight = FontWeight.Black,
             fontFamily = inter
         )
+    }
+}
+
+fun stageFormated(stage: String): String {
+    return when (stage) {
+        "FINAL" -> "Final"
+        "SEMI_FINAL" -> "Semi Final"
+        "QUARTER_FINAL" -> "Quarter Final"
+        else -> "Round"
     }
 }

@@ -2,8 +2,10 @@ package com.example.basketballtracker.core.data.remote.events
 
 import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 interface EventApi {
 
@@ -14,6 +16,11 @@ interface EventApi {
 
     @GET("events")
     suspend fun getEvents(): List<EventRemoteDto>
+
+    @DELETE("events/{remoteId}")
+    suspend fun deleteEvent(
+        @Path("remoteId") remoteId: String
+    )
 }
 
 data class EventUploadResponse(

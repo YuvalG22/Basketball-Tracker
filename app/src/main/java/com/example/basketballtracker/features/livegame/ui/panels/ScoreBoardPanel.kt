@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,13 +25,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PauseCircleOutline
 import androidx.compose.material.icons.filled.PlayCircleOutline
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +50,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontFamily.Companion.Monospace
@@ -82,6 +88,8 @@ fun ScoreBoardPanel(
     enabled: Boolean,
     isEnded: Boolean,
     onEndGame: () -> Unit,
+    adjustClock: (Int) -> Unit,
+    onAdjustPeriod: (Int) -> Unit,
     homeFouls: Int,
     awayFouls: Int,
     modifier: Modifier
@@ -97,7 +105,9 @@ fun ScoreBoardPanel(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 ClockControls(
@@ -116,70 +126,59 @@ fun ScoreBoardPanel(
                     opponentName = opponentName,
                     opponentScore = opponentScore,
                     isHomeGame = isHomeGame,
+                    adjustClock = adjustClock,
+                    onAdjustPeriod = onAdjustPeriod,
                     homeFouls = homeFouls,
                     awayFouls = awayFouls,
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Box(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 16.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        "OPP\nSCORE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.5f)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(
-                        modifier = Modifier
-                            .width(130.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            OppScoreButton("FT", EventType.OPP_FT_MADE, onEvent, enabled)
-                            OppScoreButton("2PT", EventType.OPP_TWO_MADE, onEvent, enabled)
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            OppScoreButton("3PT", EventType.OPP_THREE_MADE, onEvent, enabled)
-                            OppScoreButton("PF", EventType.OPP_PF, onEvent, enabled)
-                        }
-                    }
-                    VerticalDivider(
-                        modifier = Modifier
-                            .height(48.dp)
-                            .padding(end = 8.dp, start = 8.dp),
-                        thickness = 1.dp,
-                        color = Color.White.copy(alpha = 0.2f)
-                    )
-                    Column(
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        val dateText = remember(gameDateEpoch) {
-                            if (gameDateEpoch == 0L) "" else
-                                SimpleDateFormat("E, MMM d, yyyy", Locale.ENGLISH)
-                                    .format(Date(gameDateEpoch))
-                        }
                         Text(
-                            "Round $roundNumber",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-                        Text(
-                            "$dateText",
-                            style = MaterialTheme.typography.bodySmall,
+                            "OPP\nSCORE",
+                            style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.5f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(
+                            modifier = Modifier
+                                .width(130.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                OppScoreButton("FT", EventType.OPP_FT_MADE, onEvent, enabled)
+                                OppScoreButton("2PT", EventType.OPP_TWO_MADE, onEvent, enabled)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                OppScoreButton("3PT", EventType.OPP_THREE_MADE, onEvent, enabled)
+                                OppScoreButton("PF", EventType.OPP_PF, onEvent, enabled)
+                            }
+                        }
+                        VerticalDivider(
+                            modifier = Modifier
+                                .height(48.dp)
+                                .padding(end = 8.dp, start = 8.dp),
+                            thickness = 1.dp,
+                            color = Color.White.copy(alpha = 0.2f)
                         )
                     }
                     var menuExpanded by remember { mutableStateOf(false) }
@@ -187,7 +186,7 @@ fun ScoreBoardPanel(
                     Box() {
                         IconButton(onClick = { menuExpanded = true }) {
                             Icon(
-                                imageVector = Icons.Default.MoreVert,
+                                imageVector = Icons.Default.Settings,
                                 contentDescription = "Scoreboard menu"
                             )
                         }
@@ -283,6 +282,8 @@ fun ScoreBoard(
     opponentName: String,
     opponentScore: Int,
     isHomeGame: Boolean,
+    adjustClock: (Int) -> Unit,
+    onAdjustPeriod: (Int) -> Unit,
     homeFouls: Int,
     awayFouls: Int
 ) {
@@ -301,7 +302,11 @@ fun ScoreBoard(
             if (isHomeGame) teamScore else opponentScore,
             fouls = if (isHomeGame) homeFouls else awayFouls,
         )
-        ScoreBoardClock(clock)
+        ScoreBoardClock(
+            clock = clock,
+            adjustClock = adjustClock,
+            onAdjustPeriod = onAdjustPeriod
+        )
         RightTeamScore(
             if (isHomeGame) opponentName.uppercase(LocalLocale.current.platformLocale) else "AFEKA",
             if (isHomeGame) opponentScore else teamScore,
@@ -316,8 +321,18 @@ fun ScoreBoard(
 }
 
 @Composable
-fun ScoreBoardClock(clock: GameClock) {
+fun ScoreBoardClock(
+    clock: GameClock,
+    adjustClock: (Int) -> Unit,
+    onAdjustPeriod: (Int) -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+
     Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .clickable { showDialog = true }
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
@@ -325,17 +340,32 @@ fun ScoreBoardClock(clock: GameClock) {
             formatClock(clock.secRemaining),
             modifier = Modifier.width(85.dp),
             style = MaterialTheme.typography.headlineMedium,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = Monospace,
             fontWeight = FontWeight.ExtraBold,
-            color = if (!clock.isRunning && clock.secRemaining < 600) MaterialTheme.colorScheme.error
-            else if (clock.isRunning) Color(0xFF3AB47A) else Color.White,
+            color = if (!clock.isRunning && clock.secRemaining < 600) {
+                MaterialTheme.colorScheme.error
+            } else if (clock.isRunning) {
+                Color(0xFF3AB47A)
+            } else {
+                Color.White
+            },
             textAlign = TextAlign.Center,
         )
+
         Text(
             periodLabel(clock.period),
             style = MaterialTheme.typography.titleSmall,
             textAlign = TextAlign.Center,
             color = Color.White.copy(alpha = 0.5f),
+        )
+    }
+
+    if (showDialog) {
+        ClockAdjustDialog(
+            clock = clock,
+            onDismiss = { showDialog = false },
+            onAdjustClock = adjustClock,
+            onAdjustPeriod = onAdjustPeriod
         )
     }
 }
@@ -473,5 +503,126 @@ fun RowScope.OppScoreButton(
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+@Composable
+private fun ClockAdjustDialog(
+    clock: GameClock,
+    onDismiss: () -> Unit,
+    onAdjustClock: (Int) -> Unit,
+    onAdjustPeriod: (Int) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF1A1A1A),
+        title = {
+            Text(
+                text = "Adjust Game Clock",
+                color = Color.White,
+                fontWeight = FontWeight.Black
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Q${clock.period} • ${formatClock(clock.secRemaining)}",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Black,
+                    color = Color.White
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ClockAdjustRow(
+                        label = "10 sec",
+                        onMinus = { onAdjustClock(-10) },
+                        onPlus = { onAdjustClock(10) }
+                    )
+
+                    ClockAdjustRow(
+                        label = "30 sec",
+                        onMinus = { onAdjustClock(-30) },
+                        onPlus = { onAdjustClock(30) }
+                    )
+
+                    ClockAdjustRow(
+                        label = "1 min",
+                        onMinus = { onAdjustClock(-60) },
+                        onPlus = { onAdjustClock(60) }
+                    )
+                }
+
+                HorizontalDivider(
+                    Modifier,
+                    DividerDefaults.Thickness,
+                    color = Color.White.copy(alpha = 0.1f)
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Period correction",
+                        color = Color.White.copy(alpha = 0.65f),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    ClockAdjustRow(
+                        label = "Quarter",
+                        onMinus = { onAdjustPeriod(-1) },
+                        onPlus = { onAdjustPeriod(1) }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    "DONE",
+                    color = Color(0xFF3AB47A),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    )
+}
+
+@Composable
+private fun ClockAdjustRow(
+    label: String,
+    onMinus: () -> Unit,
+    onPlus: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Button(
+            modifier = Modifier.weight(1f),
+            onClick = onMinus,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF2D2A2A),
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Text("- $label", fontWeight = FontWeight.Bold)
+        }
+
+        Button(
+            modifier = Modifier.weight(1f),
+            onClick = onPlus,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF3AB47A),
+                contentColor = Color.Black
+            ),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Text("+ $label", fontWeight = FontWeight.Black)
+        }
     }
 }

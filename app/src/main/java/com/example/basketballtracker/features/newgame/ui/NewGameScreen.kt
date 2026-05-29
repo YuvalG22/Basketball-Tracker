@@ -2,6 +2,7 @@ package com.example.basketballtracker.features.newgame.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,8 +13,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.core.data.db.dao.GameDao
 import com.example.basketballtracker.core.data.db.dao.PlayerDao
@@ -22,6 +25,7 @@ import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.core.data.db.entities.RosterEntity
 import com.example.basketballtracker.core.data.remote.RetrofitClient.rosterApi
 import com.example.basketballtracker.core.data.remote.roster.RosterUploadDto
+import com.example.basketballtracker.features.core.ui.components.CustomFilterChip
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.players.data.PlayersRepository
 import com.example.basketballtracker.features.summary.ui.SummaryTopBar
@@ -47,6 +51,10 @@ fun NewGameScreen(
     var quarterLen by rememberSaveable { mutableIntStateOf(defaultQuarterLengthSec) }
     var roundText by rememberSaveable { mutableStateOf("") }
 
+    var isPlayoff by rememberSaveable { mutableStateOf(false) }
+    var playoffStage by rememberSaveable { mutableStateOf("SEMI_FINAL") }
+    var playoffGameNumber by rememberSaveable { mutableStateOf("1") }
+
     val gameDateEpoch = remember { System.currentTimeMillis() }
     val players by playersRepo.observePlayers().collectAsState(initial = emptyList())
     var selectedIds by rememberSaveable { mutableStateOf(setOf<Long>()) }
@@ -68,7 +76,14 @@ fun NewGameScreen(
                 isHomeGame,
                 round,
                 gameDateEpoch,
-                quarterLen
+                quarterLen,
+                isPlayoff = isPlayoff,
+                playoffStage = if (isPlayoff) playoffStage else null,
+                playoffGameNumber = if (isPlayoff) {
+                    playoffGameNumber.toIntOrNull()
+                } else {
+                    null
+                }
             )
 
             ids.forEach { pid ->
@@ -134,6 +149,12 @@ fun NewGameScreen(
                     opponent = opponent,
                     onOpponent = { opponent = it },
                     roundText = roundText,
+                    isPlayoff = isPlayoff,
+                    onPlayoffChange = { isPlayoff = it },
+                    playoffStage = playoffStage,
+                    onPlayoffStage = { playoffStage = it },
+                    playoffGameNumber = playoffGameNumber,
+                    onPlayoffGameNumber = { playoffGameNumber = it },
                     onRound = { roundText = it.filter(Char::isDigit).take(3) },
                     isHomeGame = isHomeGame,
                     onHomeToggle = { isHomeGame = !isHomeGame },
@@ -181,8 +202,19 @@ fun NewGameScreen(
 private fun NewGameDetailsCard(
     opponent: String,
     onOpponent: (String) -> Unit,
+
     roundText: String,
     onRound: (String) -> Unit,
+
+    isPlayoff: Boolean,
+    onPlayoffChange: (Boolean) -> Unit,
+
+    playoffStage: String,
+    onPlayoffStage: (String) -> Unit,
+
+    playoffGameNumber: String,
+    onPlayoffGameNumber: (String) -> Unit,
+
     isHomeGame: Boolean,
     onHomeToggle: () -> Unit,
 ) {
@@ -200,12 +232,49 @@ private fun NewGameDetailsCard(
                 placeholder = "Opponent team"
             )
 
-            StyledTextField(
-                value = roundText,
-                onValueChange = onRound,
-                label = "Round",
-                placeholder = "Round number"
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        RoundedCornerShape(16.dp)
+                    )
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                CustomFilterChip(
+                    text = "Season",
+                    active = !isPlayoff,
+                    onClick = { onPlayoffChange(false) }
+                )
+
+                CustomFilterChip(
+                    text = "Playoff",
+                    active = isPlayoff,
+                    onClick = { onPlayoffChange(true) }
+                )
+            }
+
+            if (!isPlayoff) {
+                StyledTextField(
+                    value = roundText,
+                    onValueChange = onRound,
+                    label = "Round",
+                    placeholder = "Round number"
+                )
+            } else {
+                PlayoffStageSelector(
+                    selectedStage = playoffStage,
+                    onStageSelected = onPlayoffStage
+                )
+
+                StyledTextField(
+                    value = playoffGameNumber,
+                    onValueChange = onPlayoffGameNumber,
+                    label = "Game number",
+                    placeholder = "1"
+                )
+            }
 
             Row(
                 modifier = Modifier
@@ -436,5 +505,65 @@ fun StyledTextField(
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f)
             )
         )
+    }
+}
+
+@Composable
+private fun PlayoffStageSelector(
+    selectedStage: String,
+    onStageSelected: (String) -> Unit
+) {
+    val stages = listOf(
+        "QUARTER_FINAL" to "Quarter Final",
+        "SEMI_FINAL" to "Semi Final",
+        "FINAL" to "Final"
+    )
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "Playoff stage",
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            stages.forEach { (value, label) ->
+                val selected = selectedStage == value
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (selected) NewGameAccent.copy(alpha = 0.18f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = if (selected) NewGameAccent
+                            else Color.White.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        .clickable { onStageSelected(value) }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        color = if (selected) NewGameAccent
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
     }
 }

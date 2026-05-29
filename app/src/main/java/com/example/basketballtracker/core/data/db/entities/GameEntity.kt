@@ -13,6 +13,9 @@ data class GameEntity(
     val opponentName: String,
     val isHomeGame: Boolean = false,
     val roundNumber: Int,
+    val isPlayoff: Boolean = false,
+    val playoffStage: String? = null,
+    val playoffGameNumber: Int? = null,
     val gameDateEpoch: Long,
     val createdAt: Long,
     val quarterLengthSec: Int = 600,
@@ -32,4 +35,10 @@ data class GameEntity(
 object GameStatus {
     const val LIVE = "LIVE"
     const val FINISHED = "FINISHED"
+}
+
+enum class PlayoffStage {
+    QUARTER_FINAL,
+    SEMI_FINAL,
+    FINAL
 }

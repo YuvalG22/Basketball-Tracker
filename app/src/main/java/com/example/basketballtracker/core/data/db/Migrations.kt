@@ -163,3 +163,17 @@ val MIGRATION_16_17 = object : Migration(16, 17) {
         )
     }
 }
+
+val MIGRATION_17_18 = object : Migration(17, 18) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE games ADD COLUMN isPlayoff INTEGER NOT NULL DEFAULT 0"
+        )
+        db.execSQL(
+            "ALTER TABLE games ADD COLUMN playoffStage TEXT"
+        )
+        db.execSQL(
+            "ALTER TABLE games ADD COLUMN playoffGameNumber INTEGER"
+        )
+    }
+}

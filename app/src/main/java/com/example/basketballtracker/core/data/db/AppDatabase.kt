@@ -9,7 +9,7 @@ import com.example.basketballtracker.core.data.db.entities.*
 
 @Database(
     entities = [PlayerEntity::class, GameEntity::class, RosterEntity::class, EventEntity::class, PlayerSeasonStatsEntity::class],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -40,7 +40,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_13_14,
                     MIGRATION_14_15,
                     MIGRATION_15_16,
-                    MIGRATION_16_17
+                    MIGRATION_16_17,
+                    MIGRATION_17_18
                 )
                 .build()
         }

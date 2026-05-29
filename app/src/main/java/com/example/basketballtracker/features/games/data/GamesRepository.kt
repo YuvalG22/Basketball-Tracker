@@ -18,7 +18,10 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
         isHomeGame: Boolean,
         roundNumber: Int,
         gameDateEpoch: Long,
-        quarterLengthSec: Int
+        quarterLengthSec: Int,
+        isPlayoff: Boolean,
+        playoffStage: String?,
+        playoffGameNumber: Int?
     ): Long {
 
         val game = GameEntity(
@@ -26,6 +29,9 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
             isHomeGame = isHomeGame,
             roundNumber = roundNumber,
             gameDateEpoch = gameDateEpoch,
+            isPlayoff = isPlayoff,
+            playoffStage = playoffStage,
+            playoffGameNumber = playoffGameNumber,
             createdAt = System.currentTimeMillis(),
             quarterLengthSec = quarterLengthSec,
             quartersCount = 4,

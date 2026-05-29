@@ -36,6 +36,7 @@ class SyncManager(
 ) {
 
     suspend fun syncPending() {
+        syncPendingEventDeletes()
         syncPendingPlayers()
         syncPendingGames()
         syncPendingRoster()
@@ -177,6 +178,24 @@ class SyncManager(
         }
     }
 
+    private suspend fun syncPendingEventDeletes() {
+        val pendingDeletes = eventDao.getPendingDeleteEvents()
+
+        pendingDeletes.forEach { event ->
+            try {
+                if (event.remoteId != null) {
+                    eventApi.deleteEvent(event.remoteId)
+                }
+
+                eventDao.deleteById(event.id)
+                Log.d("SYNC", "Pending event deletes: ${pendingDeletes.size}")
+
+            } catch (e: Exception) {
+                Log.e("SYNC", "Failed to delete event ${event.id}", e)
+            }
+        }
+    }
+
     private suspend fun fetchGamesFromCloud() {
         try {
             val remoteGames = RetrofitClient.gameApi.getGames()
@@ -188,6 +207,9 @@ class SyncManager(
                     opponentName = dto.opponent_name ?: "Unknown",
                     isHomeGame = dto.is_home_game,
                     roundNumber = dto.round_number,
+                    isPlayoff = dto.is_playoff,
+                    playoffStage = dto.playoff_stage,
+                    playoffGameNumber = dto.playoff_game_number,
                     gameDateEpoch = dto.game_date_epoch,
                     createdAt = dto.created_at,
                     quarterLengthSec = dto.quarter_length_sec,

@@ -113,7 +113,13 @@ class LiveGameRepository(
 
     suspend fun undoLastReturning(gameId: Long): LiveEvent? {
         val last = eventDao.getLastEvent(gameId) ?: return null
-        eventDao.deleteById(last.id)
+
+        if (last.remoteId == null) {
+            eventDao.deleteById(last.id)
+        } else {
+            eventDao.markPendingDelete(last.id)
+        }
+
         return last.toDomain()
     }
 }
