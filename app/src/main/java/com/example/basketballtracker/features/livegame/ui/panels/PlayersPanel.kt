@@ -49,11 +49,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
+import com.example.basketballtracker.features.core.ui.components.SmallNumberBadge
 import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.PlayerBox
 import com.example.basketballtracker.features.livegame.domain.formatMinutes
 import com.example.basketballtracker.features.livegame.ui.components.FoulDots
+import com.example.basketballtracker.features.players.ui.NumberBadge
 import com.example.basketballtracker.ui.theme.inter
 
 enum class PlayerCardMode {
@@ -217,7 +219,7 @@ private fun PlayerCard(
     val pf = playerBoxScore?.pf ?: 0
 
     val hapticFeedback = LocalHapticFeedback.current
-    val numberWidth = 24.dp
+    val numberWidth = 32.dp
     val spacing = 8.dp
 
     val icon =
@@ -274,13 +276,7 @@ private fun PlayerCard(
             ) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "#${player.number}",
-                            fontFamily = inter,
-                            modifier = Modifier.width(numberWidth),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
+                        SmallNumberBadge(player.number)
                         Spacer(modifier = Modifier.width(spacing))
                         Text(
                             text = player.name,

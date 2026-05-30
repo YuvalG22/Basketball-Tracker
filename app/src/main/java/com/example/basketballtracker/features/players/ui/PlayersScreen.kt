@@ -143,8 +143,8 @@ private fun RosterPlayerCard(
 }
 
 @Composable
-private fun NumberBadge(
-    number: Int
+fun NumberBadge(
+    number: Int,
 ) {
     Box(
         modifier = Modifier
