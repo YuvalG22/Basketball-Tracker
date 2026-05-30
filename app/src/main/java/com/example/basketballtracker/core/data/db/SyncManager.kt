@@ -317,6 +317,7 @@ class SyncManager(
                     id = eventDao.getLocalIdByRemoteId(dto.id) ?: 0,
                     gameId = localGameId,
                     playerId = localPlayerId,
+                    assistedByPlayerId = dto.assisted_by_player_id,
                     type = dto.type,
                     period = dto.period,
                     clockSecRemaining = dto.clock_sec_remaining,
