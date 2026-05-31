@@ -68,6 +68,8 @@ class SyncManager(
         pendingGames.forEach { game ->
             try {
                 val remoteId = game.remoteId
+                Log.d("SYNC_GAME_STATUS", "local status=${game.status}")
+                Log.d("SYNC_GAME_STATUS", "dto status=${game.toUploadDto().status}")
 
                 if (remoteId == null) {
                     val response = gameApi.uploadGame(game.toUploadDto())
@@ -167,7 +169,6 @@ class SyncManager(
                         shotX = event.shotX,
                         shotY = event.shotY,
                         shotDistance = event.shotDistance,
-                        shotZone = event.shotZone
                     )
                 )
                 eventDao.markSynced(event.id, response.remoteId)
@@ -327,7 +328,6 @@ class SyncManager(
                     shotX = dto.shot_x,
                     shotY = dto.shot_y,
                     shotDistance = dto.shot_distance,
-                    shotZone = dto.shot_zone,
                     remoteId = dto.id,
                     syncStatus = "SYNCED"
                 )

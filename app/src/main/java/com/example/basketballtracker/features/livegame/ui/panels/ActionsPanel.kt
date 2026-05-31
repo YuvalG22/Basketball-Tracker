@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,15 +16,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -52,19 +48,13 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.R
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
+import com.example.basketballtracker.features.core.ui.components.LivePanelTabs
 import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.PlayerBox
 import com.example.basketballtracker.features.livegame.domain.ShotMeta
-import com.example.basketballtracker.features.livegame.domain.ShotZone
-import com.example.basketballtracker.features.livegame.domain.ZoneStats
 import com.example.basketballtracker.features.livegame.domain.formatMinutes
-import com.example.basketballtracker.features.livegame.domain.zoneColor
-import com.example.basketballtracker.features.livegame.ui.EventFilter
 import com.example.basketballtracker.features.livegame.ui.PeriodFilter
-import com.example.basketballtracker.features.livegame.ui.components.ActionButton
-import com.example.basketballtracker.features.livegame.ui.components.MadeShotButton
-import com.example.basketballtracker.features.livegame.ui.components.MissedShotButton
 import com.example.basketballtracker.utils.calculateShotDistance
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -74,12 +64,14 @@ import kotlin.math.sqrt
 
 @Composable
 fun ActionsPanel(
-    enabled: Boolean,
+    opponentName: String,
+    isHomeGame: Boolean,
     box: Map<Long, PlayerBox>,
     players: Map<Long, PlayerEntity>,
     events: List<LiveEvent>,
     selectedId: Long?,
     onEvent: (EventType, ShotMeta?) -> Unit,
+    onUndo: () -> Unit,
     modifier: Modifier
 ) {
     var periodFilter by rememberSaveable { mutableStateOf(PeriodFilter.All) }
@@ -98,7 +90,6 @@ fun ActionsPanel(
             PeriodFilter.OT4 -> events.filter { it.period == 8 }
         }
     }
-
     val shots = filteredEvents.mapNotNull { event ->
         if (event.playerId != selectedId) return@mapNotNull null
         if (!event.type.isShotEvent()) return@mapNotNull null
@@ -113,28 +104,6 @@ fun ActionsPanel(
             isThree = event.type == EventType.THREE_MADE || event.type == EventType.THREE_MISS
         )
     }
-
-    val zoneStats = ShotZone.entries.map { zone ->
-
-        val zoneShots = filteredEvents.filter { event ->
-
-            event.playerId == selectedId &&
-                    event.type.isShotEvent() &&
-                    event.shotZone == zone.name
-        }
-
-        val made = zoneShots.count {
-            it.type == EventType.TWO_MADE ||
-                    it.type == EventType.THREE_MADE
-        }
-
-        ZoneStats(
-            zone = zone,
-            made = made,
-            attempted = zoneShots.size
-        )
-    }
-
     Card(
         modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -142,82 +111,33 @@ fun ActionsPanel(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(12.dp)
+                .padding(0.dp)
         ) {
-//            PeriodFilter(
-//                selected = periodFilter,
-//                onSelected = { periodFilter = it }
-//            )
-            PlayerGameStatsCard(
-                playerBox = box[selectedId],
-                player = players[selectedId],
-                onEvent = onEvent,
-                shots = shots
+            var selectedTab by rememberSaveable { mutableStateOf(0) }
+
+            LivePanelTabs(
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it }
             )
-//            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-//                Text(
-//                    "2 POINTS",
-//                    style = MaterialTheme.typography.bodySmall,
-//                    color = Color.White.copy(alpha = 0.5f)
-//                )
-//                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-//                    MadeShotButton("MADE", EventType.TWO_MADE, onEvent, enabled)
-//                    MissedShotButton("MISS", EventType.TWO_MISS, onEvent, enabled)
-//                }
-//                Spacer(Modifier.height(8.dp))
-//                Text(
-//                    "3 POINTS",
-//                    style = MaterialTheme.typography.bodySmall,
-//                    color = Color.White.copy(alpha = 0.5f)
-//                )
-//                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-//                    MadeShotButton("MADE", EventType.THREE_MADE, onEvent, enabled)
-//                    MissedShotButton("MISS", EventType.THREE_MISS, onEvent, enabled)
-//                }
-//                Text(
-//                    "FREE THROWS",
-//                    style = MaterialTheme.typography.bodySmall,
-//                    color = Color.White.copy(alpha = 0.5f)
-//                )
-//                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-//                    MadeShotButton("MADE", EventType.FT_MADE, onEvent, enabled)
-//                    MissedShotButton("MISS", EventType.FT_MISS, onEvent, enabled)
-//                }
-//            }
+
             Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ActionButton("REB D", EventType.REB_DEF, onEvent, enabled)
-                        ActionButton("REB O", EventType.REB_OFF, onEvent, enabled)
-                        ActionButton("AST", EventType.AST, onEvent, enabled)
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ActionButton("STL", EventType.STL, onEvent, enabled)
-                        ActionButton("BLK", EventType.BLK, onEvent, enabled)
-                        ActionButton("TOV", EventType.TOV, onEvent, enabled)
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ActionButton("FT MADE", EventType.FT_MADE, onEvent, enabled)
-                        ActionButton("FT MISS", EventType.FT_MISS, onEvent, enabled)
-                        ActionButton("PF", EventType.PF, onEvent, enabled)
-                    }
-                }
+
+            when (selectedTab) {
+                0 -> PlayerGameStatsCard(
+                    playerBox = box[selectedId],
+                    player = players[selectedId],
+                    onEvent = onEvent,
+                    shots = shots
+                )
+
+                1 -> PlayByPlayPanel(
+                    modifier = Modifier.fillMaxWidth(),
+                    opponentName = opponentName,
+                    events = events,
+                    playersById = players,
+                    isHomeGame = isHomeGame,
+                    onUndo = onUndo,
+                )
             }
         }
     }
@@ -306,94 +226,29 @@ fun HalfCourtClickable(
                     if (shot.made) {
                         drawCircle(
                             color = Color(0xFF4CAF50),
-                            radius = 8f,
+                            radius = 10f,
                             center = center
                         )
                         drawCircle(
                             color = Color.White,
-                            radius = 8f,
+                            radius = 10f,
                             center = center,
                             style = Stroke(width = 2f)
                         )
                     } else {
                         drawCircle(
                             color = Color.Red,
-                            radius = 8f,
+                            radius = 10f,
                             center = center
                         )
                         drawCircle(
                             color = Color.White,
-                            radius = 8f,
+                            radius = 10f,
                             center = center,
                             style = Stroke(width = 2f)
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun ShotZonesOverlay(
-    zoneStats: List<ZoneStats>,
-    modifier: Modifier = Modifier
-) {
-    Canvas(modifier = modifier) {
-
-        val scaleX = size.width / 15f
-        val scaleY = size.height / 14f
-
-        zoneStats.forEach { stats ->
-
-            val color = zoneColor(stats.percentage)
-                .copy(alpha = 0.35f)
-
-            when (stats.zone) {
-
-                ShotZone.PAINT -> {
-
-                    drawRect(
-                        color = color,
-                        topLeft = Offset(
-                            x = 4.8f * scaleX,
-                            y = 0f
-                        ),
-                        size = Size(
-                            width = (10.2f - 4.8f) * scaleX,
-                            height = 5.8f * scaleY
-                        )
-                    )
-                }
-
-                ShotZone.LEFT_CORNER_3 -> {
-
-                    drawRect(
-                        color = color,
-                        topLeft = Offset(0f, 0f),
-                        size = Size(
-                            width = 0.9f * scaleX,
-                            height = 2.99f * scaleY
-                        )
-                    )
-                }
-
-                ShotZone.RIGHT_CORNER_3 -> {
-
-                    drawRect(
-                        color = color,
-                        topLeft = Offset(
-                            x = 14.1f * scaleX,
-                            y = 0f
-                        ),
-                        size = Size(
-                            width = (15f - 14.1f) * scaleX,
-                            height = 2.99f * scaleY
-                        )
-                    )
-                }
-
-                else -> {}
             }
         }
     }
@@ -418,108 +273,6 @@ fun isThreePointShot(x: Float, y: Float): Boolean {
     return distance >= 6.75f
 }
 
-fun getShotZone(x: Float, y: Float): ShotZone {
-
-    val hoopX = 7.5f
-    val hoopY = 1.575f
-
-    val dx = x - hoopX
-    val dy = y - hoopY
-
-    val distance = sqrt(dx * dx + dy * dy)
-
-    // -------------------------
-    // RESTRICTED AREA
-    // -------------------------
-
-    if (distance <= 1.25f) {
-        return ShotZone.RESTRICTED_AREA
-    }
-
-    // -------------------------
-    // PAINT
-    // -------------------------
-
-    if (x in 4.8f..10.2f && y <= 5.8f) {
-        return ShotZone.PAINT
-    }
-
-    // -------------------------
-    // CORNER 3
-    // -------------------------
-
-    if (y <= 2.99f) {
-
-        if (x <= 0.9f) {
-            return ShotZone.LEFT_CORNER_3
-        }
-
-        if (x >= 14.1f) {
-            return ShotZone.RIGHT_CORNER_3
-        }
-    }
-
-    // -------------------------
-    // OTHER 3PT
-    // -------------------------
-
-    if (distance >= 6.75f) {
-
-        return when {
-
-            x < 5f ->
-                ShotZone.LEFT_WING_3
-
-            x > 10f ->
-                ShotZone.RIGHT_WING_3
-
-            else ->
-                ShotZone.TOP_3
-        }
-    }
-
-    // -------------------------
-    // SHORT MID
-    // -------------------------
-
-    if (y <= 5.8f) {
-
-        return when {
-
-            x < 4.8f ->
-                ShotZone.LEFT_SHORT_MID
-
-            x > 10.2f ->
-                ShotZone.RIGHT_SHORT_MID
-
-            else ->
-                ShotZone.PAINT
-        }
-    }
-
-    // -------------------------
-    // MID RANGE
-    // -------------------------
-
-    return when {
-
-        x < 3f ->
-            ShotZone.LEFT_CORNER_MID
-
-        x > 12f ->
-            ShotZone.RIGHT_CORNER_MID
-
-        x < 6f ->
-            ShotZone.LEFT_WING_MID
-
-        x > 9f ->
-            ShotZone.RIGHT_WING_MID
-
-        else ->
-            ShotZone.TOP_MID
-    }
-}
-
 data class ShotUi(
     val x: Float,
     val y: Float,
@@ -534,8 +287,7 @@ private fun buildShotMeta(tap: Offset, courtSize: IntSize): ShotMeta {
     return ShotMeta(
         x = svgX,
         y = svgY,
-        distance = calculateShotDistance(svgX, svgY),
-        shotZone = getShotZone(svgX, svgY),
+        distance = calculateShotDistance(svgX, svgY)
     )
 }
 
@@ -674,80 +426,6 @@ fun StatColumn(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             style = MaterialTheme.typography.bodySmall
         )
-    }
-}
-
-@Composable
-fun PeriodFilter(
-    selected: PeriodFilter,
-    onSelected: (PeriodFilter) -> Unit
-) {
-    SingleChoiceSegmentedButtonRow {
-        SegmentedButton(
-            selected = selected == PeriodFilter.All,
-            onClick = { onSelected(PeriodFilter.All) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-            colors = SegmentedButtonDefaults.colors(
-                activeContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                activeContentColor = Color.White,
-                activeBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                inactiveBorderColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Text("All")
-        }
-        SegmentedButton(
-            selected = selected == PeriodFilter.Q1,
-            onClick = { onSelected(PeriodFilter.Q1) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-            colors = SegmentedButtonDefaults.colors(
-                activeContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                activeContentColor = Color.White,
-                activeBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                inactiveBorderColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Text("Q1")
-        }
-        SegmentedButton(
-            selected = selected == PeriodFilter.Q2,
-            onClick = { onSelected(PeriodFilter.Q2) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-            colors = SegmentedButtonDefaults.colors(
-                activeContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                activeContentColor = Color.White,
-                activeBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                inactiveBorderColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Text("Q2")
-        }
-        SegmentedButton(
-            selected = selected == PeriodFilter.Q3,
-            onClick = { onSelected(PeriodFilter.Q3) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-            colors = SegmentedButtonDefaults.colors(
-                activeContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                activeContentColor = Color.White,
-                activeBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                inactiveBorderColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Text("Q3")
-        }
-        SegmentedButton(
-            selected = selected == PeriodFilter.Q4,
-            onClick = { onSelected(PeriodFilter.Q4) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-            colors = SegmentedButtonDefaults.colors(
-                activeContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                activeContentColor = Color.White,
-                activeBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                inactiveBorderColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Text("Q4")
-        }
     }
 }
 

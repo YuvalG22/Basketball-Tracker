@@ -1,6 +1,5 @@
 package com.example.basketballtracker.features.livegame.ui
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +17,8 @@ import com.example.basketballtracker.features.livegame.domain.computeOppScore
 import com.example.basketballtracker.features.livegame.domain.computeTeamScore
 import com.example.basketballtracker.features.livegame.domain.computeOpponentFoulsThisPeriod
 import com.example.basketballtracker.features.livegame.domain.computeTeamFoulsThisPeriod
+import com.example.basketballtracker.features.livegame.ui.panels.ActionButtonsPanel
 import com.example.basketballtracker.features.livegame.ui.panels.ActionsPanel
-import com.example.basketballtracker.features.livegame.ui.panels.GameControlPanel
 import com.example.basketballtracker.features.livegame.ui.panels.PlayersPanel
 import com.example.basketballtracker.features.livegame.ui.panels.ScoreBoardPanel
 
@@ -134,27 +133,26 @@ fun LiveGameTabletScreen(
                         .padding(start = 4.dp, bottom = 4.dp)
                 )
                 ActionsPanel(
-                    enabled = actionsEnabled && pendingMadeShot == null,
+                    opponentName = s.opponentName,
+                    isHomeGame = s.isHomeGame,
                     box = box,
                     players = playersById,
                     selectedId = s.selectedPlayerId,
                     events = s.events,
                     onEvent = { type, shotMeta -> vm.addEvent(type, shotMeta = shotMeta) },
+                    onUndo = vm::undoLast,
                     modifier = Modifier
-                        .weight(0.35f)
+                        .weight(0.40f)
                         .fillMaxHeight()
                         .padding(end = 4.dp, bottom = 4.dp)
                 )
-                GameControlPanel(
-                    opponentName = s.opponentName,
-                    events = s.events,
-                    playersById = playersById,
-                    isHomeGame = s.isHomeGame,
-                    onUndo = vm::undoLast,
+                ActionButtonsPanel(
+                    onEvent = { type, shotMeta -> vm.addEvent(type, shotMeta = shotMeta) },
+                    enabled = actionsEnabled && pendingMadeShot == null,
                     modifier = Modifier
-                        .weight(0.35f)
+                        .weight(0.30f)
                         .fillMaxHeight()
-                        .padding(bottom = 4.dp)
+                        .padding(end = 4.dp, bottom = 4.dp)
                 )
             }
         }

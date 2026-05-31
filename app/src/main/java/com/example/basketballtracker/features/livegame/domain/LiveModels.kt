@@ -67,8 +67,7 @@ data class GameClock(
 data class ShotMeta(
     val x: Float,
     val y: Float,
-    val distance: Float,
-    val shotZone: ShotZone
+    val distance: Float
 )
 
 enum class ShotZone {
@@ -162,31 +161,6 @@ fun zoneColor(percent: Float): Color {
         percent >= 0.6f -> Color(0xFF4CAF50)
         percent >= 0.45f -> Color(0xFFFFC107)
         else -> Color(0xFFF44336)
-    }
-}
-
-fun calculateZoneStats(events: List<EventEntity>): List<ZoneStats> {
-
-    val shotEvents = events.filter {
-        it.shotZone != null
-    }
-
-    return ShotZone.entries.map { zone ->
-
-        val zoneShots = shotEvents.filter {
-            it.shotZone == zone.name
-        }
-
-        val made = zoneShots.count {
-            it.type == EventType.TWO_MADE.name ||
-                    it.type == EventType.THREE_MADE.name
-        }
-
-        ZoneStats(
-            zone = zone,
-            made = made,
-            attempted = zoneShots.size
-        )
     }
 }
 

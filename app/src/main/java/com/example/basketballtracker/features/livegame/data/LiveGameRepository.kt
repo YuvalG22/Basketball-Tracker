@@ -47,7 +47,6 @@ class LiveGameRepository(
             shotX = shotMeta?.x,
             shotY = shotMeta?.y,
             shotDistance = shotMeta?.distance,
-            shotZone = shotMeta?.shotZone?.name,
             syncStatus = "PENDING"
         )
 
@@ -84,8 +83,7 @@ class LiveGameRepository(
                     opponentScoreAtEvent = savedEvent.opponentScoreAtEvent,
                     shotX = savedEvent.shotX,
                     shotY = savedEvent.shotY,
-                    shotDistance = savedEvent.shotDistance,
-                    shotZone = savedEvent.shotZone
+                    shotDistance = savedEvent.shotDistance
                 )
             )
             eventDao.markSynced(
@@ -138,5 +136,4 @@ private fun EventEntity.toDomain() = LiveEvent(
     shotX = shotX,
     shotY = shotY,
     shotDistance = shotDistance,
-    shotZone = shotZone,
 )

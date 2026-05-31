@@ -18,8 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Badge
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,9 +27,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,7 +51,6 @@ import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.formatEventPBP
 import com.example.basketballtracker.features.livegame.ui.EventFilter
-import com.example.basketballtracker.features.livegame.ui.PeriodFilter
 import com.example.basketballtracker.utils.formatClock
 import com.example.basketballtracker.utils.formatPlayerName
 import com.example.basketballtracker.utils.periodLabel
@@ -64,7 +58,7 @@ import com.example.basketballtracker.utils.periodLabel
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("DefaultLocale")
 @Composable
-fun GameControlPanel(
+fun PlayByPlayPanel(
     opponentName: String,
     events: List<LiveEvent>,
     playersById: Map<Long, PlayerEntity>,
@@ -129,6 +123,7 @@ fun GameControlPanel(
                 thickness = 1.dp,
                 color = Color.White.copy(alpha = 0.08f)
             )
+            Spacer(Modifier.height(8.dp))
             val filteredEvents = remember(events, filter) {
                 when (filter) {
                     EventFilter.All -> events
@@ -195,6 +190,7 @@ fun PlayByPlayItem(
     val playerName = event.playerId?.let { id -> playersById[id]?.name }
     val formattedName = formatPlayerName(playerName)
     val time = formatClock(event.clockSecRemaining)
+    val assistedByPlayerName = event.assistedByPlayerId?.let { id -> playersById[id]?.name }?.let { formatPlayerName(it) }
 
     if (event.type == EventType.PERIOD_START || event.type == EventType.PERIOD_END) {
         PeriodMarker(event)
@@ -221,6 +217,7 @@ fun PlayByPlayItem(
                     alignEnd = false,
                     primary = formatEventPBP(event.type),
                     secondary = if (isHomeGame) formattedName else opponentName,
+                    tertiary = assistedByPlayerName,
                     isScoreEvent = isScoreEvent,
                     secondaryFaded = true,
                     isHomeGame = isHomeGame
@@ -243,6 +240,7 @@ fun PlayByPlayItem(
                     alignEnd = true,
                     primary = if (isHomeGame) opponentName else formattedName,
                     secondary = formatEventPBP(event.type),
+                    tertiary = assistedByPlayerName,
                     isScoreEvent = isScoreEvent,
                     secondaryFaded = true,
                     isHomeGame = isHomeGame
@@ -292,13 +290,12 @@ private fun PlayByPlaySide(
     alignEnd: Boolean,
     primary: String,
     secondary: String,
+    tertiary: String?,
     isScoreEvent: Boolean,
     secondaryFaded: Boolean,
     isHomeGame: Boolean
 ) {
     if (!visible) return
-
-    val weight = if (isScoreEvent) FontWeight.ExtraBold else FontWeight.Normal
     val fadedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.50f)
 
     Row(
@@ -306,11 +303,23 @@ private fun PlayByPlaySide(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (alignEnd) {
-            Text(
-                primary,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (secondaryFaded) fadedColor else LocalContentColor.current,
-            )
+            Column(
+                horizontalAlignment = Alignment.End,
+            ) {
+                Text(
+                    primary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                )
+                tertiary?.let {
+                    Text(
+                        text = "Assist: $it",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (secondaryFaded) fadedColor else LocalContentColor.current
+                    )
+                }
+            }
             OutlinedCard(
                 colors = CardDefaults.outlinedCardColors(
                     containerColor = if (isScoreEvent) Color.White.copy(0.12f) else Color.White.copy(
@@ -350,11 +359,23 @@ private fun PlayByPlaySide(
                     fontWeight = FontWeight.ExtraBold
                 )
             }
-            Text(
-                secondary,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (secondaryFaded) fadedColor else LocalContentColor.current
-            )
+            Column(
+                horizontalAlignment = Alignment.Start,
+            ) {
+                tertiary?.let {
+                    Text(
+                        text = "Assist: $it",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (secondaryFaded) fadedColor else LocalContentColor.current
+                    )
+                }
+                Text(
+                    secondary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
