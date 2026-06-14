@@ -41,53 +41,69 @@ fun RosterScreen(
             }
         )
     }
-
-    Surface(
+    Scaffold(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+        contentWindowInsets = WindowInsets.systemBars
+    ) { padding ->
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
         ) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                SummaryTopBar(
+                    title = "ROSTER",
+                    subTitle = "${players.size} players available",
+                    onBack = onBack
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp)
+                        .padding(0.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    SummaryTopBar(
-                        title = "ROSTER",
-                        subTitle = "${players.size} players available",
-                        onBack = onBack
-                    )
-                }
-            }
-            item {
-                Button(
-                    onClick = { showAddDialog = true },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text("Add")
-                }
-            }
+//                item {
+//                    Row(
+//                        modifier = Modifier.fillMaxWidth(),
+//                        verticalAlignment = Alignment.CenterVertically,
+//                        horizontalArrangement = Arrangement.SpaceBetween
+//                    ) {
+//                        SummaryTopBar(
+//                            title = "ROSTER",
+//                            subTitle = "${players.size} players available",
+//                            onBack = onBack
+//                        )
+//                    }
+//                }
+                    item {
+                        Button(
+                            onClick = { showAddDialog = true },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text("Add")
+                        }
+                    }
 
-            if (players.isEmpty()) {
-                item {
-                    EmptyRosterCard()
-                }
-            } else {
-                items(players, key = { it.id }) { player ->
-                    RosterPlayerCard(
-                        player = player,
-                        onClick = { onPlayerClick(player.id) }
-                    )
+                    if (players.isEmpty()) {
+                        item {
+                            EmptyRosterCard()
+                        }
+                    } else {
+                        items(players, key = { it.id }) { player ->
+                            RosterPlayerCard(
+                                player = player,
+                                onClick = { onPlayerClick(player.id) }
+                            )
+                        }
+                    }
                 }
             }
         }

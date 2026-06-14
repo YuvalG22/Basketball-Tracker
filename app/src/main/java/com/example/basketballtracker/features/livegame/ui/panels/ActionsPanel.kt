@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.R
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
+import com.example.basketballtracker.features.core.ui.components.CustomFilterChip
 import com.example.basketballtracker.features.core.ui.components.LivePanelTabs
 import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
@@ -210,7 +212,7 @@ fun HalfCourtClickable(
                 }
         ) {
             Image(
-                painter = painterResource(R.drawable.half_court),
+                painter = painterResource(R.drawable.court_15x14_original_parquet),
                 contentDescription = null,
                 modifier = Modifier.matchParentSize(),
                 contentScale = ContentScale.FillBounds
@@ -227,26 +229,36 @@ fun HalfCourtClickable(
                         drawCircle(
                             color = Color(0xFF4CAF50),
                             radius = 10f,
-                            center = center
-                        )
-                        drawCircle(
-                            color = Color.White,
-                            radius = 10f,
                             center = center,
-                            style = Stroke(width = 2f)
+                            style = Stroke(width = 6f)
                         )
                     } else {
-                        drawCircle(
+                        val size = 10f
+
+                        drawLine(
                             color = Color.Red,
-                            radius = 10f,
-                            center = center
+                            start = Offset(center.x - size, center.y - size),
+                            end = Offset(center.x + size, center.y + size),
+                            strokeWidth = 6f
                         )
-                        drawCircle(
-                            color = Color.White,
-                            radius = 10f,
-                            center = center,
-                            style = Stroke(width = 2f)
+
+                        drawLine(
+                            color = Color.Red,
+                            start = Offset(center.x - size, center.y + size),
+                            end = Offset(center.x + size, center.y - size),
+                            strokeWidth = 6f
                         )
+//                        drawCircle(
+//                            color = Color.Red,
+//                            radius = 10f,
+//                            center = center
+//                        )
+//                        drawCircle(
+//                            color = Color.White,
+//                            radius = 10f,
+//                            center = center,
+//                            style = Stroke(width = 2f)
+//                        )
                     }
                 }
             }

@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -52,10 +53,11 @@ fun AppNavGraph(
     liveRepo: LiveGameRepository,
     statsRepository: SeasonStatsRepository,
     quarterLengthDefault: Int = 600,
-    syncManager: SyncManager
+    syncManager: SyncManager,
+    modifier: Modifier = Modifier
 ) {
     val playersRepo = remember { PlayersRepository(db.playerDao()) }
-    NavHost(navController = nav, startDestination = Routes.HOME) {
+    NavHost(navController = nav, startDestination = Routes.HOME, modifier = modifier) {
 
         composable(Routes.HOME) {
             HomeScreen(

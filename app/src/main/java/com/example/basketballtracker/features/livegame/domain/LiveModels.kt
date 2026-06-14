@@ -1,6 +1,5 @@
 package com.example.basketballtracker.features.livegame.domain
 
-import androidx.compose.ui.graphics.Color
 import com.example.basketballtracker.core.data.db.entities.EventEntity
 import kotlin.collections.iterator
 import kotlin.math.max
@@ -154,14 +153,6 @@ data class ZoneStats(
     val percentage: Float
         get() = if (attempted == 0) 0f
         else made.toFloat() / attempted
-}
-
-fun zoneColor(percent: Float): Color {
-    return when {
-        percent >= 0.6f -> Color(0xFF4CAF50)
-        percent >= 0.45f -> Color(0xFFFFC107)
-        else -> Color(0xFFF44336)
-    }
 }
 
 fun computeBoxByPlayer(
@@ -432,4 +423,234 @@ fun formatEventPBP(t: EventType) = when (t) {
     EventType.OPP_PF -> "PF"
     EventType.PERIOD_START -> "Start Q"
     EventType.PERIOD_END -> "End Q"
+}
+
+fun computeSecondsPlayedForPlayer(
+    playerId: Long?,
+    events: List<LiveEvent>,
+    quarterLengthSec: Int,
+    currentPeriod: Int,
+    currentClockSecRemaining: Int
+): Int {
+    val nowT = toGameElapsedSec(
+        period = currentPeriod,
+        clockSecRemaining = currentClockSecRemaining,
+        quarterLengthSec = quarterLengthSec
+    )
+
+    val sorted = events.sortedWith(
+        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt })
+    )
+
+    var inTime: Int? = null
+    var total = 0
+
+    for (e in sorted) {
+        if (e.playerId != playerId) continue
+        if (e.type != EventType.SUB_IN && e.type != EventType.SUB_OUT) continue
+
+        val t = toGameElapsedSec(e.period, e.clockSecRemaining, quarterLengthSec)
+
+        when (e.type) {
+            EventType.SUB_IN -> {
+                if (inTime == null) {
+                    inTime = t
+                }
+            }
+
+            EventType.SUB_OUT -> {
+                val tIn = inTime ?: continue
+                total += max(0, t - tIn)
+                inTime = null
+            }
+
+            else -> Unit
+        }
+    }
+
+    if (inTime != null) {
+        total += max(0, nowT - inTime)
+    }
+
+    return total
+}
+
+fun computeSecondsPlayedForPlayerInPeriod(
+    playerId: Long?,
+    events: List<LiveEvent>,
+    period: Int,
+    quarterLengthSec: Int
+): Int {
+    val periodEvents = events
+        .filter { it.period == period }
+        .sortedWith(compareBy<LiveEvent>({ -it.clockSecRemaining }, { it.createdAt }))
+
+    var inTime: Int? = null
+    var total = 0
+
+    for (e in periodEvents) {
+        if (e.playerId != playerId) continue
+        if (e.type != EventType.SUB_IN && e.type != EventType.SUB_OUT) continue
+
+        val t = quarterLengthSec - e.clockSecRemaining
+
+        when (e.type) {
+            EventType.SUB_IN -> {
+                if (inTime == null) inTime = t
+            }
+
+            EventType.SUB_OUT -> {
+                val tIn = inTime ?: continue
+                total += max(0, t - tIn)
+                inTime = null
+            }
+
+            else -> Unit
+        }
+    }
+
+    if (inTime != null) {
+        total += max(0, quarterLengthSec - inTime)
+    }
+
+    return total
+}
+
+fun computePlusMinusForPlayer(
+    playerId: Long,
+    events: List<LiveEvent>
+): Int {
+    var pm = 0
+    val onCourt = linkedSetOf<Long>()
+
+    val sorted = events.sortedWith(
+        compareBy<LiveEvent>(
+            { it.period },
+            { -it.clockSecRemaining },
+            { it.createdAt },
+            { it.id }
+        )
+    )
+
+    fun deltaPoints(type: EventType) = when (type) {
+        EventType.TWO_MADE -> 2
+        EventType.THREE_MADE -> 3
+        EventType.FT_MADE -> 1
+        EventType.OPP_TWO_MADE -> -2
+        EventType.OPP_THREE_MADE -> -3
+        EventType.OPP_FT_MADE -> -1
+        else -> 0
+    }
+
+    for (e in sorted) {
+        when (e.type) {
+            EventType.SUB_IN -> {
+                e.playerId?.let { onCourt.add(it) }
+            }
+
+            EventType.SUB_OUT -> {
+                e.playerId?.let { onCourt.remove(it) }
+            }
+
+            else -> {
+                val delta = deltaPoints(e.type)
+                if (delta != 0 && playerId in onCourt) {
+                    pm += delta
+                }
+            }
+        }
+    }
+
+    return pm
+}
+
+fun computeSecondsPlayedForPlayerAfterEnd(
+    playerId: Long?,
+    events: List<EventEntity>,
+    quarterLengthSec: Int,
+    currentPeriod: Int,
+    currentClockSecRemaining: Int
+): Int {
+    val nowT = toGameElapsedSec(
+        period = currentPeriod,
+        clockSecRemaining = currentClockSecRemaining,
+        quarterLengthSec = quarterLengthSec
+    )
+
+    val sorted = events.sortedWith(
+        compareBy<EventEntity>({ it.period }, { -it.clockSecRemaining }, { it.createdAt })
+    )
+
+    var inTime: Int? = null
+    var total = 0
+
+    for (e in sorted) {
+        if (e.playerId != playerId) continue
+        if (e.type != EventType.SUB_IN.toString() && e.type != EventType.SUB_OUT.toString()) continue
+
+        val t = toGameElapsedSec(e.period, e.clockSecRemaining, quarterLengthSec)
+
+        when (e.type) {
+            EventType.SUB_IN.toString() -> {
+                if (inTime == null) {
+                    inTime = t
+                }
+            }
+
+            EventType.SUB_OUT.toString() -> {
+                val tIn = inTime ?: continue
+                total += max(0, t - tIn)
+                inTime = null
+            }
+
+            else -> Unit
+        }
+    }
+
+    if (inTime != null) {
+        total += max(0, nowT - inTime)
+    }
+
+    return total
+}
+
+fun computeSecondsPlayedForPlayerInPeriodAfterEnd(
+    playerId: Long?,
+    events: List<EventEntity>,
+    period: Int,
+    quarterLengthSec: Int
+): Int {
+    val periodEvents = events
+        .filter { it.period == period }
+        .sortedWith(compareBy<EventEntity>({ -it.clockSecRemaining }, { it.createdAt }))
+
+    var inTime: Int? = null
+    var total = 0
+
+    for (e in periodEvents) {
+        if (e.playerId != playerId) continue
+        if (e.type != EventType.SUB_IN.toString() && e.type != EventType.SUB_OUT.toString()) continue
+
+        val t = quarterLengthSec - e.clockSecRemaining
+
+        when (e.type) {
+            EventType.SUB_IN.toString() -> {
+                if (inTime == null) inTime = t
+            }
+
+            EventType.SUB_OUT.toString() -> {
+                val tIn = inTime ?: continue
+                total += max(0, t - tIn)
+                inTime = null
+            }
+
+            else -> Unit
+        }
+    }
+
+    if (inTime != null) {
+        total += max(0, quarterLengthSec - inTime)
+    }
+
+    return total
 }

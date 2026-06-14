@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,6 +28,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,63 +61,80 @@ fun SeasonStatsScreen(
     val seasonStats by viewModel.seasonStats.collectAsStateWithLifecycle()
     var displayMode by remember { mutableStateOf(StatsDisplayMode.PER_GAME) }
 
-    Surface(
+    Scaffold(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        LazyColumn(
+        contentWindowInsets = WindowInsets.systemBars
+    ) { padding ->
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(0.dp),
+            color = MaterialTheme.colorScheme.background
         ) {
-            item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
                 SummaryTopBar(
                     title = "SEASON STATS",
                     subTitle = "Team overview & stats leaders",
                     onBack = onBack,
                 )
-            }
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+//                item {
+//                    SummaryTopBar(
+//                        title = "SEASON STATS",
+//                        subTitle = "Team overview & stats leaders",
+//                        onBack = onBack,
+//                    )
+//                }
 
-            item {
-                StatsModeDropdown(displayMode) {
-                    displayMode = it
-                }
-            }
-
-            if (seasonStats.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No season stats yet",
-                            color = Color.White.copy(alpha = 0.65f)
-                        )
+                    item {
+                        StatsModeDropdown(displayMode) {
+                            displayMode = it
+                        }
                     }
-                }
-            } else {
-                item {
-                    TeamOverviewCard(
-                        stats = seasonStats,
-                        mode = displayMode
-                    )
-                }
 
-                item {
-                    Text(
-                        text = "CATEGORY LEADERS",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Black
-                    )
-                }
+                    if (seasonStats.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(300.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No season stats yet",
+                                    color = Color.White.copy(alpha = 0.65f)
+                                )
+                            }
+                        }
+                    } else {
+                        item {
+                            TeamOverviewCard(
+                                stats = seasonStats,
+                                mode = displayMode
+                            )
+                        }
 
-                items(buildLeaderCategories(seasonStats, displayMode)) { category ->
-                    LeaderCategoryCard(category)
+                        item {
+                            Text(
+                                text = "CATEGORY LEADERS",
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+
+                        items(buildLeaderCategories(seasonStats, displayMode)) { category ->
+                            LeaderCategoryCard(category)
+                        }
+                    }
                 }
             }
         }

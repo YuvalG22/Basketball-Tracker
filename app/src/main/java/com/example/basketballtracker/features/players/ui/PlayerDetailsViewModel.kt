@@ -7,6 +7,7 @@ import com.example.basketballtracker.features.players.data.PlayerDetailsUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -16,12 +17,22 @@ class PlayerDetailsViewModel(
 ) : ViewModel() {
 
     private val _playerId = MutableStateFlow<Long?>(null)
+    private val _selectedPeriod = MutableStateFlow<Int?>(null)
+
+    val selectedPeriod: StateFlow<Int?> = _selectedPeriod
 
     val uiState: StateFlow<PlayerDetailsUiState> =
-        _playerId
-            .filterNotNull()
-            .flatMapLatest { playerId ->
-                repository.observePlayerDetails(playerId)
+        combine(
+            _playerId.filterNotNull(),
+            _selectedPeriod
+        ) { playerId, selectedPeriod ->
+            playerId to selectedPeriod
+        }
+            .flatMapLatest { (playerId, selectedPeriod) ->
+                repository.observePlayerDetails(
+                    playerId = playerId,
+                    selectedPeriod = selectedPeriod
+                )
             }
             .stateIn(
                 scope = viewModelScope,
@@ -31,5 +42,9 @@ class PlayerDetailsViewModel(
 
     fun loadPlayer(playerId: Long) {
         _playerId.value = playerId
+    }
+
+    fun selectPeriod(period: Int?) {
+        _selectedPeriod.value = period
     }
 }

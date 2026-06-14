@@ -38,6 +38,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,13 +50,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
+import com.example.basketballtracker.features.core.ui.components.CustomFilterChip
 import com.example.basketballtracker.features.core.ui.components.SmallNumberBadge
 import com.example.basketballtracker.features.livegame.domain.EventType
+import com.example.basketballtracker.features.livegame.domain.GameClock
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
 import com.example.basketballtracker.features.livegame.domain.PlayerBox
+import com.example.basketballtracker.features.livegame.domain.computePlusMinusForPlayer
+import com.example.basketballtracker.features.livegame.domain.computeSecondsPlayedForPlayer
+import com.example.basketballtracker.features.livegame.domain.computeSecondsPlayedForPlayerInPeriod
 import com.example.basketballtracker.features.livegame.domain.formatMinutes
 import com.example.basketballtracker.features.livegame.ui.components.FoulDots
-import com.example.basketballtracker.features.players.ui.NumberBadge
 import com.example.basketballtracker.ui.theme.inter
 
 enum class PlayerCardMode {
@@ -70,8 +75,8 @@ fun PlayersPanel(
     onCourtPlayers: List<PlayerEntity>,
     benchPlayers: List<PlayerEntity>,
     selectedId: Long?,
-    isEnded: Boolean,
     events: List<LiveEvent>,
+    clock: GameClock,
     opponentName: String,
     box: Map<Long, PlayerBox>,
     plusMinusById: Map<Long, Int>,
@@ -81,11 +86,21 @@ fun PlayersPanel(
     onSubOut: (Long) -> Unit,
     modifier: Modifier
 ) {
+    var selectedPeriod by rememberSaveable { mutableStateOf<Int?>(null) }
+
+    val filteredEvents = remember(events, selectedPeriod) {
+        if (selectedPeriod == null) {
+            events
+        } else {
+            events.filter { it.period == selectedPeriod }
+        }
+    }
+
     val canSubIn = onCourtPlayers.size < 5
 
     var sheetPlayerId by rememberSaveable { mutableStateOf<Long?>(null) }
     if (sheetPlayerId != null) {
-        val shots = events.mapNotNull { event ->
+        val shots = filteredEvents.mapNotNull { event ->
             if (event.playerId != sheetPlayerId) return@mapNotNull null
             if (!event.type.isShotEvent()) return@mapNotNull null
 
@@ -101,9 +116,36 @@ fun PlayersPanel(
         }
         val pid = sheetPlayerId!!
         val p = (onCourtPlayers + benchPlayers).firstOrNull { it.id == pid }
-        val b = box[pid]
-        val pm = plusMinusById[pid] ?: 0
-        val secPlayed = secondsPlayedById[pid] ?: 0
+
+        val pm = computePlusMinusForPlayer(
+            playerId = pid,
+            events = filteredEvents,
+        )
+        val secPlayed = if (selectedPeriod == null) {
+            computeSecondsPlayedForPlayer(
+                playerId = pid,
+                events = events,
+                quarterLengthSec = 10,
+                currentPeriod = clock.period,
+                currentClockSecRemaining = clock.secRemaining
+            )
+        } else {
+            computeSecondsPlayedForPlayerInPeriod(
+                playerId = selectedId,
+                events = events,
+                period = selectedPeriod!!,
+                quarterLengthSec = 10
+            )
+        }
+
+        val filteredBox = remember(filteredEvents, selectedId) {
+            calculatePlayerBox(
+                events = filteredEvents,
+                playerId = selectedId ?: pid,
+                secondsPlayed = secPlayed,
+                plusMinus = pm,
+            )
+        }
 
         AlertDialog(
             onDismissRequest = { sheetPlayerId = null },
@@ -125,9 +167,26 @@ fun PlayersPanel(
                             .heightIn(max = 500.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            CustomFilterChip(
+                                text = "All",
+                                active = selectedPeriod == null,
+                                onClick = { selectedPeriod = null },
+                            )
+                            (1..4).forEach { period ->
+                                CustomFilterChip(
+                                    text = "Q$period",
+                                    active = selectedPeriod == period,
+                                    onClick = { selectedPeriod = period },
+                                )
+                            }
+                        }
                         PlayerGameSummaryCard(
                             player = p,
-                            playerBox = b,
+                            playerBox = filteredBox,
                             secondsPlayed = secPlayed,
                             plusMinus = pm,
                             opponentName = opponentName,
@@ -372,4 +431,52 @@ private fun PlayerCard(
             }
         }
     }
+}
+
+fun calculatePlayerBox(
+    events: List<LiveEvent>,
+    playerId: Long,
+    secondsPlayed: Int,
+    plusMinus: Int,
+): PlayerBox {
+    val playerEvents = events.filter { it.playerId == playerId }
+
+    val twoMade = playerEvents.count { it.type == EventType.TWO_MADE }
+    val twoMiss = playerEvents.count { it.type == EventType.TWO_MISS }
+
+    val threeMade = playerEvents.count { it.type == EventType.THREE_MADE }
+    val threeMiss = playerEvents.count { it.type == EventType.THREE_MISS }
+
+    val ftMade = playerEvents.count { it.type == EventType.FT_MADE }
+    val ftMiss = playerEvents.count { it.type == EventType.FT_MISS }
+
+    return PlayerBox(
+        playerId = playerId,
+        secondsPlayed = secondsPlayed,
+        plusMinus = plusMinus,
+        pts = playerEvents.sumOf {
+            when (it.type) {
+                EventType.TWO_MADE -> 2
+                EventType.THREE_MADE -> 3
+                EventType.FT_MADE -> 1
+                else -> 0
+            }
+        },
+        ast = playerEvents.count { it.type == EventType.AST },
+        rebOff = playerEvents.count { it.type == EventType.REB_OFF },
+        rebDef = playerEvents.count { it.type == EventType.REB_DEF },
+        stl = playerEvents.count { it.type == EventType.STL },
+        blk = playerEvents.count { it.type == EventType.BLK },
+        tov = playerEvents.count { it.type == EventType.TOV },
+        pf = playerEvents.count { it.type == EventType.PF },
+
+        twom = twoMade,
+        twoa = twoMade + twoMiss,
+
+        threem = threeMade,
+        threea = threeMade + threeMiss,
+
+        ftm = ftMade,
+        fta = ftMade + ftMiss,
+    )
 }

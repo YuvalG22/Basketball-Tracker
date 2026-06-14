@@ -6,8 +6,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -125,51 +127,56 @@ fun NewGameScreen(
         }
     }
 
-    Surface(
+    Scaffold(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        LazyColumn(
+        contentWindowInsets = WindowInsets.systemBars
+    ) { padding ->
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)
+                .padding(0.dp),
+            color = MaterialTheme.colorScheme.background
         ) {
-            item {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 SummaryTopBar(
                     title = "NEW GAME",
                     subTitle = "Set game details and choose at least 5 players",
                     onBack = onBack
                 )
-            }
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    NewGameDetailsCard(
+                        modifier = Modifier.weight(1f),
+                        opponent = opponent,
+                        onOpponent = { opponent = it },
+                        roundText = roundText,
+                        isPlayoff = isPlayoff,
+                        onPlayoffChange = { isPlayoff = it },
+                        playoffStage = playoffStage,
+                        onPlayoffStage = { playoffStage = it },
+                        playoffGameNumber = playoffGameNumber,
+                        onPlayoffGameNumber = { playoffGameNumber = it },
+                        onRound = { roundText = it.filter(Char::isDigit).take(3) },
+                        isHomeGame = isHomeGame,
+                        onHomeToggle = { isHomeGame = !isHomeGame }
+                    )
 
-            item {
-                NewGameDetailsCard(
-                    opponent = opponent,
-                    onOpponent = { opponent = it },
-                    roundText = roundText,
-                    isPlayoff = isPlayoff,
-                    onPlayoffChange = { isPlayoff = it },
-                    playoffStage = playoffStage,
-                    onPlayoffStage = { playoffStage = it },
-                    playoffGameNumber = playoffGameNumber,
-                    onPlayoffGameNumber = { playoffGameNumber = it },
-                    onRound = { roundText = it.filter(Char::isDigit).take(3) },
-                    isHomeGame = isHomeGame,
-                    onHomeToggle = { isHomeGame = !isHomeGame },
-                )
-            }
+                    RosterSelectCard(
+                        modifier = Modifier.weight(1f),
+                        players = players,
+                        selectedIds = selectedIds,
+                        onToggle = ::togglePlayer
+                    )
+                }
 
-            item {
-                RosterSelectCard(
-                    players = players,
-                    selectedIds = selectedIds,
-                    onToggle = ::togglePlayer
-                )
-            }
-
-            item {
                 Button(
                     enabled = canStart,
                     onClick = ::startGame,
@@ -200,6 +207,7 @@ fun NewGameScreen(
 
 @Composable
 private fun NewGameDetailsCard(
+    modifier: Modifier = Modifier,
     opponent: String,
     onOpponent: (String) -> Unit,
 
@@ -218,7 +226,7 @@ private fun NewGameDetailsCard(
     isHomeGame: Boolean,
     onHomeToggle: () -> Unit,
 ) {
-    NewGameCard {
+    NewGameCard(modifier) {
         Column(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -317,11 +325,12 @@ private fun NewGameDetailsCard(
 
 @Composable
 private fun RosterSelectCard(
+    modifier: Modifier = Modifier,
     players: List<PlayerEntity>,
     selectedIds: Set<Long>,
     onToggle: (Long) -> Unit
 ) {
-    NewGameCard {
+    NewGameCard(modifier) {
         Column(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -355,6 +364,7 @@ private fun RosterSelectCard(
                 }
             } else {
                 Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     players.forEach { player ->

@@ -1,13 +1,20 @@
 package com.example.basketballtracker
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -40,15 +47,14 @@ import com.example.basketballtracker.features.stats.data.SeasonStatsRepository
 import com.example.basketballtracker.ui.theme.BasketballTrackerTheme
 import java.util.concurrent.TimeUnit
 import androidx.core.graphics.toColorInt
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.basketballtracker.app.navigation.BottomNavBar
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
-        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
-        windowInsetsController.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
 
         setupBackgroundSync()
 
@@ -59,15 +65,36 @@ class MainActivity : ComponentActivity() {
                 val app = LocalContext.current.applicationContext as BasketballApp
                 val db = app.database
 
-                AppNavGraph(
-                    nav = nav,
-                    db = db,
-                    gamesRepo = app.gamesRepo,
-                    liveRepo = app.liveRepo,
-                    statsRepository = app.statsRepo,
-                    quarterLengthDefault = 600,
-                    syncManager = app.syncManager
+                val navBackStackEntry by nav.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route
+
+                val isLiveScreen = currentRoute == "live/{gameId}"
+                // או לפי ה-route האמיתי שלך
+
+                SystemBarsController(
+                    hideSystemBars = isLiveScreen
                 )
+
+                Scaffold(
+                    bottomBar = {
+                        if (currentRoute in listOf("home", "history", "players", "stats")) {
+                            BottomNavBar(
+                                navController = nav
+                            )
+                        }
+                    }
+                ) { innerPadding ->
+                    AppNavGraph(
+                        nav = nav,
+                        db = db,
+                        gamesRepo = app.gamesRepo,
+                        liveRepo = app.liveRepo,
+                        statsRepository = app.statsRepo,
+                        quarterLengthDefault = 600,
+                        syncManager = app.syncManager,
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                }
             }
         }
     }
@@ -92,5 +119,26 @@ class MainActivity : ComponentActivity() {
             ExistingPeriodicWorkPolicy.KEEP,
             syncRequest
         )
+    }
+}
+
+@Composable
+private fun SystemBarsController(
+    hideSystemBars: Boolean
+) {
+    val view = LocalView.current
+
+    LaunchedEffect(hideSystemBars) {
+        val window = (view.context as Activity).window
+        val controller = WindowCompat.getInsetsController(window, view)
+
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+        if (hideSystemBars) {
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        }
     }
 }

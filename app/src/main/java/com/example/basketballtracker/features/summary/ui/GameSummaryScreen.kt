@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -29,6 +31,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -66,46 +69,63 @@ fun GameSummaryScreen(
         return
     }
 
-    Surface(
-        modifier = Modifier
-            .fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        LazyColumn(
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets.systemBars
+    ) { padding ->
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(0.dp),
+            color = MaterialTheme.colorScheme.background
         ) {
-            item {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
                 SummaryTopBar(
                     title = "GAME SUMMARY",
                     subTitle = "Box score, team totals and game leaders",
                     onBack = onBack
                 )
-            }
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+//                item {
+//                    SummaryTopBar(
+//                        title = "GAME SUMMARY",
+//                        subTitle = "Box score, team totals and game leaders",
+//                        onBack = onBack
+//                    )
+//                }
 
-            item {
-                GameResultCard(
-                    opponentName = state.opponentName,
-                    roundNumber = state.roundNumber,
-                    dateText = state.dateText,
-                    teamScore = state.teamScore,
-                    opponentScore = state.opponentScore,
-                    isWin = state.isWin,
-                    quarterScores = state.quarterScores
-                )
-            }
+                    item {
+                        GameResultCard(
+                            opponentName = state.opponentName,
+                            roundNumber = state.roundNumber,
+                            dateText = state.dateText,
+                            teamScore = state.teamScore,
+                            opponentScore = state.opponentScore,
+                            isWin = state.isWin,
+                            quarterScores = state.quarterScores
+                        )
+                    }
 
-            item {
-                TeamSummaryCard(teamTotals)
-            }
+                    item {
+                        TeamSummaryCard(teamTotals)
+                    }
 
-            item {
-                BoxScoreCard(
-                    rows = state.rows,
-                    teamTotals = teamTotals
-                )
+                    item {
+                        BoxScoreCard(
+                            rows = state.rows,
+                            teamTotals = teamTotals
+                        )
+                    }
+                }
             }
         }
     }

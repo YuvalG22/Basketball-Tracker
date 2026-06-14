@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -78,143 +80,153 @@ fun HomeScreen(
     val lastGameOpponentName = lastGame?.opponentName ?: "Unknown"
     val lastGameIsHomeGame = lastGame?.isHomeGame ?: false
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets.systemBars
+    ) { padding ->
+        Surface(
             Modifier
-                .padding(32.dp)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(0.dp),
+            color = MaterialTheme.colorScheme.background
         ) {
-            Text("🏀 Basketball Tracker", style = MaterialTheme.typography.headlineLarge)
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+            Column(
+                Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Button(
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3AB47A)),
-                    shape = RoundedCornerShape(8.dp),
-                    onClick = onNewGame,
+                Text("🏀 Basketball Tracker", style = MaterialTheme.typography.headlineLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text(
-                        "NEW GAME",
-                        fontFamily = inter,
-                        fontWeight = FontWeight.Black,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-                Button(
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3AB47A)),
-                    shape = RoundedCornerShape(8.dp),
-                    onClick = { viewModel.manualSync() },
-                    enabled = !viewModel.isSyncing
-                ) {
-                    if (viewModel.isSyncing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                            color = Color.White
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.CloudUpload,
-                            contentDescription = "Sync Now"
+                    Button(
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3AB47A)),
+                        shape = RoundedCornerShape(8.dp),
+                        onClick = onNewGame,
+                    ) {
+                        Text(
+                            "NEW GAME",
+                            fontFamily = inter,
+                            fontWeight = FontWeight.Black,
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
-                }
-            }
-            Log.d("HomeScreen", "Rendering HomeScreen with lastGameId: $lastGameId")
-            lastGame?.let { game ->
-                LastGameCard(
-                    opponentName = lastGameOpponentName,
-                    isHomeGame = lastGameIsHomeGame,
-                    teamScore = teamScore,
-                    opponentScore = opponentScore,
-                    status = game.status,
-                    gameDate = gameDate,
-                    isPlayoff = game.isPlayoff,
-                    stage = game.playoffStage,
-                    gameNumber = game.playoffGameNumber ?: game.roundNumber,
-                    period = game.currentPeriod,
-                    secRemaining = game.clockSecRemaining,
-                    onClick = {
-                        when (game.status) {
-                            GameStatus.LIVE -> onContinue(game.id)
-                            GameStatus.FINISHED -> onGameSummary(game.id)
-                            else -> Unit
+                    Button(
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3AB47A)),
+                        shape = RoundedCornerShape(8.dp),
+                        onClick = { viewModel.manualSync() },
+                        enabled = !viewModel.isSyncing
+                    ) {
+                        if (viewModel.isSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.CloudUpload,
+                                contentDescription = "Sync Now"
+                            )
                         }
                     }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            BoxWithConstraints(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-
-                val isWideScreen = maxWidth > 700.dp
-
-                if (isWideScreen) {
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-
-                        MenuCard(
-                            modifier = Modifier.weight(1f),
-                            onClick = { onPlayers() },
-                            icon = "👥",
-                            title = "Roster",
-                            secondary = "Manage your players"
-                        )
-
-                        MenuCard(
-                            modifier = Modifier.weight(1f),
-                            onClick = { onPlayersStats() },
-                            icon = "📊",
-                            title = "Stats",
-                            secondary = "Season averages and team leaders"
-                        )
-
-                        MenuCard(
-                            modifier = Modifier.weight(1f),
-                            onClick = { onHistory() },
-                            icon = "📅",
-                            title = "History",
-                            secondary = "View past games and scores"
-                        )
-                    }
-
-                } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        MenuCard(
-                            onClick = { onPlayersStats() },
-                            icon = "📊",
-                            title = "Stats",
-                            secondary = "Season averages, leaders, and individual game logs"
-                        )
-
-                        MenuCard(
-                            onClick = { onHistory() },
-                            icon = "📅",
-                            title = "History",
-                            secondary = "View past games and scores"
-                        )
-
-                        MenuCard(
-                            onClick = { onPlayers() },
-                            icon = "👥",
-                            title = "Roster",
-                            secondary = "Manage your players"
-                        )
-                    }
                 }
+                Log.d("HomeScreen", "Rendering HomeScreen with lastGameId: $lastGameId")
+                lastGame?.let { game ->
+                    LastGameCard(
+                        opponentName = lastGameOpponentName,
+                        isHomeGame = lastGameIsHomeGame,
+                        teamScore = teamScore,
+                        opponentScore = opponentScore,
+                        status = game.status,
+                        gameDate = gameDate,
+                        isPlayoff = game.isPlayoff,
+                        stage = game.playoffStage,
+                        gameNumber = game.playoffGameNumber ?: game.roundNumber,
+                        period = game.currentPeriod,
+                        secRemaining = game.clockSecRemaining,
+                        onClick = {
+                            when (game.status) {
+                                GameStatus.LIVE -> onContinue(game.id)
+                                GameStatus.FINISHED -> onGameSummary(game.id)
+                                else -> Unit
+                            }
+                        }
+                    )
+                }
+
+//               Spacer(modifier = Modifier.height(16.dp))
+//                BoxWithConstraints(
+//                    modifier = Modifier.fillMaxWidth()
+//                ) {
+//
+//                    val isWideScreen = maxWidth > 700.dp
+//
+//                    if (isWideScreen) {
+//
+//                        Row(
+//                            modifier = Modifier.fillMaxWidth(),
+//                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+//                        ) {
+//
+//                            MenuCard(
+//                                modifier = Modifier.weight(1f),
+//                                onClick = { onPlayers() },
+//                                icon = "👥",
+//                                title = "Roster",
+//                                secondary = "Manage your players"
+//                            )
+//
+//                            MenuCard(
+//                                modifier = Modifier.weight(1f),
+//                                onClick = { onPlayersStats() },
+//                                icon = "📊",
+//                                title = "Stats",
+//                                secondary = "Season averages and team leaders"
+//                            )
+//
+//                            MenuCard(
+//                                modifier = Modifier.weight(1f),
+//                                onClick = { onHistory() },
+//                                icon = "📅",
+//                                title = "History",
+//                                secondary = "View past games and scores"
+//                            )
+//                        }
+//
+//                    } else {
+//                        Column(
+//                            modifier = Modifier
+//                                .fillMaxWidth(),
+//                            verticalArrangement = Arrangement.spacedBy(16.dp)
+//                        ) {
+//                            MenuCard(
+//                                onClick = { onPlayersStats() },
+//                                icon = "📊",
+//                                title = "Stats",
+//                                secondary = "Season averages, leaders, and individual game logs"
+//                            )
+//
+//                            MenuCard(
+//                                onClick = { onHistory() },
+//                                icon = "📅",
+//                                title = "History",
+//                                secondary = "View past games and scores"
+//                            )
+//
+//                            MenuCard(
+//                                onClick = { onPlayers() },
+//                                icon = "👥",
+//                                title = "Roster",
+//                                secondary = "Manage your players"
+//                            )
+//                        }
+//                    }
+//                }
             }
         }
     }

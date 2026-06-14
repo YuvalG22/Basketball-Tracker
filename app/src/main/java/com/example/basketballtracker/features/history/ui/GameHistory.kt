@@ -1,6 +1,5 @@
 package com.example.basketballtracker.features.history.ui
 
-import androidx.collection.mutableLongSetOf
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,13 +8,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,34 +23,27 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
 import com.example.basketballtracker.core.data.db.entities.GameEntity
 import com.example.basketballtracker.features.history.state.GamesHistoryViewModel
 import com.example.basketballtracker.features.summary.ui.SummaryTopBar
-import java.nio.file.WatchEvent
 
 private val HistoryAccent = Color(0xFF2ECC71)
 
@@ -86,50 +78,67 @@ fun GamesHistoryScreen(
             }
         )
     }
-
-    Surface(
+    Scaffold(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        LazyColumn(
+        contentWindowInsets = WindowInsets.systemBars
+    ) { padding ->
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(0.dp),
+            color = MaterialTheme.colorScheme.background
         ) {
-            item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
                 SummaryTopBar(
                     "GAME HISTORY",
                     "Review previous games and box scores",
                     onBack
                 )
-            }
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+//                item {
+//                    SummaryTopBar(
+//                        "GAME HISTORY",
+//                        "Review previous games and box scores",
+//                        onBack
+//                    )
+//                }
 
-            if (games.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No games yet",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-            } else {
-                items(games, key = { it.id }) { game ->
-                    GameHistoryCard(
-                        game = game,
-                        onClick = { onGameClick(game.id) },
-                        onDeleteClick = {
-                            deleteGameId = game.id
-                            deleteGameTitle =
-                                "vs ${game.opponentName} (Round ${game.roundNumber})"
+                    if (games.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(300.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No games yet",
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
                         }
-                    )
+                    } else {
+                        items(games, key = { it.id }) { game ->
+                            GameHistoryCard(
+                                game = game,
+                                onClick = { onGameClick(game.id) },
+                                onDeleteClick = {
+                                    deleteGameId = game.id
+                                    deleteGameTitle =
+                                        "vs ${game.opponentName} (Round ${game.roundNumber})"
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -180,8 +189,11 @@ fun GameHistoryCard(
 
                 Spacer(Modifier.width(10.dp))
 
+                val titleRegSeason = if(!game.isPlayoff) "Regular Season Round ${game.roundNumber}" else ""
+                val titlePlayoff = if(game.isPlayoff) "Playoffs ${formatStage(game.playoffStage)} Game ${game.playoffGameNumber}" else ""
+
                 Text(
-                    text = "ROUND ${game.roundNumber}",
+                    text = if(game.isPlayoff) titlePlayoff else titleRegSeason,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold
@@ -300,7 +312,7 @@ fun ResultScoreBadge(text: String, teamScore: Int, opponentScore: Int) {
     Box(
         modifier = Modifier
             .background(
-                if (text == "WIN") HistoryAccent else MaterialTheme.colorScheme.error,
+                if (text == "W") HistoryAccent else MaterialTheme.colorScheme.error,
                 RoundedCornerShape(50)
             )
             .padding(horizontal = 12.dp, vertical = 6.dp),
@@ -310,7 +322,7 @@ fun ResultScoreBadge(text: String, teamScore: Int, opponentScore: Int) {
             text = "$text $teamScore - $opponentScore",
             color = Color.Black,
             style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Black
+            fontWeight = FontWeight.Black,
         )
     }
 }
@@ -344,3 +356,13 @@ fun marginText(teamScore: Int, opponentScore: Int): String {
         else -> "0"
     }
 }
+
+fun formatStage(stage: String?): String? {
+    return when (stage) {
+        "QUARTER_FINAL" -> "Quarter Final"
+        "SEMI_FINAL" -> "Semi Final"
+        else -> stage
+    }
+}
+
+

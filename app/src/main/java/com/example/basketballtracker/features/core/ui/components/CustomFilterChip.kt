@@ -1,10 +1,17 @@
 package com.example.basketballtracker.features.core.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -16,23 +23,22 @@ fun CustomFilterChip(
     active: Boolean,
     onClick: () -> Unit
 ) {
-    FilterChip(
-        selected = active,
-        onClick = onClick,
-        label = {
-            Text(
-                text = text,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(
+                if (active) Color(0xFF2ECC71)
+                else Color(0xFF1F1D1D)
             )
-        },
-        shape = RoundedCornerShape(999.dp),
-        border = null,
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = Color(0xFF2ECC71),
-            selectedLabelColor = Color.Black,
-            containerColor = Color(0xFF1F1D1D),
-            labelColor = Color(0x80FFFFFF)
+            .clickable { onClick() }
+            .padding(horizontal = 20.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (active) Color.Black else Color.White.copy(alpha = 0.5f)
         )
-    )
+    }
 }
