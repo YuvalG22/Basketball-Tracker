@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
+import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.computeBoxByPlayer
 import com.example.basketballtracker.features.livegame.domain.computeOnCourtIds
 import com.example.basketballtracker.features.livegame.domain.computeOppScore
@@ -148,6 +149,7 @@ fun LiveGameTabletScreen(
                 )
                 ActionButtonsPanel(
                     onEvent = { type, shotMeta -> vm.addEvent(type, shotMeta = shotMeta) },
+                    opponentEvents = s.events.filter { it.type.isOpponentEvent() },
                     enabled = actionsEnabled && pendingMadeShot == null,
                     modifier = Modifier
                         .weight(0.30f)

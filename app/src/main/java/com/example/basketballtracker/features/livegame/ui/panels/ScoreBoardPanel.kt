@@ -144,45 +144,8 @@ fun ScoreBoardPanel(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "OPP\nSCORE",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.5f)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column(
-                            modifier = Modifier
-                                .width(130.dp),
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                OppScoreButton("FT", EventType.OPP_FT_MADE, onEvent, enabled)
-                                OppScoreButton("2PT", EventType.OPP_TWO_MADE, onEvent, enabled)
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                OppScoreButton("3PT", EventType.OPP_THREE_MADE, onEvent, enabled)
-                                OppScoreButton("PF", EventType.OPP_PF, onEvent, enabled)
-                            }
-                        }
-                        VerticalDivider(
-                            modifier = Modifier
-                                .height(48.dp)
-                                .padding(end = 8.dp, start = 8.dp),
-                            thickness = 1.dp,
-                            color = Color.White.copy(alpha = 0.2f)
-                        )
-                    }
                     var menuExpanded by remember { mutableStateOf(false) }
                     var showEndDialog by remember { mutableStateOf(false) }
                     Box() {

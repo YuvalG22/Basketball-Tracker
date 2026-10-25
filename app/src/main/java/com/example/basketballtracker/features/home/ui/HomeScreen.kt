@@ -50,9 +50,6 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onNewGame: () -> Unit,
     onContinue: (Long) -> Unit,
-    onPlayers: () -> Unit,
-    onPlayersStats: () -> Unit,
-    onHistory: () -> Unit,
     onGameSummary: (Long) -> Unit
 ) {
     val lastGame by viewModel.lastGame.collectAsState()
@@ -97,8 +94,31 @@ fun HomeScreen(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("🏀 Basketball Tracker", style = MaterialTheme.typography.headlineLarge)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("🏀 Basketball Tracker", style = MaterialTheme.typography.headlineLarge, color = Color.White)
                 Spacer(modifier = Modifier.height(16.dp))
+                lastGame?.let { game ->
+                    LastGameCard(
+                        opponentName = lastGameOpponentName,
+                        isHomeGame = lastGameIsHomeGame,
+                        teamScore = teamScore,
+                        opponentScore = opponentScore,
+                        status = game.status,
+                        gameDate = gameDate,
+                        isPlayoff = game.isPlayoff,
+                        stage = game.playoffStage,
+                        gameNumber = game.playoffGameNumber ?: game.roundNumber,
+                        period = game.currentPeriod,
+                        secRemaining = game.clockSecRemaining,
+                        onClick = {
+                            when (game.status) {
+                                GameStatus.LIVE -> onContinue(game.id)
+                                GameStatus.FINISHED -> onGameSummary(game.id)
+                                else -> Unit
+                            }
+                        }
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -135,30 +155,6 @@ fun HomeScreen(
                         }
                     }
                 }
-                Log.d("HomeScreen", "Rendering HomeScreen with lastGameId: $lastGameId")
-                lastGame?.let { game ->
-                    LastGameCard(
-                        opponentName = lastGameOpponentName,
-                        isHomeGame = lastGameIsHomeGame,
-                        teamScore = teamScore,
-                        opponentScore = opponentScore,
-                        status = game.status,
-                        gameDate = gameDate,
-                        isPlayoff = game.isPlayoff,
-                        stage = game.playoffStage,
-                        gameNumber = game.playoffGameNumber ?: game.roundNumber,
-                        period = game.currentPeriod,
-                        secRemaining = game.clockSecRemaining,
-                        onClick = {
-                            when (game.status) {
-                                GameStatus.LIVE -> onContinue(game.id)
-                                GameStatus.FINISHED -> onGameSummary(game.id)
-                                else -> Unit
-                            }
-                        }
-                    )
-                }
-
 //               Spacer(modifier = Modifier.height(16.dp))
 //                BoxWithConstraints(
 //                    modifier = Modifier.fillMaxWidth()

@@ -64,9 +64,6 @@ fun AppNavGraph(
                 viewModel = remember { HomeViewModel(gamesRepo, liveRepo, syncManager) },
                 onNewGame = { nav.navigate(Routes.NEW_GAME) },
                 onContinue = { gameId -> nav.navigate(Routes.live(gameId)) },
-                onPlayers = { nav.navigate(Routes.PLAYERS) },
-                onPlayersStats = { nav.navigate(Routes.STATS) },
-                onHistory = { nav.navigate(Routes.HISTORY) },
                 onGameSummary = { gameId -> nav.navigate(Routes.summary(gameId)) }
             )
         }

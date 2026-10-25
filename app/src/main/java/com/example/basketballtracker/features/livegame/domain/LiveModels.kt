@@ -17,6 +17,9 @@ enum class EventType {
     //opponent events
     OPP_TWO_MADE,
     OPP_THREE_MADE,
+    OPP_FT_MISS,
+    OPP_TWO_MISS,
+    OPP_THREE_MISS,
     OPP_FT_MADE,
     OPP_PF,
 
@@ -24,7 +27,14 @@ enum class EventType {
     PERIOD_END;
 
     fun isOpponentEvent(): Boolean = when (this) {
-        OPP_TWO_MADE, OPP_THREE_MADE, OPP_FT_MADE, OPP_PF -> true
+        OPP_TWO_MADE,
+        OPP_THREE_MADE,
+        OPP_FT_MADE,
+        OPP_FT_MISS,
+        OPP_TWO_MISS,
+        OPP_THREE_MISS,
+        OPP_PF -> true
+
         else -> false
     }
 
@@ -396,6 +406,9 @@ fun formatEvent(t: EventType) = when (t) {
     EventType.OPP_TWO_MADE -> "2PT ✓"
     EventType.OPP_THREE_MADE -> "3PT ✓"
     EventType.OPP_FT_MADE -> "FT ✓"
+    EventType.OPP_TWO_MISS -> "2PT ✗"
+    EventType.OPP_THREE_MISS -> "3PT ✗"
+    EventType.OPP_FT_MISS -> "FT ✗"
     EventType.OPP_PF -> "PF"
     EventType.PERIOD_START -> "Start Q"
     EventType.PERIOD_END -> "End Q"
@@ -420,6 +433,9 @@ fun formatEventPBP(t: EventType) = when (t) {
     EventType.OPP_TWO_MADE -> "2PT ✓"
     EventType.OPP_THREE_MADE -> "3PT ✓"
     EventType.OPP_FT_MADE -> "FT ✓"
+    EventType.OPP_TWO_MISS -> "2PT ✗"
+    EventType.OPP_THREE_MISS -> "3PT ✗"
+    EventType.OPP_FT_MISS -> "FT ✗"
     EventType.OPP_PF -> "PF"
     EventType.PERIOD_START -> "Start Q"
     EventType.PERIOD_END -> "End Q"

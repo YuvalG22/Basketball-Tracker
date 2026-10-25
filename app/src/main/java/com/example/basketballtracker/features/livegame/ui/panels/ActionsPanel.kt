@@ -113,7 +113,7 @@ fun ActionsPanel(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(0.dp)
+                .padding(12.dp)
         ) {
             var selectedTab by rememberSaveable { mutableStateOf(0) }
 
@@ -333,64 +333,64 @@ fun PlayerGameStatsCard(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF262626)),
     ) {
         if (player == null) return@Card
-        Row(
-            modifier = Modifier.padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(
-                "#${playerNumber}",
-                style = MaterialTheme.typography.titleSmall,
-                color = Color.White.copy(alpha = 0.5f),
-            )
-            Text(
-                playerName,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-            )
-        }
-        HorizontalDivider(
-            modifier = Modifier.fillMaxWidth(),
-            thickness = 1.dp,
-            color = Color.White.copy(alpha = 0.08f)
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            StatColumn(
-                title = "PTS",
-                value = pts.toString(),
-            )
-            StatColumn(
-                title = "REB",
-                value = reb.toString(),
-            )
-            StatColumn(
-                title = "AST",
-                value = ast.toString(),
-            )
-            StatColumn(
-                title = "STL",
-                value = stl.toString(),
-            )
-            StatColumn(
-                title = "BLK",
-                value = blk.toString(),
-            )
-            StatColumn(
-                title = "TO",
-                value = tov.toString(),
-            )
-        }
-        HorizontalDivider(
-            modifier = Modifier.fillMaxWidth(),
-            thickness = 1.dp,
-            color = Color.White.copy(alpha = 0.08f)
-        )
+//        Row(
+//            modifier = Modifier.padding(8.dp),
+//            verticalAlignment = Alignment.CenterVertically,
+//            horizontalArrangement = Arrangement.spacedBy(6.dp),
+//        ) {
+//            Text(
+//                "#${playerNumber}",
+//                style = MaterialTheme.typography.titleSmall,
+//                color = Color.White.copy(alpha = 0.5f),
+//            )
+//            Text(
+//                playerName,
+//                style = MaterialTheme.typography.titleMedium,
+//                color = Color.White,
+//            )
+//        }
+//        HorizontalDivider(
+//            modifier = Modifier.fillMaxWidth(),
+//            thickness = 1.dp,
+//            color = Color.White.copy(alpha = 0.08f)
+//        )
+//        Row(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(4.dp),
+//            verticalAlignment = Alignment.CenterVertically,
+//            horizontalArrangement = Arrangement.SpaceEvenly
+//        ) {
+//            StatColumn(
+//                title = "PTS",
+//                value = pts.toString(),
+//            )
+//            StatColumn(
+//                title = "REB",
+//                value = reb.toString(),
+//            )
+//            StatColumn(
+//                title = "AST",
+//                value = ast.toString(),
+//            )
+//            StatColumn(
+//                title = "STL",
+//                value = stl.toString(),
+//            )
+//            StatColumn(
+//                title = "BLK",
+//                value = blk.toString(),
+//            )
+//            StatColumn(
+//                title = "TO",
+//                value = tov.toString(),
+//            )
+//        }
+//        HorizontalDivider(
+//            modifier = Modifier.fillMaxWidth(),
+//            thickness = 1.dp,
+//            color = Color.White.copy(alpha = 0.08f)
+//        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()

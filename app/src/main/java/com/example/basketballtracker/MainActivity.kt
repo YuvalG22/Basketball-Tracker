@@ -56,8 +56,6 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
 
-        setupBackgroundSync()
-
         setContent {
             BasketballTrackerTheme {
                 val nav = rememberNavController()
@@ -99,27 +97,27 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun setupBackgroundSync() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .setRequiresBatteryNotLow(true)
-            .build()
-
-        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(1, TimeUnit.HOURS)
-            .setConstraints(constraints)
-            .setBackoffCriteria(
-                BackoffPolicy.EXPONENTIAL,
-                WorkRequest.MIN_BACKOFF_MILLIS,
-                TimeUnit.MILLISECONDS
-            )
-            .build()
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "BasketballSync",
-            ExistingPeriodicWorkPolicy.KEEP,
-            syncRequest
-        )
-    }
+//    private fun setupBackgroundSync() {
+//        val constraints = Constraints.Builder()
+//            .setRequiredNetworkType(NetworkType.CONNECTED)
+//            .setRequiresBatteryNotLow(true)
+//            .build()
+//
+//        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(1, TimeUnit.HOURS)
+//            .setConstraints(constraints)
+//            .setBackoffCriteria(
+//                BackoffPolicy.EXPONENTIAL,
+//                WorkRequest.MIN_BACKOFF_MILLIS,
+//                TimeUnit.MILLISECONDS
+//            )
+//            .build()
+//
+//        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+//            "BasketballSync",
+//            ExistingPeriodicWorkPolicy.KEEP,
+//            syncRequest
+//        )
+//    }
 }
 
 @Composable

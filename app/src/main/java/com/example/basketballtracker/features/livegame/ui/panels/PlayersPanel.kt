@@ -62,6 +62,7 @@ import com.example.basketballtracker.features.livegame.domain.computeSecondsPlay
 import com.example.basketballtracker.features.livegame.domain.formatMinutes
 import com.example.basketballtracker.features.livegame.ui.components.FoulDots
 import com.example.basketballtracker.ui.theme.inter
+import com.example.basketballtracker.utils.formatPlayerName
 
 enum class PlayerCardMode {
     ON_COURT,
@@ -338,7 +339,7 @@ private fun PlayerCard(
                         SmallNumberBadge(player.number)
                         Spacer(modifier = Modifier.width(spacing))
                         Text(
-                            text = player.name,
+                            text = formatPlayerName(player.name),
                             fontFamily = inter,
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface
