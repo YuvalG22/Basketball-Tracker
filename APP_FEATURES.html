@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Basketball Tracker — Detailed Feature Guide</title>
+<style>
+:root{color-scheme:light;--ink:#172d28;--muted:#53665f;--accent:#176c4f;--line:#dce6df;--paper:#fff;--page:#f0f4f0}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:24px}
+body{margin:0;background:var(--page);color:var(--ink);font:16px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1040px;margin:36px auto;padding:56px 68px;background:var(--paper);border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 45px #17372a0b}
+h1{font-size:2.5rem;line-height:1.2;letter-spacing:-.045em;margin:0 0 22px}
+h2{font-size:1.65rem;line-height:1.3;margin:48px 0 18px;padding-top:22px;border-top:2px solid var(--line);letter-spacing:-.025em}
+h3{font-size:1.12rem;margin:26px 0 10px;color:var(--accent)}
+p{margin:12px 0}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+li{padding:3px 0}
+ul,ol{padding-left:25px}
+code{font:0.88em ui-monospace,Consolas,monospace;background:#eef4ef;border-radius:4px;padding:2px 5px}
+.table-wrap{overflow-x:auto;margin:20px 0}
+table{border-collapse:collapse;width:100%;font-size:.93rem;line-height:1.55}
+th,td{text-align:left;vertical-align:top;border:1px solid var(--line);padding:11px 14px}
+th{background:#e9f2ec;color:#214737;font-weight:650}
+tr:nth-child(even) td{background:#f8faf8}
+hr{border:0;border-top:1px solid var(--line);margin:36px 0}
+#contents+ul{columns:2;column-gap:36px;list-style:none;padding:16px 20px;background:#f3f7f3;border-radius:12px}
+#contents+ul li{break-inside:avoid;font-size:.93rem;padding:5px 0}
+@media(max-width:700px){main{margin:0;padding:30px 20px;border:0;border-radius:0}h1{font-size:2rem}h2{font-size:1.4rem}#contents+ul{columns:1}th,td{padding:9px 10px}}
+@media print{body{background:#fff;font-size:10pt;line-height:1.5}main{margin:0;max-width:none;border:0;border-radius:0;box-shadow:none;padding:0}h1{font-size:25pt}h2{font-size:17pt;break-after:avoid}h3{break-after:avoid}table{font-size:9pt}tr{break-inside:avoid}a{color:inherit;text-decoration:none}.table-wrap{overflow:visible}#contents+ul{columns:2} @page{size:A4;margin:17mm}}
+</style>
+</head>
+<body>
+<main>
+<h1 id="basketball-tracker-detailed-feature-guide">Basketball Tracker — Detailed Feature Guide</h1>
+<p><strong>Source snapshot:</strong> commit <code>06aee1a</code><br><strong>Prepared:</strong> 25 October 2026<br><strong>Application:</strong> Basketball Tracker for Android</p>
+<p>This guide describes the features present in the current source code, how users move through them, and what information the app records. It distinguishes visible controls from functionality that exists only in supporting code. It is a source-based inventory, not a claim that every workflow has been verified on a device.</p>
+<h2 id="contents">Contents</h2>
+<ul><li><a href="#1-app-overview">1. App overview</a></li><li><a href="#2-navigation-and-home-screen">2. Navigation and home screen</a></li><li><a href="#3-player-roster">3. Player roster</a></li><li><a href="#4-creating-a-game">4. Creating a game</a></li><li><a href="#5-live-scoreboard-and-game-clock">5. Live scoreboard and game clock</a></li><li><a href="#6-lineups-and-substitutions">6. Lineups and substitutions</a></li><li><a href="#7-recording-player-and-opponent-statistics">7. Recording player and opponent statistics</a></li><li><a href="#8-interactive-shot-chart-and-assists">8. Interactive shot chart and assists</a></li><li><a href="#9-play-by-play-and-undo">9. Play-by-play and undo</a></li><li><a href="#10-ending-a-game-and-viewing-its-summary">10. Ending a game and viewing its summary</a></li><li><a href="#11-game-history">11. Game history</a></li><li><a href="#12-individual-player-history-and-analysis">12. Individual player history and analysis</a></li><li><a href="#13-season-statistics-and-leaders">13. Season statistics and leaders</a></li><li><a href="#14-storage-and-cloud-synchronization">14. Storage and cloud synchronization</a></li><li><a href="#15-interface-and-device-support">15. Interface and device support</a></li><li><a href="#16-availability-notes-and-known-limitations">16. Availability notes and known limitations</a></li><li><a href="#17-statistics-glossary">17. Statistics glossary</a></li><li><a href="#18-typical-end-to-end-workflow">18. Typical end-to-end workflow</a></li></ul>
+<h2 id="1-app-overview">1. App overview</h2>
+<p>Basketball Tracker is an Android basketball scorekeeping and statistics app. Its main workflow is to create a game, choose a roster, manage the players on court, record basketball events, and review the resulting player and team statistics.</p>
+<p>The live-game workspace is designed around a wide, tablet-style layout. Historical and season screens provide follow-up analysis.</p>
+<p>The tracked team is labeled <strong>Afeka</strong> in several screens. Opponent names are entered separately for each game. The app does not expose a team-name editor or a multi-team management screen.</p>
+<div class="table-wrap"><table><thead><tr><th>Area</th><th>Main capabilities</th></tr></thead><tbody><tr><td>Home</td><td>Latest game, continue a live game, open a completed summary, create a game, manual sync</td></tr><tr><td>Players</td><td>Add players, browse the roster, open player statistics</td></tr><tr><td>New game</td><td>Opponent, home/away, regular-season or playoff details, game roster</td></tr><tr><td>Live game</td><td>Clock, scoreboard, substitutions, player events, opponent shooting, shot locations, assists, play-by-play, undo</td></tr><tr><td>Game summary</td><td>Final result, quarter scoring, team totals, player box score</td></tr><tr><td>Games</td><td>Browse previous games and delete games</td></tr><tr><td>Player analysis</td><td>Averages, individual game logs, quarter breakdowns, shot charts</td></tr><tr><td>Season stats</td><td>Team totals or averages, shooting efficiency, category leaders</td></tr><tr><td>Data</td><td>Local database, pending uploads, cloud downloads and reconciliation</td></tr></tbody></table></div>
+<h2 id="2-navigation-and-home-screen">2. Navigation and home screen</h2>
+<h3 id="main-navigation">Main navigation</h3>
+<p>The bottom navigation bar provides four destinations: <strong>Home</strong>, <strong>Games</strong>, <strong>Players</strong>, and <strong>Stats</strong>. It appears on those main screens. New-game setup, the live workspace, player details, and game summaries use their own screen flows.</p>
+<p>The live workspace hides the Android system bars for more usable space. System bars return outside the live screen.</p>
+<h3 id="latest-game-card">Latest-game card</h3>
+<p>Home highlights the most recently created local game. The card includes the opponent, date, home/away arrangement, scores, and game status. Playoff games include their stage and game number.</p>
+<p>For a live game, the card displays the saved period and clock and offers <strong>Tap to continue</strong>. Its score is calculated from recorded scoring events. For a completed game, it displays the final score and offers <strong>Tap for summary</strong>. The winning side receives visual emphasis.</p>
+<h3 id="home-actions">Home actions</h3>
+<ul><li><strong>NEW GAME</strong> opens game setup.</li><li><strong>Sync Now</strong>, represented by a cloud icon, starts an upload-and-download cycle.</li><li>A progress indicator replaces the sync icon while the operation is running.</li><li>The sync button is disabled during that operation to prevent another manual sync from the same control.</li></ul>
+<p>There is no separate synchronization history or detailed success/error report on Home.</p>
+<h2 id="3-player-roster">3. Player roster</h2>
+<h3 id="browsing-players">Browsing players</h3>
+<p>The Players screen lists players with their names and jersey numbers and shows the roster count. Players are loaded from the local database in name order. An empty-state card is shown when the roster has no players.</p>
+<p>Tapping a player opens that player's individual statistics and game history.</p>
+<h3 id="adding-a-player">Adding a player</h3>
+<p>The <strong>Add Player</strong> dialog asks for a name and jersey number. Names must contain non-whitespace text, and the number must parse as an integer. The jersey-number field accepts digit characters.</p>
+<p>The Add control stays disabled until both inputs are valid. Saving trims surrounding whitespace from the name, creates the player locally, and attempts a cloud upload.</p>
+<p><strong>Availability note:</strong> update and delete operations exist in the player repository and ViewModel, but the current roster screen does not expose player-edit or player-delete controls.</p>
+<h2 id="4-creating-a-game">4. Creating a game</h2>
+<h3 id="game-details">Game details</h3>
+<p>The New Game screen places game details and roster selection side by side.</p>
+<div class="table-wrap"><table><thead><tr><th>Input</th><th>Behavior</th></tr></thead><tbody><tr><td>Opponent</td><td>Free-text opponent name; an empty value is saved as “Unknown”</td></tr><tr><td>Home game</td><td>Toggle determines whether Afeka is displayed as home or away</td></tr><tr><td>Competition type</td><td>Choose regular season or playoffs</td></tr><tr><td>Regular-season round</td><td>Numeric input, limited to three entered digits; missing input becomes round 0</td></tr><tr><td>Playoff stage</td><td>Quarter Final, Semi Final, or Final</td></tr><tr><td>Playoff game number</td><td>Numeric value identifying the game within the playoff matchup</td></tr><tr><td>Game date</td><td>Automatically captured from the device when setup opens</td></tr></tbody></table></div>
+<p>The screen does not expose a calendar/date picker. The configured default is four quarters of ten minutes each; the current UI does not expose a quarter-length selector.</p>
+<h3 id="choosing-the-game-roster">Choosing the game roster</h3>
+<p>Users select participating players from the existing roster. At least <strong>five players</strong> must be selected before Start Game becomes available. More than five may be selected so that substitutes are included.</p>
+<p>Until the minimum is reached, the button states how many additional players are needed.</p>
+<p>Starting creates the game and its roster entries locally and attempts to upload them. The live screen opens after the setup operation completes.</p>
+<p><strong>Roster versus lineup:</strong> choosing players for a game does not automatically put five players on court. The initial lineup is established with the substitution controls.</p>
+<h2 id="5-live-scoreboard-and-game-clock">5. Live scoreboard and game clock</h2>
+<h3 id="live-workspace">Live workspace</h3>
+<p>The live screen contains a scoreboard across the top and three working areas below it:</p>
+<ul><li><strong>Players:</strong> on-court and bench lists.</li><li><strong>Player Stats / Play-by-Play:</strong> selected-player shooting and court interaction, or the event log.</li><li><strong>Actions:</strong> opponent shooting controls and player statistic buttons.</li></ul>
+<h3 id="scoreboard">Scoreboard</h3>
+<p>The scoreboard displays both teams' names and scores, the current period, remaining time, and team-foul counts for the current period. Home/away selection determines the sides on which the teams appear.</p>
+<p>Scores update from the recorded scoring events, with animated score changes. Period labels support Q1–Q4 and overtime periods.</p>
+<h3 id="clock-controls">Clock controls</h3>
+<ul><li><strong>Play/Pause</strong> starts or stops the countdown.</li><li>Time is displayed as minutes and seconds.</li><li><strong>Next Period</strong> is available while the clock is paused.</li><li>Advancing records period-end and period-start events and starts the next period with a reset, paused clock.</li><li>When the running clock reaches zero, the countdown stops and the app records substitutions out for the players currently on court.</li></ul>
+<p>Advancing beyond the fourth quarter is supported. Additional periods currently use the same configured length as regulation quarters; there is no separately configured overtime duration.</p>
+<h3 id="correcting-the-clock-and-period">Correcting the clock and period</h3>
+<p>Tapping the clock opens <strong>Adjust Game Clock</strong>. Users can add or subtract:</p>
+<ul><li>10 seconds.</li><li>30 seconds.</li><li>1 minute.</li><li>One period through the period-correction controls.</li></ul>
+<p>Clock corrections are bounded between zero and the configured quarter length. Manual period corrections are bounded from 1 to 10.</p>
+<h3 id="saving-and-restoring-live-state">Saving and restoring live state</h3>
+<p>The app persists the period, remaining seconds, running/paused status, and the clock's saved start timestamp. Reopening a live game restores those values. If the saved clock was running, restoration deducts elapsed wall-clock time.</p>
+<p>This means a running clock can advance while the live screen is not visible. It is not automatically paused simply because the user leaves the screen.</p>
+<h2 id="6-lineups-and-substitutions">6. Lineups and substitutions</h2>
+<h3 id="on-court-and-bench-groups">On-court and bench groups</h3>
+<p>Game-roster players are separated into <strong>On Court</strong> and <strong>Bench</strong> based on substitution events.</p>
+<p>Player cards show abbreviated names, jersey numbers, personal-foul dots, whole minutes played, points, rebounds, and assists. Selection is visually highlighted. Bench players are ordered using their recorded playing time.</p>
+<h3 id="substitution-controls">Substitution controls</h3>
+<ul><li>Use the upward arrow on a bench player to record a substitution in.</li><li>Use the downward arrow on an on-court player to record a substitution out.</li><li>The bench substitution-in control is disabled when five players are already on court.</li><li>Substitution events include the period and clock, providing the basis for playing-time and plus/minus calculations.</li></ul>
+<p>The lineup is managed explicitly by the operator; the app does not automatically choose starters or substitutes.</p>
+<h3 id="detailed-live-player-card">Detailed live player card</h3>
+<p>Long-pressing a player opens a dialog with their identity, opponent, date, detailed statistics, and shot chart. The dialog offers <strong>All</strong>, <strong>Q1</strong>, <strong>Q2</strong>, <strong>Q3</strong>, and <strong>Q4</strong> filters.</p>
+<p>The detailed card includes minutes, points, assists, rebounds, steals, blocks, turnovers, fouls, plus/minus, field-goal shooting, three-point shooting, and free throws.</p>
+<p>The current implementation has player-selection and time-calculation defects in this dialog, described in Section 16.</p>
+<h2 id="7-recording-player-and-opponent-statistics">7. Recording player and opponent statistics</h2>
+<h3 id="player-action-buttons">Player action buttons</h3>
+<p>After selecting a player, the main action panel offers these controls:</p>
+<div class="table-wrap"><table><thead><tr><th>Control</th><th>Recorded result</th></tr></thead><tbody><tr><td>FT MADE</td><td>One point, one free throw made, one free throw attempted</td></tr><tr><td>FT MISS</td><td>One free throw attempted</td></tr><tr><td>REB D</td><td>Defensive rebound</td></tr><tr><td>REB O</td><td>Offensive rebound</td></tr><tr><td>STL</td><td>Steal</td></tr><tr><td>BLK</td><td>Block</td></tr><tr><td>TOV</td><td>Turnover</td></tr><tr><td>PF</td><td>Personal foul</td></tr></tbody></table></div>
+<p>Two-point and three-point shots are entered through the interactive court rather than dedicated player shot buttons.</p>
+<p>The main player buttons require a selected player, an unfinished game, and fewer than five personal fouls for that player. They are also disabled while a made shot is awaiting assist selection. These checks are applied to the button panel; they are not a universal validation rule across every input path.</p>
+<p>A standalone manual AST button is commented out in the current version. The active assist-entry workflow is the made-shot assist picker.</p>
+<h3 id="opponent-shooting-controls">Opponent shooting controls</h3>
+<p>Opponent events are recorded at team level, without selecting an opponent player:</p>
+<ul><li>OPP 2PT MADE and OPP 2PT MISS.</li><li>OPP 3PT MADE and OPP 3PT MISS.</li><li>OPP FT MADE and OPP FT MISS.</li></ul>
+<p>The opponent section shows cumulative field goals, three-pointers, and free throws as made/attempted totals with percentages. Successful attempts also update the opponent's score.</p>
+<p>Opponent buttons are currently passed an enabled value directly, so they do not require selection of an Afeka player.</p>
+<h3 id="derived-statistics">Derived statistics</h3>
+<p>Recorded events drive team scores and player box scores. A made field goal increments both made and attempted counts. Total rebounds combine offensive and defensive rebounds. Percentages are calculated from makes divided by attempts; zero attempts display as zero percent.</p>
+<p>Plus/minus is calculated by applying scoring changes to the players recorded as on court at the time. Playing time is calculated from substitution intervals and the game clock. Displayed minutes are whole minutes rather than a minutes-and-seconds value.</p>
+<p>Opponent fouls are supported in the event model and foul-count calculation, but the current live UI does not expose an opponent-foul entry button.</p>
+<h2 id="8-interactive-shot-chart-and-assists">8. Interactive shot chart and assists</h2>
+<h3 id="court-input">Court input</h3>
+<p>The Player Stats tab shows the selected player's shooting totals and a half-court diagram. The court records the position of field-goal attempts.</p>
+<p>The current gesture handler accepts <strong>stylus input only</strong>:</p>
+<ul><li>A short stylus tap records a missed field goal.</li><li>A stylus press held for approximately half a second records a made field goal.</li><li>The position determines whether the event is a two-point or three-point attempt.</li></ul>
+<p>Ordinary finger input does not record shots through this court handler.</p>
+<h3 id="stored-shot-information">Stored shot information</h3>
+<p>Each court attempt includes court coordinates and calculated distance from the hoop. The diagram uses a 15-by-14 court coordinate space and a hoop-relative three-point calculation with corner boundaries.</p>
+<p>Made shots are drawn as green circles, and missed shots as red crosses. The selected player's existing shots appear on the live court; historical and detail views also display shot-location charts.</p>
+<p>Free throws are recorded through buttons and do not receive court coordinates from this workflow.</p>
+<h3 id="assist-picker">Assist picker</h3>
+<p>For an Afeka made two-pointer or three-pointer, the app asks <strong>Who passed the ball?</strong></p>
+<p>The choices are <strong>No assist</strong> or another currently on-court player. The scorer is excluded. Confirmation saves the made shot with an optional assister reference; selecting an assister also records a separate assist event for that player.</p>
+<p>Dismissing the picker discards the pending made-shot entry. There are timing and synchronization limitations in this workflow, listed in Section 16.</p>
+<h2 id="9-play-by-play-and-undo">9. Play-by-play and undo</h2>
+<h3 id="event-log">Event log</h3>
+<p>The Play-by-Play tab displays recorded events in basketball time order. Entries can show the event type, player or opponent, period, clock, and a score snapshot. Assisted made shots can display the assister's name.</p>
+<p>Team and opponent entries appear on the appropriate sides according to home/away selection. Scoring events have additional visual emphasis. Period starts and ends appear as dedicated markers.</p>
+<p>The list automatically scrolls to its newest displayed entry when events are added.</p>
+<h3 id="filters">Filters</h3>
+<ul><li><strong>All</strong> shows the full event list, including substitutions and non-scoring statistics.</li><li><strong>Score</strong> shows events classified as scoring events; this classification also includes period markers.</li></ul>
+<p>The filter changes the displayed log, not the underlying recorded events or box-score totals.</p>
+<h3 id="undo">Undo</h3>
+<p>The undo icon reverses the most recently created active event. Synced events are marked for remote deletion; events with no remote ID are deleted locally. Removing an event updates the event-driven score and statistics.</p>
+<p>Undo operates on individual events. A made shot and its automatically generated assist are separate records; there is no grouped action history or redo control.</p>
+<h2 id="10-ending-a-game-and-viewing-its-summary">10. Ending a game and viewing its summary</h2>
+<h3 id="finish-game-flow">Finish-game flow</h3>
+<p>The scoreboard's settings icon opens a menu containing <strong>End Game</strong>. A confirmation dialog offers End or Cancel.</p>
+<p>Ending stops the clock, calculates the final scores, marks the game finished, attempts pending synchronization, and returns the user to Home. Tapping the completed latest-game card opens its summary.</p>
+<h3 id="result-and-quarter-scoring">Result and quarter scoring</h3>
+<p>The summary shows the opponent, round, date, final result, and scores. A quarter table presents Afeka's and the opponent's points for each configured regulation quarter.</p>
+<h3 id="team-totals">Team totals</h3>
+<p>The team dashboard includes:</p>
+<ul><li>Points, total rebounds, and assists.</li><li>Steals, blocks, turnovers, and personal fouls.</li><li>Field goals, three-pointers, and free throws as made/attempted totals and percentages.</li></ul>
+<h3 id="player-box-score">Player box score</h3>
+<p>The box score groups players into starters and bench. Starters are inferred from the first lineup to reach five players through substitution events.</p>
+<p>The player-name column stays fixed while the statistics can scroll horizontally. Columns cover MIN, PTS, REB, AST, DREB, OREB, STL, BLK, FG, 3PT, FT, TO, PF, and +/-. A team-total row aggregates the counting statistics.</p>
+<p>The current summary does not expose editing, sharing, or file export. Although its subtitle mentions game leaders, there is no separate active game-leaders section.</p>
+<h2 id="11-game-history">11. Game history</h2>
+<p>The <strong>Games</strong> tab lists stored games, newest-created first. Each card shows the competition context, opponent, home/away score arrangement, date, and a win/loss badge, with visual emphasis on the winning side.</p>
+<p>Regular-season cards show a round. Playoff cards show a playoff stage and game number. Selecting a card opens its game summary.</p>
+<p>A trash icon opens a deletion confirmation. Confirming removes local events, marks the game for deletion, and attempts cloud deletion. Pending game deletion is retried through synchronization.</p>
+<p>There is no search, user-selectable sort, competition filter, or date-range filter in the current history screen. Its cards use a win/loss presentation rather than a dedicated draw state.</p>
+<h2 id="12-individual-player-history-and-analysis">12. Individual player history and analysis</h2>
+<h3 id="player-overview">Player overview</h3>
+<p>Opening a roster player shows the player's name, counted games, and six averages:</p>
+<ul><li>Points per game.</li><li>Rebounds per game.</li><li>Assists per game.</li><li>Steals per game.</li><li>Blocks per game.</li><li>Turnovers per game.</li></ul>
+<p>These player-profile statistics are derived from locally available events. The profile game list is built from games for which the player has recorded events; being named on a roster alone does not create a game-log entry.</p>
+<h3 id="game-log-and-detailed-sheet">Game log and detailed sheet</h3>
+<p>Game cards show game context and a compact player performance summary. Selecting a card opens a bottom sheet with <strong>All</strong> and <strong>Q1–Q4</strong> filters.</p>
+<p>The sheet includes minutes, points, free throws, two-pointers, three-pointers, combined field goals, total/defensive/offensive rebounds, assists, turnovers, steals, blocks, personal fouls, and a shot-location chart.</p>
+<p>Quarter selection filters the displayed statistics and shots. Dedicated overtime filter buttons are not provided in these detail sheets.</p>
+<p>The shot-chart component contains filtering support in code, but its makes-only and misses-only controls are commented out. The current visible chart displays all qualifying shots for the selected game/quarter.</p>
+<h2 id="13-season-statistics-and-leaders">13. Season statistics and leaders</h2>
+<h3 id="display-modes">Display modes</h3>
+<p>The Stats tab provides <strong>Per Game</strong> and <strong>Total</strong> modes, defaulting to Per Game. Switching modes changes counting-stat displays and counting-stat leader rankings. Shooting percentages remain percentage-based.</p>
+<h3 id="team-overview">Team overview</h3>
+<p>The dashboard presents games, points or points per game, rebounds, assists, steals, blocks, turnovers, personal fouls, and shooting summaries for FG%, 3P%, and FT%.</p>
+<p>Shooting summaries combine players' makes and attempts before calculating percentages. They do not average individual percentages.</p>
+<p>The displayed team game count is currently the largest player games-played count in the downloaded season dataset.</p>
+<h3 id="category-leaders">Category leaders</h3>
+<p>Nine categories each display up to three ranked players with their name, jersey number, and value:</p>
+<div class="table-wrap"><table><thead><tr><th>Counting-stat categories</th><th>Shooting-efficiency categories</th></tr></thead><tbody><tr><td>Points</td><td>Field-goal percentage</td></tr><tr><td>Rebounds</td><td>Three-point percentage</td></tr><tr><td>Assists</td><td>Free-throw percentage</td></tr><tr><td>Steals</td><td></td></tr><tr><td>Blocks</td><td></td></tr><tr><td>Turnovers</td><td></td></tr></tbody></table></div>
+<p>Shooting leaders need at least one attempt in the relevant category. Counting-stat categories are ranked from highest to lowest; the turnovers category therefore shows the highest turnover totals or averages.</p>
+<p>The screen shows an empty state when season statistics are unavailable. It does not expose a season/year selector. Unlike the local player profile, this dashboard uses season aggregates downloaded from the backend.</p>
+<h2 id="14-storage-and-cloud-synchronization">14. Storage and cloud synchronization</h2>
+<h3 id="local-records">Local records</h3>
+<p>The app uses a Room database to store players, games, game rosters, events, and downloaded season aggregates. Game records also store the clock and competition details.</p>
+<p>New players, games, roster entries, and events are written locally and then uploaded when their creation workflow attempts it. Failed uploads generally leave records marked pending.</p>
+<p>Existing local rosters, games, and events can be read without downloading them again. Connectivity is still needed for cloud transfer and refreshing backend-generated season statistics. Some UI workflows await their upload attempt, so a slow connection can delay completion even after the local write.</p>
+<h3 id="manual-synchronization">Manual synchronization</h3>
+<p>Home's Sync Now first processes pending event deletions and uploads pending players, games, rosters, and events. It then fetches players, games, rosters, events, and season statistics from the cloud.</p>
+<p>The season-stat refresh requests recalculation from the backend before downloading the aggregate results. Cloud games missing from a fetched game list are reconciled by deleting their matching local game records.</p>
+<p>Remote IDs are used to match cloud records to local records and translate most game/player relationships between installations.</p>
+<h3 id="live-game-synchronization">Live-game synchronization</h3>
+<p>Opening a live game, undoing an event, and finishing a game trigger pending synchronization. Clock persistence also triggers a throttled sync attempt, at most once every five seconds through that clock-triggered path.</p>
+<p>Individual creation operations may also upload directly, separately from the sync manager.</p>
+<h3 id="background-worker-availability">Background worker availability</h3>
+<p>A background sync worker exists and can upload pending changes and fetch cloud data. However, registration of the periodic worker is <strong>commented out in the current MainActivity</strong>. Fresh installations of this snapshot do not schedule hourly synchronization through that code.</p>
+<p>A device that previously scheduled the work may retain that persisted job; the current snapshot does not explicitly cancel it. Manual and live-game sync paths remain active.</p>
+<h2 id="15-interface-and-device-support">15. Interface and device support</h2>
+<ul><li>Android application with a minimum supported API level of 26 and a target SDK of 36.</li><li>Jetpack Compose and Material 3 interface.</li><li>System-selected light and dark color schemes, with many individual components using explicit dark colors.</li><li>Green accents for selected items, primary actions, and highlighted statistics.</li><li>Bundled Inter typography, card layouts, badges, foul dots, and abbreviated player names in compact areas.</li><li>Haptic feedback on several recording, clock, long-press, and undo interactions.</li><li>Scrollable lists, player detail sheets, dialogs, and a horizontally scrollable box score.</li><li>A live layout built for wide/tablet use; some player analysis components adapt to available screen width.</li><li>Resizable Android activity; left-to-right layout is explicitly enforced by the Compose theme.</li><li>Localized device date/number formatting in some areas, with English labels and English-formatted dates in others.</li></ul>
+<p>No app-level theme picker, language picker, or general Settings screen is exposed.</p>
+<h2 id="16-availability-notes-and-known-limitations">16. Availability notes and known limitations</h2>
+<h3 id="code-present-without-an-active-user-control">Code present without an active user control</h3>
+<div class="table-wrap"><table><thead><tr><th>Capability</th><th>Current availability</th></tr></thead><tbody><tr><td>Edit or delete a roster player</td><td>Supporting operations exist; roster UI exposes adding and viewing</td></tr><tr><td>Reset the current quarter</td><td>ViewModel method exists; no active reset button</td></tr><tr><td>Custom quarter length</td><td>Stored/configurable in supporting interfaces; no setup selector</td></tr><tr><td>Opponent personal-foul entry</td><td>Event model and counter exist; no active entry button</td></tr><tr><td>Manual standalone assist entry</td><td>Button commented out; made-shot assist picker remains active</td></tr><tr><td>Main live shot-chart period selector</td><td>Filtering state exists, but no visible selector changes it</td></tr><tr><td>Makes-only / misses-only historical chart filters</td><td>Controls commented out</td></tr><tr><td>Shooting doughnut charts in game summary</td><td>Components exist but are not called by the active summary</td></tr><tr><td>Periodic background sync</td><td>Worker exists; scheduling code commented out</td></tr><tr><td>General Settings</td><td>Route constant exists; no registered Settings destination</td></tr></tbody></table></div>
+<h3 id="features-not-exposed-in-this-snapshot">Features not exposed in this snapshot</h3>
+<p>There is no visible account/login flow, multiple-team or league management, player photo/profile editor, team-name editor, shot clock, timeout tracking, automated video capture, CSV/PDF export, or in-app sharing action.</p>
+<p>A FileProvider declaration is present, but it is not connected to a user-facing export workflow. This feature guide is an external project document, not an export produced by the app.</p>
+<h3 id="previously-identified-implementation-issues">Previously identified implementation issues</h3>
+<p>The following issues remain in the source snapshot. They qualify the feature descriptions above and should be addressed before relying on these workflows in production.</p>
+<div class="table-wrap"><table><thead><tr><th>Area</th><th>Known issue</th></tr></thead><tbody><tr><td>Database upgrades</td><td>The migration removing shotZone uses DROP COLUMN, which is incompatible with older supported Android SQLite versions</td></tr><tr><td>Cloud reconciliation</td><td>Fetching a cloud game can overwrite unsynced local changes</td></tr><tr><td>Undo during upload</td><td>An event can be uploaded after its local record was deleted, allowing it to reappear on refresh</td></tr><tr><td>Assist persistence</td><td>The separate assist event is saved only after the made-shot upload attempt completes</td></tr><tr><td>Assist synchronization</td><td>Downloaded assister references use another device's local player ID rather than translating the remote ID</td></tr><tr><td>Shot timing</td><td>A made shot uses the clock at assist confirmation rather than the initial shot interaction</td></tr><tr><td>Live player detail</td><td>Some statistics use the selected player instead of the player whose dialog was opened</td></tr><tr><td>Playing time</td><td>Several detail calculations use a ten-second quarter instead of the game's duration</td></tr><tr><td>Offline game deletion</td><td>Main game queries do not filter deletion markers, so pending-deleted games can remain visible</td></tr></tbody></table></div>
+<p>This document does not certify correctness beyond source inspection. Backend behavior, real-device gestures, layouts, and network-failure scenarios were not exercised for this export.</p>
+<h2 id="17-statistics-glossary">17. Statistics glossary</h2>
+<div class="table-wrap"><table><thead><tr><th>Abbreviation</th><th>Meaning</th></tr></thead><tbody><tr><td>GP</td><td>Games played</td></tr><tr><td>MIN</td><td>Whole minutes played</td></tr><tr><td>PTS / PPG</td><td>Points / points per game</td></tr><tr><td>REB / RPG</td><td>Total rebounds / rebounds per game</td></tr><tr><td>DREB / REB D</td><td>Defensive rebounds</td></tr><tr><td>OREB / REB O</td><td>Offensive rebounds</td></tr><tr><td>AST / APG</td><td>Assists / assists per game</td></tr><tr><td>STL / SPG</td><td>Steals / steals per game</td></tr><tr><td>BLK / BPG</td><td>Blocks / blocks per game</td></tr><tr><td>TO / TOV / TPG / TOPG</td><td>Turnovers / turnovers per game, depending on the display</td></tr><tr><td>PF</td><td>Personal fouls</td></tr><tr><td>FG / FGM / FGA</td><td>Field goals / field goals made / field goals attempted</td></tr><tr><td>FG%</td><td>Field-goal makes divided by attempts</td></tr><tr><td>3PT / 3P%</td><td>Three-point shooting totals / percentage</td></tr><tr><td>FT / FT%</td><td>Free-throw shooting totals / percentage</td></tr><tr><td>+/-</td><td>Team scoring margin accumulated while a player is recorded as on court</td></tr><tr><td>Q1–Q4</td><td>Regulation quarters</td></tr><tr><td>OT</td><td>Overtime</td></tr></tbody></table></div>
+<h2 id="18-typical-end-to-end-workflow">18. Typical end-to-end workflow</h2>
+<ol><li>Open Players and add names and jersey numbers for the team roster.</li><li>Open New Game from Home.</li><li>Enter the opponent and home/away status, and choose regular-season or playoff context.</li><li>Select at least five participating players and start the game.</li><li>Substitute five players in to establish the opening lineup.</li><li>Start the clock and select the player associated with each action.</li><li>Use the stylus court for made/missed field goals, the assist picker for assisted makes, and buttons for free throws and other player events.</li><li>Record opponent attempts from the opponent action panel.</li><li>Pause and correct the clock when needed, manage substitutions, and use play-by-play plus undo to review or correct recent entries.</li><li>Advance periods with Next Period, re-establishing the lineup after automatic period-end substitutions.</li><li>End the game from the scoreboard menu and confirm.</li><li>Review the summary, browse Games or individual player history, and use Sync Now to refresh cloud data and season aggregates.</li></ol>
+<hr>
+<p><strong>Source basis:</strong> navigation, active Compose screens, live-game models and ViewModel, repositories, Room entities/DAOs, sync manager/worker, application theme, and build configuration at commit <code>06aee1a</code>.</p>
+</main>
+</body>
+</html>
+
