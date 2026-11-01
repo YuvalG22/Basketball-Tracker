@@ -1,6 +1,8 @@
 package com.example.basketballtracker.core.data.db
 
 import android.util.Log
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.example.basketballtracker.core.data.db.dao.EventDao
 import com.example.basketballtracker.core.data.db.dao.GameDao
 import com.example.basketballtracker.core.data.db.dao.PlayerDao
@@ -35,15 +37,18 @@ class SyncManager(
     private val statsApi: StatsApi
 ) {
 
-    suspend fun syncPending() {
+    companion object { private val syncLock = Mutex() }
+
+    suspend fun syncPending() = syncLock.withLock {
         syncPendingEventDeletes()
         syncPendingPlayers()
         syncPendingGames()
         syncPendingRoster()
         syncPendingEvents()
+        syncPendingEventDeletes()
     }
 
-    suspend fun fetchAllFromCloud() {
+    suspend fun fetchAllFromCloud() = syncLock.withLock {
         fetchPlayersFromCloud()
         fetchGamesFromCloud()
         fetchRosterFromCloud()

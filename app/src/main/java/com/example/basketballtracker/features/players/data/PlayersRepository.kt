@@ -11,12 +11,13 @@ import kotlinx.coroutines.flow.toList
 class PlayersRepository(private val playerDao: PlayerDao) {
     fun observePlayers(): Flow<List<PlayerEntity>> = playerDao.observePlayers()
 
-    suspend fun addPlayer(name: String, number: Int): Long {
+    suspend fun addPlayer(name: String, number: Int, photoUri: String? = null): Long {
 
         val player = PlayerEntity(
             name = name,
             number = number,
-            syncStatus = "PENDING"
+            syncStatus = "PENDING",
+            photoUri = photoUri
         )
 
         val localId = playerDao.insert(player)
@@ -38,8 +39,8 @@ class PlayersRepository(private val playerDao: PlayerDao) {
         return localId
     }
 
-    suspend fun updatePlayer(id: Long, name: String, number: Int) {
-        playerDao.updateById(id, name, number)
+    suspend fun updatePlayer(id: Long, name: String, number: Int, photoUri: String?) {
+        playerDao.updateDetailsById(id, name, number, photoUri)
     }
 
     suspend fun deletePlayer(id: Long) {

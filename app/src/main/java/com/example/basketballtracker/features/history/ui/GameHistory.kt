@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.history.ui
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +31,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,7 +49,7 @@ import com.example.basketballtracker.core.data.db.entities.GameEntity
 import com.example.basketballtracker.features.history.state.GamesHistoryViewModel
 import com.example.basketballtracker.features.summary.ui.SummaryTopBar
 
-private val HistoryAccent = Color(0xFF2ECC71)
+private val HistoryAccent = SportsColors.Accent
 
 @Composable
 fun GamesHistoryScreen(
@@ -53,7 +57,8 @@ fun GamesHistoryScreen(
     onGameClick: (Long) -> Unit,
     onBack: () -> Unit
 ) {
-    val games by vm.games.collectAsState()
+    val history by vm.history.collectAsState()
+    val games = history.games
 
     var deleteGameId by remember { mutableStateOf<Long?>(null) }
     var deleteGameTitle by remember { mutableStateOf("") }
@@ -98,6 +103,7 @@ fun GamesHistoryScreen(
                     onBack
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                HistorySeasonSelector(history.selectedSeason, history.seasons, vm::selectSeason)
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -121,8 +127,8 @@ fun GamesHistoryScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "No games yet",
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    text = history.selectedSeason?.let { "No games in season $it" } ?: "No games yet",
+                                    color = SportsColors.Muted
                                 )
                             }
                         }
@@ -140,6 +146,28 @@ fun GamesHistoryScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun HistorySeasonSelector(selectedSeason: String?, seasons: List<String>, onSelect: (String?) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        OutlinedButton(onClick = { expanded = true }) {
+            Text("Season: ${selectedSeason ?: "All seasons"}")
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(text = { Text("All seasons") }, onClick = {
+                onSelect(null)
+                expanded = false
+            })
+            seasons.forEach { season ->
+                DropdownMenuItem(text = { Text(season) }, onClick = {
+                    onSelect(season)
+                    expanded = false
+                })
             }
         }
     }
@@ -168,7 +196,7 @@ fun GameHistoryCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(4.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -192,26 +220,21 @@ fun GameHistoryCard(
                 val titleRegSeason = if(!game.isPlayoff) "Regular Season Round ${game.roundNumber}" else ""
                 val titlePlayoff = if(game.isPlayoff) "Playoffs ${formatStage(game.playoffStage)} Game ${game.playoffGameNumber}" else ""
 
-                Text(
-                    text = if(game.isPlayoff) titlePlayoff else titleRegSeason,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(Modifier.weight(1f))
-
-                Text(
-                    text = date,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = if (game.isPlayoff) titlePlayoff else titleRegSeason,
+                        color = SportsColors.Text,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(date, color = SportsColors.Muted, style = MaterialTheme.typography.bodySmall)
+                }
 
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Filled.Delete,
                         contentDescription = "Delete game",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        tint = SportsColors.Muted
                     )
                 }
             }
@@ -229,7 +252,7 @@ fun GameHistoryCard(
 
                 Text(
                     text = "VS",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                    color = SportsColors.Muted,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Black,
                     modifier = Modifier.padding(horizontal = 16.dp)
@@ -257,14 +280,14 @@ fun TeamScoreBlock(
         modifier = modifier
             .background(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                RoundedCornerShape(18.dp)
+                RoundedCornerShape(4.dp)
             )
             .padding(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = teamName,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+            color = SportsColors.Muted,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             maxLines = 1
@@ -274,14 +297,14 @@ fun TeamScoreBlock(
 
         Text(
             text = score.toString(),
-            color = if (isWinner) HistoryAccent else Color.White.copy(alpha = 0.5f),
+            color = if (isWinner) HistoryAccent else SportsColors.Muted,
             style = MaterialTheme.typography.displaySmall,
             fontWeight = FontWeight.Black
         )
 
         Text(
             text = if (isWinner) "Winner" else "",
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            color = SportsColors.Muted,
             style = MaterialTheme.typography.bodySmall
         )
     }
@@ -293,7 +316,7 @@ fun ResultBadge(text: String) {
         modifier = Modifier
             .background(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                RoundedCornerShape(50)
+                RoundedCornerShape(4.dp)
             )
             .padding(horizontal = 12.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
@@ -313,14 +336,14 @@ fun ResultScoreBadge(text: String, teamScore: Int, opponentScore: Int) {
         modifier = Modifier
             .background(
                 if (text == "W") HistoryAccent else MaterialTheme.colorScheme.error,
-                RoundedCornerShape(50)
+                RoundedCornerShape(4.dp)
             )
             .padding(horizontal = 12.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = "$text $teamScore - $opponentScore",
-            color = Color.Black,
+            color = SportsColors.OnAccent,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Black,
         )
@@ -335,7 +358,7 @@ fun MiniGameInfo(
     Column {
         Text(
             text = label,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            color = SportsColors.Muted,
             style = MaterialTheme.typography.bodySmall
         )
 

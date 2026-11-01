@@ -1,9 +1,15 @@
 package com.example.basketballtracker.features.stats.ui
 
+import com.example.basketballtracker.ui.theme.SportsColors
+import com.example.basketballtracker.features.core.ui.components.StatStrip
+import com.example.basketballtracker.features.core.ui.components.StatPairs
+import com.example.basketballtracker.features.core.ui.components.ShootingTable
+import com.example.basketballtracker.features.core.ui.components.ShootingFigures
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -45,20 +51,26 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.basketballtracker.features.core.ui.components.SectionTitle
 import com.example.basketballtracker.features.stats.domain.PlayerSeasonStats
+import com.example.basketballtracker.features.players.ui.PlayerPhoto
 import com.example.basketballtracker.features.stats.state.SeasonStatsViewModel
 import com.example.basketballtracker.features.stats.state.StatsDisplayMode
 import com.example.basketballtracker.features.summary.ui.SummaryTopBar
 
-private val StatsAccent = Color(0xFF2ECC71)
-private val CardDark = Color(0xFF101820)
-private val CardBorder = Color.White.copy(alpha = 0.10f)
+private val StatsAccent = SportsColors.Accent
+private val CardDark = SportsColors.Surface
+private val CardBorder = SportsColors.Text.copy(alpha = 0.10f)
 
 @Composable
 fun SeasonStatsScreen(
     viewModel: SeasonStatsViewModel,
     onBack: () -> Unit
 ) {
-    val seasonStats by viewModel.seasonStats.collectAsStateWithLifecycle()
+    val data by viewModel.data.collectAsStateWithLifecycle()
+    var season by remember { mutableStateOf(com.example.basketballtracker.core.data.db.entities.GameSeason.CURRENT) }
+    val seasonStats = remember(data, season) { data.stats(season) }
+    val games = data.games.filter { it.season == season }
+    val gameIds = games.map { it.id }.toSet()
+    val shots = data.events.filter { it.gameId in gameIds }
     var displayMode by remember { mutableStateOf(StatsDisplayMode.PER_GAME) }
 
     Scaffold(
@@ -71,68 +83,100 @@ fun SeasonStatsScreen(
                 .padding(0.dp),
             color = MaterialTheme.colorScheme.background
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-            ) {
-                SummaryTopBar(
-                    title = "SEASON STATS",
-                    subTitle = "Team overview & stats leaders",
-                    onBack = onBack,
-                )
-                LazyColumn(
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val leaderColumns = if (maxWidth >= 600.dp) 3 else 1
+                Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                        .fillMaxWidth()
                 ) {
-//                item {
-//                    SummaryTopBar(
-//                        title = "SEASON STATS",
-//                        subTitle = "Team overview & stats leaders",
-//                        onBack = onBack,
-//                    )
-//                }
+                    SummaryTopBar(
+                        title = "SEASON STATS",
+                        subTitle = "Team overview & stats leaders",
+                        onBack = onBack,
+                    )
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+    //                item {
+    //                    SummaryTopBar(
+    //                        title = "SEASON STATS",
+    //                        subTitle = "Team overview & stats leaders",
+    //                        onBack = onBack,
+    //                    )
+    //                }
 
-                    item {
-                        StatsModeDropdown(displayMode) {
-                            displayMode = it
-                        }
-                    }
-
-                    if (seasonStats.isEmpty()) {
                         item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(300.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "No season stats yet",
-                                    color = Color.White.copy(alpha = 0.65f)
-                                )
+                            var expanded by remember { mutableStateOf(false) }
+                            Box {
+                                OutlinedButton(onClick = { expanded = true }) { Text("Season $season") }
+                                DropdownMenu(expanded, { expanded = false }) {
+                                    data.seasons.forEach { value ->
+                                        DropdownMenuItem(text = { Text(value) }, onClick = { season = value; expanded = false })
+                                    }
+                                }
                             }
                         }
-                    } else {
                         item {
-                            TeamOverviewCard(
-                                stats = seasonStats,
-                                mode = displayMode
-                            )
+                            StatsModeDropdown(displayMode) {
+                                displayMode = it
+                            }
                         }
 
-                        item {
-                            Text(
-                                text = "CATEGORY LEADERS",
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Black
-                            )
-                        }
+                        if (seasonStats.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(300.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No season stats yet",
+                                        color = SportsColors.Muted
+                                    )
+                                }
+                            }
+                            item { com.example.basketballtracker.features.core.ui.components.TeamShotMap(shots) }
+                        } else {
+                            item {
+                                com.example.basketballtracker.features.core.ui.components.TeamOverviewWithShotMap(shots) {
+                                    TeamOverviewCard(
+                                        stats = seasonStats,
+                                        mode = displayMode,
+                                        gameCount = games.size,
+                                        teamPoints = data.teamPoints(season),
+                                        recordedGameCount = data.recordedGameCount(season)
+                                    )
+                                }
+                            }
 
-                        items(buildLeaderCategories(seasonStats, displayMode)) { category ->
-                            LeaderCategoryCard(category)
+                            item {
+                                Text(
+                                    text = "CATEGORY LEADERS",
+                                    color = SportsColors.Text,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+
+                            items(buildLeaderCategories(seasonStats, displayMode).chunked(leaderColumns)) { categories ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    categories.forEach { category ->
+                                        Box(Modifier.weight(1f)) {
+                                            LeaderCategoryCard(category)
+                                        }
+                                    }
+                                    repeat(leaderColumns - categories.size) {
+                                        Spacer(Modifier.weight(1f))
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -144,11 +188,14 @@ fun SeasonStatsScreen(
 @Composable
 fun TeamOverviewCard(
     stats: List<PlayerSeasonStats>,
-    mode: StatsDisplayMode
+    mode: StatsDisplayMode,
+    gameCount: Int = stats.maxOfOrNull { it.gp } ?: 0,
+    teamPoints: Int = stats.sumOf { it.pts },
+    recordedGameCount: Int = gameCount
 ) {
-    val gp = stats.maxOfOrNull { it.gp } ?: 0
+    val gp = gameCount
 
-    val pts = stats.sumOf { it.pts }
+    val pts = teamPoints
     val reb = stats.sumOf { it.rebTotal }
     val ast = stats.sumOf { it.ast }
     val stl = stats.sumOf { it.stl }
@@ -169,50 +216,29 @@ fun TeamOverviewCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             SectionTitle("TEAM OVERVIEW")
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                BigTeamStat(
-                    title = "GAMES",
-                    value = gp.toString(),
-                    modifier = Modifier.weight(1f)
-                )
-
-                BigTeamStat(
-                    title = if (mode == StatsDisplayMode.PER_GAME) "PPG" else "POINTS",
-                    value = formatTeamStat(pts, gp, mode),
-                    modifier = Modifier.weight(1f)
+            Text("$gp games · " + if (mode == StatsDisplayMode.PER_GAME) "Per-game averages" else "Season totals",
+                color = SportsColors.Muted, style = MaterialTheme.typography.bodySmall)
+            StatStrip(listOf(
+                "POINTS" to formatTeamStat(pts, gp, mode),
+                "REBOUNDS" to formatRecordedTeamStat(reb, recordedGameCount, mode),
+                "ASSISTS" to formatRecordedTeamStat(ast, recordedGameCount, mode)
+            ))
+            if (recordedGameCount < gp) {
+                Text(
+                    "Points: all $gp games. Other stats: $recordedGameCount games with recorded stats; missing games excluded.",
+                    color = SportsColors.Muted,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SmallTeamStat("REB", formatTeamStat(reb, gp, mode), Modifier.weight(1f))
-                SmallTeamStat("AST", formatTeamStat(ast, gp, mode), Modifier.weight(1f))
-                SmallTeamStat("STL", formatTeamStat(stl, gp, mode), Modifier.weight(1f))
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SmallTeamStat("BLK", formatTeamStat(blk, gp, mode), Modifier.weight(1f))
-                SmallTeamStat("TOV", formatTeamStat(tov, gp, mode), Modifier.weight(1f))
-                SmallTeamStat("PF", formatTeamStat(pf, gp, mode), Modifier.weight(1f))
-            }
-
-            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
-
-            SectionTitle("SHOOTING")
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ShootingStat("FG%", formatPercent(fgm, fga), "$fgm/$fga", Modifier.weight(1f))
-                ShootingStat(
-                    "3P%",
-                    formatPercent(threem, threea),
-                    "$threem/$threea",
-                    Modifier.weight(1f)
-                )
-                ShootingStat("FT%", formatPercent(ftm, fta), "$ftm/$fta", Modifier.weight(1f))
-            }
+            ShootingTable(listOf(
+                ShootingFigures("Field goals", fgm, fga),
+                ShootingFigures("3-pointers", threem, threea),
+                ShootingFigures("Free throws", ftm, fta)
+            ))
+            StatPairs(listOf("Steals" to formatRecordedTeamStat(stl, recordedGameCount, mode),
+                "Blocks" to formatRecordedTeamStat(blk, recordedGameCount, mode),
+                "Turnovers" to formatRecordedTeamStat(tov, recordedGameCount, mode),
+                "Fouls" to formatRecordedTeamStat(pf, recordedGameCount, mode)))
         }
     }
 }
@@ -227,8 +253,8 @@ fun BigTeamStat(
         modifier = modifier
             .height(120.dp)
             .background(
-                Color.White.copy(alpha = 0.035f),
-                RoundedCornerShape(18.dp)
+                SportsColors.Text.copy(alpha = 0.035f),
+                RoundedCornerShape(4.dp)
             )
             .padding(16.dp)
     ) {
@@ -237,7 +263,7 @@ fun BigTeamStat(
         ) {
             Text(
                 text = title,
-                color = Color.White.copy(alpha = 0.6f),
+                color = SportsColors.Muted,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -261,15 +287,15 @@ fun SmallTeamStat(
     Column(
         modifier = modifier
             .background(
-                Color.White.copy(alpha = 0.035f),
-                RoundedCornerShape(16.dp)
+                SportsColors.Text.copy(alpha = 0.035f),
+                RoundedCornerShape(4.dp)
             )
             .padding(vertical = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = title,
-            color = Color.White,
+            color = SportsColors.Text,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold
         )
@@ -295,15 +321,15 @@ fun ShootingStat(
     Column(
         modifier = modifier
             .background(
-                Color.White.copy(alpha = 0.035f),
-                RoundedCornerShape(16.dp)
+                SportsColors.Text.copy(alpha = 0.035f),
+                RoundedCornerShape(4.dp)
             )
             .padding(vertical = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = title,
-            color = Color.White,
+            color = SportsColors.Text,
             fontWeight = FontWeight.Bold
         )
 
@@ -316,7 +342,7 @@ fun ShootingStat(
 
         Text(
             text = attempts,
-            color = Color.White.copy(alpha = 0.45f),
+            color = SportsColors.Muted,
             style = MaterialTheme.typography.bodySmall
         )
     }
@@ -332,7 +358,8 @@ data class LeaderItem(
     val rank: Int,
     val playerName: String,
     val playerNumber: Int,
-    val value: String
+    val value: String,
+    val photoUri: String? = null
 )
 
 @Composable
@@ -348,24 +375,24 @@ fun LeaderCategoryCard(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = category.title,
-                        color = Color.White,
+                        color = SportsColors.Text,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Black
                     )
 
                     Text(
                         text = category.subtitle,
-                        color = Color.White.copy(alpha = 0.45f),
+                        color = SportsColors.Muted,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
 
                 Text(
                     text = "TOP 3",
-                    color = Color.White.copy(alpha = 0.45f),
+                    color = SportsColors.Muted,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -390,29 +417,18 @@ fun LeaderPlayerRow(
             .padding(vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(26.dp)
-                .background(
-                    Color.White.copy(alpha = 0.10f),
-                    RoundedCornerShape(50)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = leader.rank.toString(),
-                color = StatsAccent,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold
-            )
-        }
+        PlayerPhoto(
+            photoUri = leader.photoUri,
+            playerName = leader.playerName,
+            modifier = Modifier.size(32.dp)
+        )
 
         Spacer(Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = leader.playerName,
-                color = Color.White,
+                color = SportsColors.Text,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -421,7 +437,7 @@ fun LeaderPlayerRow(
 
             Text(
                 text = "#${leader.playerNumber}",
-                color = Color.White.copy(alpha = 0.42f),
+                color = SportsColors.Text.copy(alpha = 0.42f),
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -441,7 +457,7 @@ fun StatDashboardCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(4.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, CardBorder)
     ) {
@@ -546,7 +562,8 @@ fun List<PlayerSeasonStats>.top3By(
                 rank = index + 1,
                 playerName = player.playerName,
                 playerNumber = player.playerNumber,
-                value = value(player)
+                value = value(player),
+                photoUri = player.photoUri
             )
         }
 }
@@ -562,6 +579,9 @@ fun valueByMode(
         value.toFloat() / gamesPlayed
     }
 }
+
+internal fun formatRecordedTeamStat(value: Int, games: Int, mode: StatsDisplayMode): String =
+    if (games == 0) "—" else formatTeamStat(value, games, mode)
 
 fun formatTeamStat(
     value: Int,
@@ -601,18 +621,18 @@ fun StatsModeDropdown(
     Box {
         OutlinedButton(
             onClick = { expanded = true },
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
+            shape = RoundedCornerShape(4.dp),
+            border = BorderStroke(1.dp, SportsColors.Text.copy(alpha = 0.12f))
         ) {
             Text(
                 text = if (selectedMode == StatsDisplayMode.TOTAL) "Total" else "Per Game",
-                color = Color.White
+                color = SportsColors.Text
             )
 
             Icon(
                 imageVector = Icons.Default.ArrowDropDown,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f)
+                tint = SportsColors.Muted
             )
         }
 

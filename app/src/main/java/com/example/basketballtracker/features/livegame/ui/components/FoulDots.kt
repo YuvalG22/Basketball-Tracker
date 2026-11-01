@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui.components
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,8 +21,8 @@ fun FoulDots(
     maxFouls: Int = 5,
     dotSize: Dp = 8.dp,
     spacing: Dp = 4.dp,
-    activeColor: Color = Color.Red,
-    inactiveColor: Color = Color.Gray.copy(alpha = 0.3f)
+    activeColor: Color = SportsColors.Red,
+    inactiveColor: Color = SportsColors.Muted.copy(alpha = 0.3f)
 ) {
     val displayFouls = fouls.coerceAtMost(5)
     Row(

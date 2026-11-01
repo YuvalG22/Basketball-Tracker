@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.core.ui.components
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -28,7 +29,7 @@ fun SmallNumberBadge(
     ) {
         Text(
             text = "#$number",
-            color = Color(0xFF2ECC71),
+            color = SportsColors.Accent,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Black
         )

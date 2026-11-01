@@ -113,6 +113,7 @@ data class LiveEvent(
     val shotX: Float? = null,
     val shotY: Float? = null,
     val shotDistance: Float? = null,
+    val actionGroupId: String? = null,
     val shotZone: String? = null
 )
 
@@ -276,7 +277,7 @@ fun computeSecondsPlayedByPlayer(
     )
 
     val sorted = events.sortedWith(
-        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt })
+        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.id })
     )
 
     val inTime = mutableMapOf<Long, Int>()
@@ -287,6 +288,7 @@ fun computeSecondsPlayedByPlayer(
         if (e.type != EventType.SUB_IN && e.type != EventType.SUB_OUT) continue
 
         val t = toGameElapsedSec(e.period, e.clockSecRemaining, quarterLengthSec)
+        if (t > nowT) continue
 
         when (e.type) {
             EventType.SUB_IN -> {
@@ -310,7 +312,12 @@ fun computeSecondsPlayedByPlayer(
     return total
 }
 
-fun computePlusMinusByPlayer(events: List<LiveEvent>): Map<Long, Int> {
+// Always supply the full game history: earlier substitutions determine the lineup
+// at the start of a selected period. Only scoring is restricted to that period.
+fun computePlusMinusByPlayer(
+    events: List<LiveEvent>,
+    selectedPeriod: Int? = null
+): Map<Long, Int> {
     val pm = mutableMapOf<Long, Int>()
     val onCourt = linkedSetOf<Long>()
 
@@ -333,6 +340,7 @@ fun computePlusMinusByPlayer(events: List<LiveEvent>): Map<Long, Int> {
             EventType.SUB_IN -> e.playerId?.let { onCourt.add(it); pm.putIfAbsent(it, 0) }
             EventType.SUB_OUT -> e.playerId?.let { onCourt.remove(it) }
             else -> {
+                if (selectedPeriod != null && e.period != selectedPeriod) continue
                 val delta = deltaPoints(e.type)
                 if (delta != 0) {
                     onCourt.forEach { pid -> pm[pid] = (pm[pid] ?: 0) + delta }
@@ -455,7 +463,7 @@ fun computeSecondsPlayedForPlayer(
     )
 
     val sorted = events.sortedWith(
-        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt })
+        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.id })
     )
 
     var inTime: Int? = null
@@ -466,6 +474,7 @@ fun computeSecondsPlayedForPlayer(
         if (e.type != EventType.SUB_IN && e.type != EventType.SUB_OUT) continue
 
         val t = toGameElapsedSec(e.period, e.clockSecRemaining, quarterLengthSec)
+        if (t > nowT) continue
 
         when (e.type) {
             EventType.SUB_IN -> {
@@ -495,89 +504,28 @@ fun computeSecondsPlayedForPlayerInPeriod(
     playerId: Long?,
     events: List<LiveEvent>,
     period: Int,
-    quarterLengthSec: Int
+    quarterLengthSec: Int,
+    currentPeriod: Int = period,
+    currentClockSecRemaining: Int = 0
 ): Int {
-    val periodEvents = events
-        .filter { it.period == period }
-        .sortedWith(compareBy<LiveEvent>({ -it.clockSecRemaining }, { it.createdAt }))
-
-    var inTime: Int? = null
-    var total = 0
-
-    for (e in periodEvents) {
-        if (e.playerId != playerId) continue
-        if (e.type != EventType.SUB_IN && e.type != EventType.SUB_OUT) continue
-
-        val t = quarterLengthSec - e.clockSecRemaining
-
-        when (e.type) {
-            EventType.SUB_IN -> {
-                if (inTime == null) inTime = t
-            }
-
-            EventType.SUB_OUT -> {
-                val tIn = inTime ?: continue
-                total += max(0, t - tIn)
-                inTime = null
-            }
-
-            else -> Unit
-        }
-    }
-
-    if (inTime != null) {
-        total += max(0, quarterLengthSec - inTime)
-    }
-
-    return total
+    if (period < 1 || period > currentPeriod) return 0
+    // Keep previous quarters so an open stint carries across the boundary.
+    val throughEnd = computeSecondsPlayedForPlayer(
+        playerId, events, quarterLengthSec, period,
+        if (period == currentPeriod) currentClockSecRemaining else 0
+    )
+    val beforeStart = computeSecondsPlayedForPlayer(
+        playerId, events, quarterLengthSec, period, quarterLengthSec
+    )
+    return (throughEnd - beforeStart).coerceAtLeast(0)
 }
 
 fun computePlusMinusForPlayer(
     playerId: Long,
-    events: List<LiveEvent>
+    events: List<LiveEvent>,
+    selectedPeriod: Int? = null
 ): Int {
-    var pm = 0
-    val onCourt = linkedSetOf<Long>()
-
-    val sorted = events.sortedWith(
-        compareBy<LiveEvent>(
-            { it.period },
-            { -it.clockSecRemaining },
-            { it.createdAt },
-            { it.id }
-        )
-    )
-
-    fun deltaPoints(type: EventType) = when (type) {
-        EventType.TWO_MADE -> 2
-        EventType.THREE_MADE -> 3
-        EventType.FT_MADE -> 1
-        EventType.OPP_TWO_MADE -> -2
-        EventType.OPP_THREE_MADE -> -3
-        EventType.OPP_FT_MADE -> -1
-        else -> 0
-    }
-
-    for (e in sorted) {
-        when (e.type) {
-            EventType.SUB_IN -> {
-                e.playerId?.let { onCourt.add(it) }
-            }
-
-            EventType.SUB_OUT -> {
-                e.playerId?.let { onCourt.remove(it) }
-            }
-
-            else -> {
-                val delta = deltaPoints(e.type)
-                if (delta != 0 && playerId in onCourt) {
-                    pm += delta
-                }
-            }
-        }
-    }
-
-    return pm
+    return computePlusMinusByPlayer(events, selectedPeriod)[playerId] ?: 0
 }
 
 fun computeSecondsPlayedForPlayerAfterEnd(
@@ -594,7 +542,7 @@ fun computeSecondsPlayedForPlayerAfterEnd(
     )
 
     val sorted = events.sortedWith(
-        compareBy<EventEntity>({ it.period }, { -it.clockSecRemaining }, { it.createdAt })
+        compareBy<EventEntity>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.id })
     )
 
     var inTime: Int? = null
@@ -605,6 +553,7 @@ fun computeSecondsPlayedForPlayerAfterEnd(
         if (e.type != EventType.SUB_IN.toString() && e.type != EventType.SUB_OUT.toString()) continue
 
         val t = toGameElapsedSec(e.period, e.clockSecRemaining, quarterLengthSec)
+        if (t > nowT) continue
 
         when (e.type) {
             EventType.SUB_IN.toString() -> {
@@ -636,37 +585,12 @@ fun computeSecondsPlayedForPlayerInPeriodAfterEnd(
     period: Int,
     quarterLengthSec: Int
 ): Int {
-    val periodEvents = events
-        .filter { it.period == period }
-        .sortedWith(compareBy<EventEntity>({ -it.clockSecRemaining }, { it.createdAt }))
-
-    var inTime: Int? = null
-    var total = 0
-
-    for (e in periodEvents) {
-        if (e.playerId != playerId) continue
-        if (e.type != EventType.SUB_IN.toString() && e.type != EventType.SUB_OUT.toString()) continue
-
-        val t = quarterLengthSec - e.clockSecRemaining
-
-        when (e.type) {
-            EventType.SUB_IN.toString() -> {
-                if (inTime == null) inTime = t
-            }
-
-            EventType.SUB_OUT.toString() -> {
-                val tIn = inTime ?: continue
-                total += max(0, t - tIn)
-                inTime = null
-            }
-
-            else -> Unit
-        }
-    }
-
-    if (inTime != null) {
-        total += max(0, quarterLengthSec - inTime)
-    }
-
-    return total
+    if (period < 1) return 0
+    val throughEnd = computeSecondsPlayedForPlayerAfterEnd(
+        playerId, events, quarterLengthSec, period, 0
+    )
+    val beforeStart = computeSecondsPlayedForPlayerAfterEnd(
+        playerId, events, quarterLengthSec, period, quarterLengthSec
+    )
+    return (throughEnd - beforeStart).coerceAtLeast(0)
 }

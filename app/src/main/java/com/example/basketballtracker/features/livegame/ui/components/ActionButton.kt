@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui.components
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -43,7 +44,7 @@ fun RowScope.MissedShotButton(
             .fillMaxWidth()
             .weight(1f)
             .height(40.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(4.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
     ) {
         Row(
@@ -52,7 +53,7 @@ fun RowScope.MissedShotButton(
         ) {
             Text(
                 label,
-                color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
+                color = if (enabled) SportsColors.OnAccent else SportsColors.Muted,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -60,7 +61,7 @@ fun RowScope.MissedShotButton(
                 Icons.Outlined.Cancel,
                 contentDescription = null,
                 modifier = Modifier.size(14.dp),
-                tint = if (enabled) Color.White else Color.White.copy(alpha = 0.5f)
+                tint = if (enabled) SportsColors.OnAccent else SportsColors.Muted
             )
         }
     }
@@ -80,8 +81,8 @@ fun RowScope.MadeShotButton(
             .fillMaxWidth()
             .weight(1f)
             .height(40.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3AB47A))
+        shape = RoundedCornerShape(4.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = SportsColors.Green)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -89,7 +90,7 @@ fun RowScope.MadeShotButton(
         ) {
             Text(
                 label,
-                color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
+                color = if (enabled) SportsColors.OnAccent else SportsColors.Muted,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -97,7 +98,7 @@ fun RowScope.MadeShotButton(
                 Icons.Outlined.CheckCircle,
                 contentDescription = null,
                 modifier = Modifier.size(14.dp),
-                tint = if (enabled) Color.White else Color.White.copy(alpha = 0.5f)
+                tint = if (enabled) SportsColors.OnAccent else SportsColors.Muted
             )
         }
     }
@@ -111,7 +112,7 @@ fun RowScope.ActionButton(
     enabled: Boolean
 ) {
     val buttonColor = when (type) {
-        EventType.FT_MADE, EventType.OPP_TWO_MADE, EventType.OPP_THREE_MADE, EventType.OPP_FT_MADE -> Color(0x663AB47A)
+        EventType.FT_MADE, EventType.OPP_TWO_MADE, EventType.OPP_THREE_MADE, EventType.OPP_FT_MADE -> SportsColors.Accent.copy(alpha = 0.25f)
         EventType.FT_MISS, EventType.OPP_TWO_MISS, EventType.OPP_THREE_MISS, EventType.OPP_FT_MISS -> MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
         EventType.PF -> Color(0x66FF8C00)
         else -> MaterialTheme.colorScheme.surfaceVariant
@@ -126,14 +127,14 @@ fun RowScope.ActionButton(
         modifier = Modifier
             .weight(1f)
             .height(70.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(4.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = buttonColor
         ),
     ) {
         Text(
             text = label,
-            color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
+            color = if (enabled) SportsColors.Text else SportsColors.Muted,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold
         )

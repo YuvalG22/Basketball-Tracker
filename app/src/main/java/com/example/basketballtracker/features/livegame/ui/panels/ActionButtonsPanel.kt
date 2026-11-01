@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui.panels
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,7 +29,9 @@ fun ActionButtonsPanel(
     onEvent: (EventType, ShotMeta?) -> Unit,
     opponentEvents: List<LiveEvent>,
     enabled: Boolean = true,
-    modifier: Modifier
+    modifier: Modifier,
+    opponentEnabled: Boolean = true,
+    selectedPlayerName: String = "Selected player"
 ) {
     val fgMade = opponentEvents.count {
         it.type == EventType.OPP_TWO_MADE || it.type == EventType.OPP_THREE_MADE
@@ -83,7 +86,7 @@ fun ActionButtonsPanel(
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF262626)),
+                    colors = CardDefaults.cardColors(containerColor = SportsColors.Raised),
                 ) {
                     Row(
                         modifier = Modifier
@@ -110,25 +113,26 @@ fun ActionButtonsPanel(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ActionButton("OPP 2PT MADE", EventType.OPP_TWO_MADE, onEvent, true)
-                    ActionButton("OPP 2PT MISS", EventType.OPP_TWO_MISS, onEvent, true)
+                    ActionButton("OPP 2PT MADE", EventType.OPP_TWO_MADE, onEvent, opponentEnabled)
+                    ActionButton("OPP 2PT MISS", EventType.OPP_TWO_MISS, onEvent, opponentEnabled)
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ActionButton("OPP 3PT MADE", EventType.OPP_THREE_MADE, onEvent, true)
-                    ActionButton("OPP 3PT MISS", EventType.OPP_THREE_MISS, onEvent, true)
+                    ActionButton("OPP 3PT MADE", EventType.OPP_THREE_MADE, onEvent, opponentEnabled)
+                    ActionButton("OPP 3PT MISS", EventType.OPP_THREE_MISS, onEvent, opponentEnabled)
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ActionButton("OPP FT MADE", EventType.OPP_FT_MADE, onEvent, true)
-                    ActionButton("OPP FT MISS", EventType.OPP_FT_MISS, onEvent, true)
+                    ActionButton("OPP FT MADE", EventType.OPP_FT_MADE, onEvent, opponentEnabled)
+                    ActionButton("OPP FT MISS", EventType.OPP_FT_MISS, onEvent, opponentEnabled)
                 }
+                Text("Selected player actions: $selectedPlayerName", style = MaterialTheme.typography.titleSmall)
                 HorizontalDivider(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
                 )
                 Row(

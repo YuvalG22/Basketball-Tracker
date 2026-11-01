@@ -60,11 +60,18 @@ fun AppNavGraph(
     NavHost(navController = nav, startDestination = Routes.HOME, modifier = modifier) {
 
         composable(Routes.HOME) {
+            val homeViewModel: HomeViewModel = viewModel(factory = object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    @Suppress("UNCHECKED_CAST")
+                    return HomeViewModel(gamesRepo, liveRepo, syncManager) as T
+                }
+            })
             HomeScreen(
-                viewModel = remember { HomeViewModel(gamesRepo, liveRepo, syncManager) },
+                viewModel = homeViewModel,
                 onNewGame = { nav.navigate(Routes.NEW_GAME) },
                 onContinue = { gameId -> nav.navigate(Routes.live(gameId)) },
-                onGameSummary = { gameId -> nav.navigate(Routes.summary(gameId)) }
+                onGameSummary = { gameId -> nav.navigate(Routes.summary(gameId)) },
+                onHistory = { nav.navigate(Routes.HISTORY) { launchSingleTop = true } }
             )
         }
 
@@ -146,8 +153,11 @@ fun AppNavGraph(
                 onPlayerClick = { playerId ->
                     nav.navigate(Routes.playerDetails(playerId))
                 },
-                onAddPlayer = { name, number ->
-                    vm.add(name, number)
+                onAddPlayer = { name, number, photoUri ->
+                    vm.add(name, number, photoUri)
+                },
+                onEditPlayer = { id, name, number, photoUri ->
+                    vm.update(id, name, number, photoUri)
                 },
                 onBack = { nav.popBackStack() }
             )
@@ -177,7 +187,12 @@ fun AppNavGraph(
         }
 
         composable(Routes.HISTORY) {
-            val vm = remember { GamesHistoryViewModel(gamesRepo, liveRepo) }
+            val vm: GamesHistoryViewModel = viewModel(factory = object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    @Suppress("UNCHECKED_CAST")
+                    return GamesHistoryViewModel(gamesRepo, liveRepo) as T
+                }
+            })
 
             GamesHistoryScreen(
                 vm = vm,

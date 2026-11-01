@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -32,147 +33,7 @@ fun LiveGameTabletScreen(
     vm: LiveGameViewModel,
     onEndGameNavigate: () -> Unit
 ) {
-    val s by vm.ui.collectAsState()
-    val pendingMadeShot by vm.pendingMadeShot.collectAsState()
-    val box = remember(s.events) {
-        computeBoxByPlayer(
-            s.events,
-            quarterLengthSec = 600,
-            s.clock.period,
-            s.clock.secRemaining
-        )
-    }
-    val teamScore = remember(s.events) { computeTeamScore(s.events) }
-    val opponentScore = remember(s.events) { computeOppScore(s.events) }
-    val playersById = remember(s.players) { s.players.associateBy { it.id } }
-
-    val teamFoulsThisQ = remember(s.events, s.clock.period, s.gameId) {
-        computeTeamFoulsThisPeriod(
-            events = s.events,
-            gameId = s.gameId,
-            period = s.clock.period
-        )
-    }
-    val opponentFoulsThisQ = remember(s.events, s.clock.period, s.gameId) {
-        computeOpponentFoulsThisPeriod(
-            events = s.events,
-            gameId = s.gameId,
-            period = s.clock.period
-        )
-    }
-
-    val selectedPf = remember(s.selectedPlayerId, box) {
-        val id = s.selectedPlayerId ?: return@remember 0
-        box[id]?.pf ?: 0
-    }
-
-    val actionsEnabled = s.selectedPlayerId != null && !s.isEnded && selectedPf < 5
-
-    val onCourtIds = remember(s.events) { computeOnCourtIds(s.events) }
-
-    val onCourtPlayers = remember(s.players, onCourtIds) {
-        s.players.filter { it.id in onCourtIds }
-    }
-    val benchPlayers = remember(s.players, onCourtIds) {
-        s.players.filter { it.id !in onCourtIds }
-    }
-
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(0.dp)
-                .windowInsetsPadding(WindowInsets.systemBars),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            ScoreBoardPanel(
-                gameDateEpoch = s.gameDateEpoch,
-                roundNumber = s.roundNumber,
-                clock = s.clock,
-                teamScore = teamScore,
-                opponentName = s.opponentName,
-                opponentScore = opponentScore,
-                isHomeGame = s.isHomeGame,
-                onToggleClock = vm::toggleClock,
-                onNextQuarter = vm::nextQuarter,
-                onEvent = { type, shotMeta -> vm.addEvent(type, shotMeta = shotMeta) },
-                enabled = true,
-                isEnded = s.isEnded,
-                onEndGame = onEndGameNavigate,
-                adjustClock = vm::adjustClock,
-                onAdjustPeriod = vm::adjustPeriod,
-                homeFouls = teamFoulsThisQ,
-                awayFouls = opponentFoulsThisQ,
-                modifier = Modifier
-                    .weight(0.1f)
-                    .fillMaxWidth()
-            )
-            Row(
-                modifier = Modifier.weight(0.9f),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                PlayersPanel(
-                    gameDate = s.gameDateEpoch,
-                    onCourtPlayers = onCourtPlayers,
-                    benchPlayers = benchPlayers,
-                    selectedId = s.selectedPlayerId,
-                    box = box,
-                    events = s.events,
-                    clock = s.clock,
-                    opponentName = s.opponentName,
-                    plusMinusById = s.plusMinusById,
-                    secondsPlayedById = s.secondsPlayedById,
-                    onSelect = vm::selectPlayer,
-                    onSubIn = vm::subIn,
-                    onSubOut = vm::subOut,
-                    modifier = Modifier
-                        .weight(0.30f)
-                        .fillMaxHeight()
-                        .padding(start = 4.dp, bottom = 4.dp)
-                )
-                ActionsPanel(
-                    opponentName = s.opponentName,
-                    isHomeGame = s.isHomeGame,
-                    box = box,
-                    players = playersById,
-                    selectedId = s.selectedPlayerId,
-                    events = s.events,
-                    onEvent = { type, shotMeta -> vm.addEvent(type, shotMeta = shotMeta) },
-                    onUndo = vm::undoLast,
-                    modifier = Modifier
-                        .weight(0.40f)
-                        .fillMaxHeight()
-                        .padding(end = 4.dp, bottom = 4.dp)
-                )
-                ActionButtonsPanel(
-                    onEvent = { type, shotMeta -> vm.addEvent(type, shotMeta = shotMeta) },
-                    opponentEvents = s.events.filter { it.type.isOpponentEvent() },
-                    enabled = actionsEnabled && pendingMadeShot == null,
-                    modifier = Modifier
-                        .weight(0.30f)
-                        .fillMaxHeight()
-                        .padding(end = 4.dp, bottom = 4.dp)
-                )
-            }
-        }
-        if (pendingMadeShot != null) {
-            AssistPickerDialog(
-                players = onCourtPlayers.filter { it.id != pendingMadeShot!!.playerId },
-                onNoAssist = {
-                    vm.confirmMadeShot(null)
-                },
-                onAssistSelected = { playerId ->
-                    vm.confirmMadeShot(playerId)
-                },
-                onDismiss = {
-                    vm.dismissAssistPicker()
-                }
-            )
-        }
-    }
+    LiveRecordingContent(vm, onEndGameNavigate)
 }
 
 @Composable
@@ -180,14 +41,16 @@ fun AssistPickerDialog(
     players: List<PlayerEntity>,
     onNoAssist: () -> Unit,
     onAssistSelected: (Long) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    saving: Boolean = false,
+    error: String? = null
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Color(0xFF121212),
-        titleContentColor = Color.White,
-        textContentColor = Color.White,
-        shape = RoundedCornerShape(24.dp),
+        onDismissRequest = {},
+        containerColor = SportsColors.Background,
+        titleContentColor = SportsColors.Text,
+        textContentColor = SportsColors.Text,
+        shape = RoundedCornerShape(4.dp),
         title = {
             Column {
                 Text(
@@ -198,7 +61,7 @@ fun AssistPickerDialog(
                 Text(
                     text = "Who passed the ball?",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.55f)
+                    color = SportsColors.Muted
                 )
             }
         },
@@ -208,13 +71,14 @@ fun AssistPickerDialog(
             ) {
                 Button(
                     onClick = onNoAssist,
+                    enabled = !saving,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(4.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1F1D1D),
-                        contentColor = Color.White
+                        containerColor = SportsColors.Surface,
+                        contentColor = SportsColors.Text
                     )
                 ) {
                     Text("No assist")
@@ -223,17 +87,18 @@ fun AssistPickerDialog(
                 players.forEach { player ->
                     OutlinedButton(
                         onClick = { onAssistSelected(player.id) },
+                        enabled = !saving,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(4.dp),
                         border = BorderStroke(
                             1.dp,
-                            Color.White.copy(alpha = 0.12f)
+                            SportsColors.Text.copy(alpha = 0.12f)
                         ),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color(0xFF1F1D1D),
-                            contentColor = Color.White
+                            containerColor = SportsColors.Surface,
+                            contentColor = SportsColors.Text
                         )
                     ) {
                         Text(
@@ -244,7 +109,7 @@ fun AssistPickerDialog(
                 }
             }
         },
-        confirmButton = {},
-        dismissButton = {}
+        confirmButton = { if (saving) CircularProgressIndicator() },
+        dismissButton = { Column { error?.let { Text(it, color = MaterialTheme.colorScheme.error) }; TextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel basket") } } }
     )
 }

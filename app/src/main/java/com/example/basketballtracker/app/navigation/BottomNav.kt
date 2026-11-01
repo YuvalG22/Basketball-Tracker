@@ -1,5 +1,6 @@
 package com.example.basketballtracker.app.navigation
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import android.net.http.SslCertificate.restoreState
 import android.net.http.SslCertificate.saveState
 import androidx.compose.material.icons.Icons
@@ -13,6 +14,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavController
@@ -28,7 +31,8 @@ fun BottomNavBar(navController: NavController) {
     )
 
     NavigationBar(
-        containerColor = Color(0xFF121212)
+        containerColor = SportsColors.Surface,
+        tonalElevation = 0.dp
     ) {
         val currentRoute = navController
             .currentBackStackEntryAsState()
@@ -52,13 +56,13 @@ fun BottomNavBar(navController: NavController) {
                     Icon(item.icon, contentDescription = item.title)
                 },
                 label = {
-                    Text(item.title)
+                    Text(item.title, fontWeight = if (currentRoute == item.route) FontWeight.Bold else FontWeight.Medium)
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color(0xFF2ECC71),
-                    selectedTextColor = Color(0xFF2ECC71),
-                    unselectedIconColor = Color.Gray,
-                    unselectedTextColor = Color.Gray,
+                    selectedIconColor = SportsColors.Accent,
+                    selectedTextColor = SportsColors.Accent,
+                    unselectedIconColor = SportsColors.Muted,
+                    unselectedTextColor = SportsColors.Muted,
                     indicatorColor = Color.Transparent
                 )
             )

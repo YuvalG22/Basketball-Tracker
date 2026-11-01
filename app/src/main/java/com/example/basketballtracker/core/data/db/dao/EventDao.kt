@@ -6,13 +6,28 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EventDao {
+    @Query("SELECT * FROM events WHERE id = :id")
+    suspend fun getById(id: Long): EventEntity?
+
+    @Query("SELECT * FROM events WHERE gameId = :gameId AND actionGroupId = :groupId AND syncStatus != 'PENDING_DELETE' ORDER BY id")
+    suspend fun getGroup(gameId: Long, groupId: String): List<EventEntity>
+
+    @Transaction
+    suspend fun undoAction(gameId: Long): EventEntity? {
+        val last = getLastEvent(gameId) ?: return null
+        val group = last.actionGroupId?.let { getGroup(gameId, it) } ?: listOf(last)
+        group.forEach { markPendingDelete(it.id) }
+        return last
+    }
+
     @Transaction
     suspend fun upsertEventsFromCloud(events: List<EventEntity>) {
         events.forEach { event ->
             // חיפוש לפי remoteId של האירוע
             val localId = getLocalIdByRemoteId(event.remoteId)
             if (localId != null) {
-                update(event.copy(id = localId))
+                val old = getById(localId)
+                if (old?.syncStatus != "PENDING_DELETE") update(event.copy(id = localId, actionGroupId = old?.actionGroupId))
             } else {
                 insert(event)
             }
@@ -57,13 +72,13 @@ ORDER BY period ASC, clockSecRemaining DESC, createdAt ASC
     )
     suspend fun getLastEventId(gameId: Long): Long?
 
-    @Query("SELECT * FROM events WHERE gameId = :gameId AND syncStatus != 'PENDING_DELETE' ORDER BY createdAt DESC LIMIT 1")
+    @Query("SELECT * FROM events WHERE gameId = :gameId AND syncStatus != 'PENDING_DELETE' ORDER BY id DESC LIMIT 1")
     suspend fun getLastEvent(gameId: Long): EventEntity?
 
     @Query(
         """
     SELECT * FROM events
-    WHERE gameId = :gameId
+    WHERE gameId = :gameId AND syncStatus != 'PENDING_DELETE'
     ORDER BY period ASC, clockSecRemaining DESC, createdAt ASC
 """
     )
@@ -94,7 +109,7 @@ ORDER BY period ASC, clockSecRemaining DESC, createdAt ASC
     @Query("SELECT * FROM events WHERE syncStatus = 'PENDING'")
     suspend fun getPendingEvents(): List<EventEntity>
 
-    @Query("UPDATE events SET syncStatus = 'SYNCED', remoteId = :remoteId WHERE id = :localId")
+    @Query("UPDATE events SET syncStatus = CASE WHEN syncStatus = 'PENDING_DELETE' THEN 'PENDING_DELETE' ELSE 'SYNCED' END, remoteId = :remoteId WHERE id = :localId")
     suspend fun markSynced(localId: Long, remoteId: String)
 
     @Query(

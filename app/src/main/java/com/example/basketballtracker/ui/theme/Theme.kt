@@ -4,6 +4,9 @@ import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -27,6 +30,11 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = OnPrimary,
     primaryContainer = PrimaryContainer,
     onPrimaryContainer = OnPrimaryContainer,
+    secondary = SportsColors.Blue,
+    onSecondary = SportsColors.Background,
+    secondaryContainer = SportsColors.Raised,
+    onSecondaryContainer = SportsColors.Blue,
+    surfaceTint = Color.Transparent,
 
     background = Background,
     onBackground = OnBackground,
@@ -49,6 +57,13 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = LightOnPrimary,
     primaryContainer = LightPrimaryContainer,
     onPrimaryContainer = LightOnPrimaryContainer,
+    secondary = SportsColors.Orange,
+    onSecondary = SportsColors.OnAccent,
+    secondaryContainer = Color(0xFFFFE9D5),
+    onSecondaryContainer = SportsColors.Orange,
+    surfaceTint = Color.Transparent,
+    error = SportsColors.Red,
+    onError = SportsColors.OnAccent,
 
     background = LightBackground,
     onBackground = LightOnBackground,
@@ -65,7 +80,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun BasketballTrackerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -78,6 +93,13 @@ fun BasketballTrackerTheme(
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,
+            shapes = Shapes(
+                extraSmall = RoundedCornerShape(2.dp),
+                small = RoundedCornerShape(4.dp),
+                medium = RoundedCornerShape(4.dp),
+                large = RoundedCornerShape(4.dp),
+                extraLarge = RoundedCornerShape(6.dp)
+            ),
             content = content
         )
     }

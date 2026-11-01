@@ -1,8 +1,25 @@
 package com.example.basketballtracker.features.summary.ui
 
+import androidx.compose.foundation.layout.fillMaxHeight
+
+import com.example.basketballtracker.ui.theme.SportsColors
+import com.example.basketballtracker.features.core.ui.components.StatStrip
+import com.example.basketballtracker.features.core.ui.components.StatPairs
+import com.example.basketballtracker.features.core.ui.components.ShootingFigures
+import com.example.basketballtracker.features.core.ui.components.ShootingTable
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.example.basketballtracker.features.players.ui.GameStatsBottomSheet
+import com.example.basketballtracker.features.players.data.buildPlayerGameStats
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +40,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,7 +70,7 @@ import com.example.basketballtracker.features.core.ui.components.SectionTitle
 import kotlin.collections.forEachIndexed
 import kotlin.math.roundToInt
 
-private val SummaryAccent = Color(0xFF2ECC71)
+private val SummaryAccent = SportsColors.Accent
 private val BoxScoreRowHeight = 56.dp
 private val BoxScoreHeaderHeight = 40.dp
 
@@ -61,13 +80,35 @@ fun GameSummaryScreen(
     onBack: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    GameSummaryContent(state, onBack)
+}
 
-    val teamTotals = state.teamTotals ?: return
+@Composable
+internal fun GameSummaryContent(state: GameSummaryUiState, onBack: () -> Unit) {
+    var selectedPlayerId by rememberSaveable(state.game?.id) { mutableStateOf<Long?>(null) }
+    val selectedPlayer = state.rows.firstOrNull { it.playerId == selectedPlayerId }
+    val selectedGame = remember(selectedPlayerId, state.game, state.events) {
+        val game = state.game
+        val playerId = selectedPlayerId
+        if (game != null && playerId != null) {
+            buildPlayerGameStats(playerId, game, state.events)
+        } else null
+    }
+    if (selectedPlayer != null && selectedGame != null) {
+        GameStatsBottomSheet(
+            playerId = selectedPlayer.playerId,
+            playerName = selectedPlayer.playerName,
+            photoUri = selectedPlayer.photoUri,
+            game = selectedGame,
+            onClose = { selectedPlayerId = null }
+        )
+    }
 
     if (state.isLoading) {
         LoadingSummary(onBack)
         return
     }
+    val teamTotals = state.teamTotals ?: return
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -85,7 +126,7 @@ fun GameSummaryScreen(
             ) {
                 SummaryTopBar(
                     title = "GAME SUMMARY",
-                    subTitle = "Box score, team totals and game leaders",
+                    subTitle = "Box score and team statistics",
                     onBack = onBack
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -93,7 +134,8 @@ fun GameSummaryScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
 //                item {
 //                    SummaryTopBar(
@@ -116,13 +158,16 @@ fun GameSummaryScreen(
                     }
 
                     item {
-                        TeamSummaryCard(teamTotals)
+                        com.example.basketballtracker.features.core.ui.components.TeamOverviewWithShotMap(state.events) {
+                            TeamSummaryCard(teamTotals)
+                        }
                     }
 
                     item {
                         BoxScoreCard(
                             rows = state.rows,
-                            teamTotals = teamTotals
+                            teamTotals = teamTotals,
+                            onPlayerClick = { selectedPlayerId = it }
                         )
                     }
                 }
@@ -137,40 +182,29 @@ fun SummaryTopBar(
     subTitle: String,
     onBack: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                modifier = Modifier.size(24.dp),
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.onSurface
-            )
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp, horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back",
+                    tint = SportsColors.Text)
+            }
+            Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                Text(title, style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black, color = SportsColors.Text,
+                    letterSpacing = 0.5.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(4.dp))
+                Text(subTitle, style = MaterialTheme.typography.bodySmall, color = SportsColors.Muted)
+            }
         }
-
-        Spacer(Modifier.width(8.dp))
-
-        Column {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Text(
-                text = subTitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-            )
-        }
+        HorizontalDivider(color = SportsColors.Line)
     }
 }
 
 @Composable
-private fun GameResultCard(
+internal fun GameResultCard(
     opponentName: String,
     roundNumber: Int,
     dateText: String,
@@ -194,7 +228,7 @@ private fun GameResultCard(
 
                 Text(
                     text = "ROUND $roundNumber • $dateText",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    color = SportsColors.Muted,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -212,7 +246,7 @@ private fun GameResultCard(
 
                 Text(
                     text = "VS",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                    color = SportsColors.Muted,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     modifier = Modifier.padding(horizontal = 18.dp)
@@ -242,17 +276,18 @@ private fun ScoreSide(
         modifier = modifier
             .background(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                RoundedCornerShape(20.dp)
+                RoundedCornerShape(4.dp)
             )
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = name,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+            color = SportsColors.Muted,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
 
         Text(
@@ -265,39 +300,22 @@ private fun ScoreSide(
 }
 
 @Composable
-private fun TeamSummaryCard(t: TeamTotals) {
+internal fun TeamSummaryCard(t: TeamTotals) {
     DashboardCard {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            SectionTitle("TEAM TOTALS")
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                BigStatBox("PTS", t.pts.toString(), Modifier.weight(1f))
-                BigStatBox("REB", t.rebTotal.toString(), Modifier.weight(1f))
-                BigStatBox("AST", t.ast.toString(), Modifier.weight(1f))
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SmallStatBox("STL", t.stl.toString(), Modifier.weight(1f))
-                SmallStatBox("BLK", t.blk.toString(), Modifier.weight(1f))
-                SmallStatBox("TOV", t.tov.toString(), Modifier.weight(1f))
-                SmallStatBox("PF", t.pf.toString(), Modifier.weight(1f))
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ShootingBox("FG", "${t.fgm}/${t.fga}", "${pct(t.fgm, t.fga)}%", Modifier.weight(1f))
-                ShootingBox(
-                    "3PT",
-                    "${t.threem}/${t.threea}",
-                    "${pct(t.threem, t.threea)}%",
-                    Modifier.weight(1f)
-                )
-                ShootingBox("FT", "${t.ftm}/${t.fta}", "${pct(t.ftm, t.fta)}%", Modifier.weight(1f))
-            }
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            SectionTitle("TEAM STATS")
+            StatStrip(listOf("POINTS" to t.pts.toString(), "REBOUNDS" to t.rebTotal.toString(),
+                "ASSISTS" to t.ast.toString()))
+            ShootingTable(listOf(
+                ShootingFigures("Field goals", t.fgm, t.fga),
+                ShootingFigures("3-pointers", t.threem, t.threea),
+                ShootingFigures("Free throws", t.ftm, t.fta)
+            ))
+            StatPairs(listOf(
+                "Off. rebounds" to t.rebOff.toString(), "Def. rebounds" to t.rebDef.toString(),
+                "Steals" to t.stl.toString(), "Blocks" to t.blk.toString(),
+                "Turnovers" to t.tov.toString(), "Fouls" to t.pf.toString()
+            ))
         }
     }
 }
@@ -308,20 +326,33 @@ fun pct(made: Int, att: Int): Int {
 }
 
 @Composable
-private fun BoxScoreCard(
+internal fun BoxScoreCard(
     rows: List<GameSummaryPlayerRowUi>,
-    teamTotals: TeamTotals
+    teamTotals: TeamTotals,
+    onPlayerClick: (Long) -> Unit
 ) {
 
     val horizontalScroll = rememberScrollState()
 
-    val starters = remember(rows) {
-        rows.filter { it.isStarter }
+    var sortColumn by rememberSaveable { mutableStateOf<String?>(null) }
+    var ascending by rememberSaveable { mutableStateOf(false) }
+    val onSort: (String) -> Unit = { column ->
+        val initialAscending = column == "PLAYER"
+        when {
+            sortColumn != column -> {
+                sortColumn = column
+                ascending = initialAscending
+            }
+            ascending == initialAscending -> ascending = !ascending
+            else -> {
+                sortColumn = null
+                ascending = false
+            }
+        }
     }
-
-    val bench = remember(rows) {
-        rows.filter { !it.isStarter }
-    }
+    val sortedRows = remember(rows, sortColumn, ascending) { sortBoxScoreRows(rows, sortColumn, ascending) }
+    val starters = if (sortColumn == null) sortedRows.filter { it.isStarter } else sortedRows
+    val bench = if (sortColumn == null) sortedRows.filter { !it.isStarter } else emptyList()
 
     DashboardCard {
 
@@ -331,6 +362,9 @@ private fun BoxScoreCard(
                 modifier = Modifier.padding(18.dp)
             ) {
                 SectionTitle("BOX SCORE")
+                Spacer(Modifier.height(6.dp))
+                Text("Tap a column to sort, again to reverse, a third time to reset. Tap a player for game stats · Swipe for more columns", color = SportsColors.Muted,
+                    style = MaterialTheme.typography.bodySmall)
             }
 
             BoxWithConstraints(
@@ -350,7 +384,9 @@ private fun BoxScoreCard(
 
                     FixedPlayersColumn(
                         starters = starters,
-                        bench = bench
+                        bench = bench,
+                        onPlayerClick = onPlayerClick,
+                        playerHeader = { PlayerHeader(sortColumn, ascending) { onSort("PLAYER") } }
                     )
 
                     Column(
@@ -359,11 +395,11 @@ private fun BoxScoreCard(
                             .width(statsWidth)
                     ) {
 
-                        StatsHeader()
+                        StatsHeader(sortColumn, ascending, onSort)
 
                         starters.forEach { row ->
 
-                            StatsRow(row)
+                            StatsRow(row, onClick = { onPlayerClick(row.playerId) })
 
                             DividerLine()
                         }
@@ -374,7 +410,7 @@ private fun BoxScoreCard(
 
                         bench.forEach { row ->
 
-                            StatsRow(row)
+                            StatsRow(row, onClick = { onPlayerClick(row.playerId) })
 
                             DividerLine()
                         }
@@ -390,18 +426,20 @@ private fun BoxScoreCard(
 @Composable
 private fun FixedPlayersColumn(
     starters: List<GameSummaryPlayerRowUi>,
-    bench: List<GameSummaryPlayerRowUi>
+    bench: List<GameSummaryPlayerRowUi>,
+    onPlayerClick: (Long) -> Unit,
+    playerHeader: @Composable () -> Unit
 ) {
 
     Column(
-        modifier = Modifier.width(170.dp)
+        modifier = Modifier.width(170.dp).background(SportsColors.Surface)
     ) {
 
-        PlayerHeader()
+        playerHeader()
 
         starters.forEach { row ->
 
-            PlayerCell(row)
+            PlayerCell(row, onClick = { onPlayerClick(row.playerId) })
 
             DividerLine()
         }
@@ -412,7 +450,7 @@ private fun FixedPlayersColumn(
 
         bench.forEach { row ->
 
-            PlayerCell(row)
+            PlayerCell(row, onClick = { onPlayerClick(row.playerId) })
 
             DividerLine()
         }
@@ -422,32 +460,31 @@ private fun FixedPlayersColumn(
 }
 
 @Composable
-private fun PlayerHeader() {
+private fun PlayerHeader(sortColumn: String?, ascending: Boolean, onSort: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(BoxScoreHeaderHeight)
+            .clickable(role = Role.Button, onClickLabel = "Sort by player", onClick = onSort)
+            .background(SportsColors.Raised)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.CenterStart
     ) {
-        Text(
-            text = "PLAYER",
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold
-        )
+        SortHeaderLabel("PLAYER", sortColumn == "PLAYER", ascending)
     }
 }
 
 @Composable
 private fun PlayerCell(
-    row: GameSummaryPlayerRowUi
+    row: GameSummaryPlayerRowUi,
+    onClick: () -> Unit
 ) {
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .height(BoxScoreRowHeight)
+            .clickable(role = Role.Button, onClickLabel = "View ${row.playerName}'s game stats", onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalArrangement = Arrangement.Center
     ) {
@@ -488,32 +525,25 @@ private fun TeamPlayerTotalCell() {
 }
 
 @Composable
-private fun StatsHeader() {
+private fun StatsHeader(sortColumn: String?, ascending: Boolean, onSort: (String) -> Unit) {
     Row(
         modifier = Modifier
             .height(BoxScoreHeaderHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        HeaderCell("MIN")
-        HeaderCell("PTS")
-        HeaderCell("REB")
-        HeaderCell("AST")
-        HeaderCell("DREB")
-        HeaderCell("OREB")
-        HeaderCell("STL")
-        HeaderCell("BLK")
-        HeaderCell("FG", 1.5f)
-        HeaderCell("3PT", 1.5f)
-        HeaderCell("FT", 1.5f)
-        HeaderCell("TO")
-        HeaderCell("PF")
-        HeaderCell("+/-")
+        listOf("MIN", "PTS", "REB", "AST", "DREB", "OREB", "STL", "BLK", "FG", "3PT", "FT", "TO", "PF", "+/-").forEach { column ->
+            val selected = sortColumn == column
+            HeaderCell(column,
+                if (column in listOf("FG", "3PT", "FT")) 1.5f else 1f,
+                selected = selected, ascending = ascending, onClick = { onSort(column) })
+        }
     }
 }
 
 @Composable
 private fun StatsRow(
-    row: GameSummaryPlayerRowUi
+    row: GameSummaryPlayerRowUi,
+    onClick: () -> Unit
 ) {
     val pmText =
         if (row.plusMinus > 0)
@@ -522,7 +552,8 @@ private fun StatsRow(
             "${row.plusMinus}"
     Row(
         modifier = Modifier
-            .height(BoxScoreRowHeight),
+            .height(BoxScoreRowHeight)
+            .clickable(role = Role.Button, onClickLabel = "View ${row.playerName}'s game stats", onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
         StatCell(row.min)
@@ -593,19 +624,27 @@ private fun RowScope.StatCell(
 }
 
 @Composable
-private fun RowScope.HeaderCell(
-    text: String,
-    weight: Float? = null
-) {
-    Text(
-        text = text,
-        modifier = Modifier
-            .weight(weight ?: 1f),
-        textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-        style = MaterialTheme.typography.bodySmall,
-        fontWeight = FontWeight.Bold
-    )
+private fun RowScope.HeaderCell(text: String, weight: Float = 1f, selected: Boolean, ascending: Boolean, onClick: () -> Unit) {
+    Box(Modifier.weight(weight).fillMaxHeight().clickable(role = Role.Button,
+        onClickLabel = "Sort by $text", onClick = onClick), contentAlignment = Alignment.Center) {
+        SortHeaderLabel(text, selected, ascending)
+    }
+}
+
+@Composable
+private fun SortHeaderLabel(text: String, selected: Boolean, ascending: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(text, color = if (selected) SummaryAccent else SportsColors.Muted,
+            style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+        if (selected) {
+            Icon(
+                imageVector = if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                contentDescription = if (ascending) "Sorted ascending" else "Sorted descending",
+                modifier = Modifier.size(14.dp),
+                tint = SummaryAccent
+            )
+        }
+    }
 }
 
 @Composable
@@ -614,13 +653,13 @@ private fun DashboardCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(4.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+            SportsColors.Line
         )
     ) {
         content()
@@ -633,7 +672,7 @@ private fun ResultBadge(text: String) {
         modifier = Modifier
             .background(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                RoundedCornerShape(50)
+                RoundedCornerShape(4.dp)
             )
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
@@ -642,105 +681,6 @@ private fun ResultBadge(text: String) {
             color = if (text == "WIN") SummaryAccent else MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Black
-        )
-    }
-}
-
-@Composable
-private fun BigStatBox(
-    title: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .height(100.dp)
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                RoundedCornerShape(18.dp)
-            )
-            .padding(14.dp),
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = title,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        Text(
-            text = value,
-            color = SummaryAccent,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Black
-        )
-    }
-}
-
-@Composable
-private fun SmallStatBox(
-    title: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                RoundedCornerShape(16.dp)
-            )
-            .padding(vertical = 14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = title,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-            fontWeight = FontWeight.Bold
-        )
-
-        Text(
-            text = value,
-            color = SummaryAccent,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Black
-        )
-    }
-}
-
-@Composable
-private fun ShootingBox(
-    title: String,
-    madeAtt: String,
-    pct: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                RoundedCornerShape(16.dp)
-            )
-            .padding(vertical = 14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = title,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-            fontWeight = FontWeight.Bold
-        )
-
-        Text(
-            text = pct,
-            color = SummaryAccent,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Black
-        )
-
-        Text(
-            text = madeAtt,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-            style = MaterialTheme.typography.bodySmall
         )
     }
 }
@@ -755,7 +695,7 @@ private fun BenchDivider(isTextVisible: Boolean) {
     ) {
         Text(
             text = if (isTextVisible) "BENCH" else "",
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            color = SportsColors.Muted,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold
         )
@@ -809,7 +749,7 @@ private fun ShootingDonutsRow(
         ShootingDonutCard(
             title = "FG%",
             subTitle = "Field Goals",
-            color = Color(0xFF0288D1),
+            color = SportsColors.Blue,
             made = teamTotals.fgm,
             attempted = teamTotals.fga,
             modifier = Modifier.weight(1f)
@@ -850,7 +790,7 @@ fun ShootingDonutCard(
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(4.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -901,14 +841,14 @@ fun ShootingDonutCard(
                     Text(
                         text = "${(pct * 100).toInt()}%",
                         style = MaterialTheme.typography.headlineSmall,
-                        color = Color.White,
+                        color = SportsColors.Text,
                         fontWeight = FontWeight.Black
                     )
 
                     Text(
                         text = "$made/$attempted",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                        color = SportsColors.Muted
                     )
                 }
             }
@@ -916,13 +856,13 @@ fun ShootingDonutCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = SportsColors.Muted,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = subTitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = SportsColors.Muted,
                 fontWeight = FontWeight.Normal
             )
         }
@@ -939,14 +879,14 @@ private fun QuarterScoreTable(
             .fillMaxWidth()
             .background(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f),
-                RoundedCornerShape(18.dp)
+                RoundedCornerShape(4.dp)
             )
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text(
             text = "SCORE BY QUARTER",
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+            color = SportsColors.Muted,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold
         )
@@ -1021,9 +961,9 @@ private fun QuarterRow(
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
                 color = if (isNumberRow) {
-                    SummaryAccent.copy(alpha = if (isQuarterWinner) 1f else 0.55f)
+                    if (isQuarterWinner) SummaryAccent else SportsColors.Muted
                 } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                    SportsColors.Muted
                 },
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (isQuarterWinner) FontWeight.Black else FontWeight.Medium

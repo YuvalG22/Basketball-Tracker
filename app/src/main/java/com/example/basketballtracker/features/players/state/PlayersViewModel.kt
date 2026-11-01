@@ -14,19 +14,19 @@ class PlayersViewModel(private val repo: PlayersRepository) : ViewModel() {
     val players: StateFlow<List<PlayerEntity>> =
         repo.observePlayers().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun add(name: String, number: Int) {
+    fun add(name: String, number: Int, photoUri: String? = null) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
-        viewModelScope.launch { repo.addPlayer(trimmed, number) }
+        viewModelScope.launch { repo.addPlayer(trimmed, number, photoUri) }
     }
 
     fun delete(id: Long) {
         viewModelScope.launch { repo.deletePlayer(id) }
     }
 
-    fun update(id: Long, name: String, number: Int) {
+    fun update(id: Long, name: String, number: Int, photoUri: String?) {
         val trimmed = name.trim()
-        if (trimmed.isEmpty()) return
-        viewModelScope.launch { repo.updatePlayer(id, trimmed, number) }
+        if (trimmed.isEmpty() || number < 0) return
+        viewModelScope.launch { repo.updatePlayer(id, trimmed, number, photoUri) }
     }
 }

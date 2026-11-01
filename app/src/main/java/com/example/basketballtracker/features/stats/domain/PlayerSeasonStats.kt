@@ -22,5 +22,6 @@ data class PlayerSeasonStats(
     val threem: Int,
     val threea: Int,
     val ftm: Int,
-    val fta: Int
+    val fta: Int,
+    val photoUri: String? = null
 )

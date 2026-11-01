@@ -15,10 +15,13 @@ fun buildPlayerGameStats(
     selectedPeriod: Int? = null
 ): PlayerGameStats {
 
+    val playerEvents = events.filter {
+        it.gameId == game.id && it.playerId == playerId && it.syncStatus != "PENDING_DELETE"
+    }
     val filteredEvents = if (selectedPeriod == null) {
-        events
+        playerEvents
     } else {
-        events.filter { it.period == selectedPeriod }
+        playerEvents.filter { it.period == selectedPeriod }
     }
 
     val twoMade = filteredEvents.count { it.type == EventType.TWO_MADE.name }
@@ -30,21 +33,20 @@ fun buildPlayerGameStats(
 
     val points = twoMade * 2 + threeMade * 3 + ftMade
 
-    val secPlayed = if (selectedPeriod == null) {
-        computeSecondsPlayedForPlayerAfterEnd(
+    fun secondsThroughPeriod(period: Int): Int {
+        if (period <= 0) return 0
+        return computeSecondsPlayedForPlayerAfterEnd(
             playerId = playerId,
-            events = events,
-            quarterLengthSec = 10,
-            currentPeriod = 4,
+            events = playerEvents.filter { it.period <= period },
+            quarterLengthSec = game.quarterLengthSec,
+            currentPeriod = period,
             currentClockSecRemaining = 0
         )
+    }
+    val secPlayed = if (selectedPeriod == null) {
+        secondsThroughPeriod(maxOf(game.quartersCount, playerEvents.maxOfOrNull { it.period } ?: 1))
     } else {
-        computeSecondsPlayedForPlayerInPeriodAfterEnd(
-            playerId = playerId,
-            events = events,
-            period = selectedPeriod,
-            quarterLengthSec = 10
-        )
+        (secondsThroughPeriod(selectedPeriod) - secondsThroughPeriod(selectedPeriod - 1)).coerceAtLeast(0)
     }
 
     val shots = filteredEvents.filter {
@@ -76,6 +78,6 @@ fun buildPlayerGameStats(
         ftMiss = ftMiss,
 
         shots = shots,
-        events = events
+        events = playerEvents
     )
 }

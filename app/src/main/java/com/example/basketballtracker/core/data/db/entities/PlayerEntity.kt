@@ -13,5 +13,6 @@ data class PlayerEntity(
     val name: String,
     val number: Int,
     val remoteId: String? = null,
-    val syncStatus: String = "PENDING"
+    val syncStatus: String = "PENDING",
+    val photoUri: String? = null
 )

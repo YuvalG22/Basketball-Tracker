@@ -11,7 +11,12 @@ interface PlayerDao {
         players.forEach { player ->
             val localId = player.remoteId?.let { getLocalIdByRemoteId(it) }
             if (localId != null) {
-                update(player.copy(id = localId))
+                val localPlayer = getPlayerById(localId)
+                // A cloud refresh must not overwrite edits that have not uploaded yet.
+                if (localPlayer?.syncStatus != "PENDING") {
+                    // Photos belong to this device and are not part of the cloud payload.
+                    update(player.copy(id = localId, photoUri = localPlayer?.photoUri))
+                }
             } else {
                 insert(player)
             }
@@ -50,6 +55,13 @@ interface PlayerDao {
 
     @Query("UPDATE players SET name = :name, number = :number WHERE id = :id")
     suspend fun updateById(id: Long, name: String, number: Int)
+
+    @Query("""
+        UPDATE players SET name = :name, number = :number, photoUri = :photoUri,
+        syncStatus = CASE WHEN name != :name OR number != :number THEN 'PENDING' ELSE syncStatus END
+        WHERE id = :id
+    """)
+    suspend fun updateDetailsById(id: Long, name: String, number: Int, photoUri: String?)
 
     @Query("DELETE FROM players WHERE id = :id")
     suspend fun deleteById(id: Long)

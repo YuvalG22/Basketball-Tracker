@@ -1,6 +1,7 @@
 package com.example.basketballtracker.core.data.db.entities
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -30,7 +31,14 @@ data class GameEntity(
     val clockSecRemaining: Int = 600,
     val isClockRunning: Boolean = false,
     val lastClockStartedAt: Long? = null,
+    @ColumnInfo(defaultValue = "'25/26'")
+    val season: String = GameSeason.LEGACY,
 )
+
+object GameSeason {
+    const val LEGACY = "25/26"
+    const val CURRENT = "26/27"
+}
 
 object GameStatus {
     const val LIVE = "LIVE"

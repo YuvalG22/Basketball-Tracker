@@ -1,5 +1,12 @@
 package com.example.basketballtracker.features.core.ui.components
 
+import com.example.basketballtracker.ui.theme.SportsColors
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,9 +33,9 @@ fun LivePanelTabs(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(50))
-            .background(Color(0xFF262626))
-            .padding(4.dp),
+            .clip(RoundedCornerShape(4.dp))
+            .background(SportsColors.Raised)
+            .padding(horizontal = 0.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         LivePanelTab(
@@ -54,22 +61,16 @@ fun LivePanelTab(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(50))
-            .background(
-                if (selected) Color(0xFF2ECC71)
-                else Color.Transparent
-            )
-            .clickable { onClick() }
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = modifier.selectable(selected = selected, role = Role.Tab, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = text,
-            color = if (selected) Color.Black else Color.White.copy(alpha = 0.6f),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold
-        )
+        Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center) {
+            Text(text, color = if (selected) SportsColors.Accent else SportsColors.Muted,
+                style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.fillMaxWidth().height(3.dp).background(
+            if (selected) SportsColors.Accent else Color.Transparent))
     }
 }

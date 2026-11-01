@@ -1,5 +1,10 @@
 package com.example.basketballtracker.features.core.ui.components
 
+import com.example.basketballtracker.ui.theme.SportsColors
+import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -25,20 +30,22 @@ fun CustomFilterChip(
 ) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(4.dp))
             .background(
-                if (active) Color(0xFF2ECC71)
-                else Color(0xFF1F1D1D)
+                if (active) SportsColors.Accent
+                else SportsColors.Surface
             )
-            .clickable { onClick() }
-            .padding(horizontal = 20.dp, vertical = 6.dp),
+            .border(1.dp, if (active) SportsColors.Accent else SportsColors.Line, RoundedCornerShape(4.dp))
+            .selectable(selected = active, role = Role.Tab, onClick = onClick)
+            .heightIn(min = 44.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            color = if (active) Color.Black else Color.White.copy(alpha = 0.5f)
+            color = if (active) SportsColors.OnAccent else SportsColors.Muted
         )
     }
 }

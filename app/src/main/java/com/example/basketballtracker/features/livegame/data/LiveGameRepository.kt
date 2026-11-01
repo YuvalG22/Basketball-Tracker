@@ -20,8 +20,10 @@ class LiveGameRepository(
     private val eventApi: EventApi,
 
     ) {
+    fun observeEventEntities(gameId: Long): Flow<List<EventEntity>> = eventDao.observeEvents(gameId)
+
     fun observeLiveEvents(gameId: Long): Flow<List<LiveEvent>> =
-        eventDao.observeEvents(gameId).map { list -> list.map { it.toDomain() } }
+        observeEventEntities(gameId).map { list -> list.map { it.toDomain() } }
 
     suspend fun addEvent(
         gameId: Long,
@@ -50,50 +52,12 @@ class LiveGameRepository(
             syncStatus = "PENDING"
         )
 
-        val localId = eventDao.insert(event)
+        recordAction(listOf(event))
+    }
 
-        try {
-            val savedEvent = event.copy(id = localId)
-
-            val game = gameDao.getById(savedEvent.gameId)
-            val gameRemoteId = game?.remoteId ?: return
-
-            val playerRemoteId = savedEvent.playerId?.let { id ->
-                playerDao.getPlayerById(id)?.remoteId
-            }
-
-            val assistedByPlayerRemoteId = savedEvent.assistedByPlayerId?.let { id ->
-                playerDao.getPlayerById(id)?.remoteId
-            }
-
-            val response = eventApi.uploadEvent(
-                EventUploadDto(
-                    localId = savedEvent.id,
-                    gameId = savedEvent.gameId,
-                    playerId = savedEvent.playerId,
-                    assistedByPlayerId = savedEvent.assistedByPlayerId,
-                    assistedByPlayerRemoteId = assistedByPlayerRemoteId,
-                    gameRemoteId = gameRemoteId,
-                    playerRemoteId = playerRemoteId,
-                    type = savedEvent.type,
-                    period = savedEvent.period,
-                    clockSecRemaining = savedEvent.clockSecRemaining,
-                    createdAt = savedEvent.createdAt,
-                    teamScoreAtEvent = savedEvent.teamScoreAtEvent,
-                    opponentScoreAtEvent = savedEvent.opponentScoreAtEvent,
-                    shotX = savedEvent.shotX,
-                    shotY = savedEvent.shotY,
-                    shotDistance = savedEvent.shotDistance
-                )
-            )
-            eventDao.markSynced(
-                localId = localId,
-                remoteId = response.remoteId
-            )
-        } catch (e: Exception) {
-            e.printStackTrace()
-            // נשאר PENDING → יסונכרן אחר כך
-        }
+    suspend fun recordAction(events: List<EventEntity>) {
+        val group = java.util.UUID.randomUUID().toString()
+        eventDao.insertAll(events.map { it.copy(actionGroupId = group) })
     }
 
     suspend fun deleteEventsByGame(gameId: Long) {
@@ -110,20 +74,13 @@ class LiveGameRepository(
     }
 
     suspend fun undoLastReturning(gameId: Long): LiveEvent? {
-        val last = eventDao.getLastEvent(gameId) ?: return null
-
-        if (last.remoteId == null) {
-            eventDao.deleteById(last.id)
-        } else {
-            eventDao.markPendingDelete(last.id)
-        }
-
-        return last.toDomain()
+        return eventDao.undoAction(gameId)?.toDomain()
     }
 }
 
-private fun EventEntity.toDomain() = LiveEvent(
+internal fun EventEntity.toDomain() = LiveEvent(
     id = id,
+    actionGroupId = actionGroupId,
     gameId = gameId,
     playerId = playerId,
     assistedByPlayerId = assistedByPlayerId,

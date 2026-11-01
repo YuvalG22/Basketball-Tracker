@@ -178,10 +178,28 @@ val MIGRATION_17_18 = object : Migration(17, 18) {
     }
 }
 
+val MIGRATION_20_21 = object : Migration(20, 21) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE games ADD COLUMN season TEXT NOT NULL DEFAULT '25/26'")
+    }
+}
+
+val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE players ADD COLUMN photoUri TEXT")
+    }
+}
+
 val MIGRATION_18_19 = object : Migration(18, 19) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL(
             "ALTER TABLE events DROP COLUMN shotZone"
         )
+    }
+}
+
+val MIGRATION_21_22 = object : Migration(21, 22) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE events ADD COLUMN actionGroupId TEXT DEFAULT NULL")
     }
 }

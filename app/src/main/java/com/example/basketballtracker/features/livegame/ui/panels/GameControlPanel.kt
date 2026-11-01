@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui.panels
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import android.annotation.SuppressLint
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -87,7 +88,7 @@ fun PlayByPlayPanel(
                 Text(
                     "Play By Play",
                     style = MaterialTheme.typography.titleSmall,
-                    color = Color.White.copy(alpha = 0.5f)
+                    color = SportsColors.Muted
                 )
                 Row(
                     horizontalArrangement = Arrangement.End
@@ -107,13 +108,13 @@ fun PlayByPlayPanel(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onUndo()
-                        },
+                        }
                     ) {
                         Icon(
                             tint = MaterialTheme.colorScheme.error,
                             contentDescription = "undo event",
                             modifier = Modifier.size(36.dp),
-                            painter = painterResource(id = R.drawable.outline_undo_24),
+                            painter = painterResource(id = R.drawable.outline_undo_24)
                         )
                     }
                 }
@@ -121,7 +122,7 @@ fun PlayByPlayPanel(
             HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(),
                 thickness = 1.dp,
-                color = Color.White.copy(alpha = 0.08f)
+                color = SportsColors.Text.copy(alpha = 0.08f)
             )
             Spacer(Modifier.height(8.dp))
             val filteredEvents = remember(events, filter) {
@@ -134,7 +135,7 @@ fun PlayByPlayPanel(
                 Text(
                     "No events yet",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    color = SportsColors.Muted
                 )
             } else {
                 PlayByPlayList(
@@ -197,10 +198,10 @@ fun PlayByPlayItem(
         return
     }
     OutlinedCard(
-        colors = CardDefaults.cardColors(containerColor = if (isScoreEvent) Color.White.copy(alpha = 0.03f) else Color.Transparent),
+        colors = CardDefaults.cardColors(containerColor = if (isScoreEvent) SportsColors.Text.copy(alpha = 0.03f) else Color.Transparent),
         border = BorderStroke(
             width = 1.dp,
-            color = Color.White.copy(alpha = 0.08f)
+            color = SportsColors.Text.copy(alpha = 0.08f)
         )
     ) {
         Row(
@@ -273,7 +274,7 @@ private fun PeriodMarker(event: LiveEvent) {
             text = text,
             modifier = Modifier.padding(horizontal = 12.dp),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = SportsColors.Muted,
             fontWeight = FontWeight.SemiBold
         )
         HorizontalDivider(
@@ -309,7 +310,7 @@ private fun PlayByPlaySide(
                 Text(
                     primary,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
+                    color = SportsColors.Text,
                     fontWeight = FontWeight.Bold,
                 )
                 tertiary?.let {
@@ -322,7 +323,7 @@ private fun PlayByPlaySide(
             }
             OutlinedCard(
                 colors = CardDefaults.outlinedCardColors(
-                    containerColor = if (isScoreEvent) Color.White.copy(0.12f) else Color.White.copy(
+                    containerColor = if (isScoreEvent) SportsColors.Text.copy(0.12f) else SportsColors.Text.copy(
                         0.04f
                     )
                 ),
@@ -342,7 +343,7 @@ private fun PlayByPlaySide(
         } else {
             OutlinedCard(
                 colors = CardDefaults.outlinedCardColors(
-                    containerColor = if (isScoreEvent) Color.White.copy(0.12f) else Color.White.copy(
+                    containerColor = if (isScoreEvent) SportsColors.Text.copy(0.12f) else SportsColors.Text.copy(
                         0.04f
                     )
                 ),
@@ -372,7 +373,7 @@ private fun PlayByPlaySide(
                 Text(
                     secondary,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
+                    color = SportsColors.Text,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -407,7 +408,7 @@ private fun PlayByPlayCenter(
                     if (isHomeGame) "$teamScore" else "$oppScore",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if ((!isOppEvent && isHomeGame) || (isOppEvent && !isHomeGame)) Color.White else Color.White.copy(
+                    color = if ((!isOppEvent && isHomeGame) || (isOppEvent && !isHomeGame)) SportsColors.Text else SportsColors.Text.copy(
                         0.5f
                     ),
                     textAlign = TextAlign.Center
@@ -416,14 +417,14 @@ private fun PlayByPlayCenter(
                     " - ",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.White.copy(0.5f),
+                    color = SportsColors.Text.copy(0.5f),
                     textAlign = TextAlign.Center
                 )
                 Text(
                     if (isHomeGame) "$oppScore" else "$teamScore",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if ((!isOppEvent && !isHomeGame) || (isOppEvent && isHomeGame)) Color.White else Color.White.copy(
+                    color = if ((!isOppEvent && !isHomeGame) || (isOppEvent && isHomeGame)) SportsColors.Text else SportsColors.Text.copy(
                         0.5f
                     ),
                     textAlign = TextAlign.Center

@@ -2,49 +2,46 @@ package com.example.basketballtracker.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-//Dark Theme
-// Brand / Accent (basketball orange)
-val Primary = Color(0xFFFFFFFF) // buttons color
-val OnPrimary = Color(0xFF1A1A1A) // text on light buttons
+/** Light sports palette with separate brand and shot-result colors. */
+object SportsColors {
+    val Background = Color(0xFFF2F6FC)
+    val Surface = Color(0xFFFFFFFF)
+    val Raised = Color(0xFFE8F0FF)
+    val Line = Color(0xFFD2DEEF)
+    val Text = Color(0xFF142442)
+    val Muted = Color(0xFF536781)
+    val Accent = Color(0xFF165DDB)
+    val OnAccent = Color.White
+    val Blue = Accent
+    val Orange = Color(0xFFC44F08)
+    val Green = Color(0xFF00843D)
+    val Red = Color(0xFFCC253D)
+}
 
-val PrimaryContainer = Color(0xFFFFFFFF)
-val OnPrimaryContainer = Color(0xFFFFFFFF)
+val Primary = SportsColors.Accent
+val OnPrimary = SportsColors.OnAccent
+val PrimaryContainer = SportsColors.Raised
+val OnPrimaryContainer = SportsColors.Accent
+val Background = SportsColors.Background
+val OnBackground = SportsColors.Text
+val Surface = SportsColors.Surface
+val OnSurface = SportsColors.Text
+val SurfaceVariant = SportsColors.Raised
+val OnSurfaceVariant = SportsColors.Muted
+val Outline = SportsColors.Line
+val OutlineVariant = SportsColors.Line
+val Success = SportsColors.Green
+val Warning = SportsColors.Accent
+val Error = SportsColors.Red
+val OnError = SportsColors.OnAccent
 
-// Backgrounds / Surfaces
-val Background = Color(0xFF141414) // app background
-val OnBackground = Color(0xFFFFFFFF) // for elements directly on background
-
-val Surface = Color(0xFF1F1D1D) // cards/panels
-val OnSurface = Color(0xFFFFFFFF) // text on cards/panels
-
-val SurfaceVariant = Color(0xFF2D2A2A) // list items, subtle blocks
-val OnSurfaceVariant = Color(0xFFFFFFFF) // text on dark buttons
-
-
-//Light Theme
-val LightPrimary = Color(0xFFFF7A00)
-val LightOnPrimary = Color(0xFFFFFFFF)
-
-val LightPrimaryContainer = Color(0xFFFFE0C2)
-val LightOnPrimaryContainer = Color(0xFF2B1500)
-
-// Backgrounds / Surfaces
-val LightBackground = Color(0xFFFFFFFF)
-val LightOnBackground = Color(0xFF1A1A1A)
-
-val LightSurface = Color(0xFFF5F5F5)
-val LightOnSurface = Color(0xFF1A1A1A)
-
-val LightSurfaceVariant = Color(0xFFE7E7E7)
-val LightOnSurfaceVariant = Color(0xFF333333)
-
-
-// Extra useful colors
-val Outline = Color(0xFFFFFFFF)
-val OutlineVariant = Color(0xFFFFFFFF)
-
-
-val Success = Color(0xFF2ECC71)
-val Warning = Color(0xFF212120)
-val Error = Color(0xFFFF4D4D)
-val OnError = Color(0xFFFFFFFF)
+val LightPrimary = SportsColors.Accent
+val LightOnPrimary = Color.White
+val LightPrimaryContainer = SportsColors.Raised
+val LightOnPrimaryContainer = SportsColors.Accent
+val LightBackground = SportsColors.Background
+val LightOnBackground = SportsColors.Text
+val LightSurface = Color.White
+val LightOnSurface = SportsColors.Text
+val LightSurfaceVariant = SportsColors.Raised
+val LightOnSurfaceVariant = SportsColors.Muted

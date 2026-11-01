@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui.panels
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -51,7 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.core.ui.components.CustomFilterChip
-import com.example.basketballtracker.features.core.ui.components.SmallNumberBadge
+import com.example.basketballtracker.features.players.ui.PlayerPhoto
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.basketballtracker.features.livegame.domain.EventType
 import com.example.basketballtracker.features.livegame.domain.GameClock
 import com.example.basketballtracker.features.livegame.domain.LiveEvent
@@ -85,7 +87,8 @@ fun PlayersPanel(
     onSelect: (Long) -> Unit,
     onSubIn: (Long) -> Unit,
     onSubOut: (Long) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
+    quarterLengthSec: Int = 600
 ) {
     var selectedPeriod by rememberSaveable { mutableStateOf<Int?>(null) }
 
@@ -120,29 +123,32 @@ fun PlayersPanel(
 
         val pm = computePlusMinusForPlayer(
             playerId = pid,
-            events = filteredEvents,
+            events = events,
+            selectedPeriod = selectedPeriod,
         )
         val secPlayed = if (selectedPeriod == null) {
             computeSecondsPlayedForPlayer(
                 playerId = pid,
                 events = events,
-                quarterLengthSec = 10,
+                quarterLengthSec = quarterLengthSec,
                 currentPeriod = clock.period,
                 currentClockSecRemaining = clock.secRemaining
             )
         } else {
             computeSecondsPlayedForPlayerInPeriod(
-                playerId = selectedId,
+                playerId = pid,
                 events = events,
                 period = selectedPeriod!!,
-                quarterLengthSec = 10
+                quarterLengthSec = quarterLengthSec,
+                currentPeriod = clock.period,
+                currentClockSecRemaining = clock.secRemaining
             )
         }
 
-        val filteredBox = remember(filteredEvents, selectedId) {
+        val filteredBox = remember(filteredEvents, pid, secPlayed, pm) {
             calculatePlayerBox(
                 events = filteredEvents,
-                playerId = selectedId ?: pid,
+                playerId = pid,
                 secondsPlayed = secPlayed,
                 plusMinus = pm,
             )
@@ -155,7 +161,7 @@ fun PlayersPanel(
                     Text("Close")
                 }
             },
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(4.dp),
             containerColor = MaterialTheme.colorScheme.surface,
             properties = DialogProperties(usePlatformDefaultWidth = false),
             text = {
@@ -212,7 +218,7 @@ fun PlayersPanel(
             Text(
                 "On Court",
                 style = MaterialTheme.typography.titleSmall,
-                color = Color.White.copy(alpha = 0.5f)
+                color = SportsColors.Muted
             )
             Spacer(Modifier.height(4.dp))
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -234,7 +240,7 @@ fun PlayersPanel(
             Text(
                 "Bench",
                 style = MaterialTheme.typography.titleSmall,
-                color = Color.White.copy(alpha = 0.5f)
+                color = SportsColors.Muted
             )
             Spacer(Modifier.height(4.dp))
 
@@ -279,7 +285,7 @@ private fun PlayerCard(
     val pf = playerBoxScore?.pf ?: 0
 
     val hapticFeedback = LocalHapticFeedback.current
-    val numberWidth = 32.dp
+    val photoSize = 40.dp
     val spacing = 8.dp
 
     val icon =
@@ -291,7 +297,7 @@ private fun PlayerCard(
     val iconTint =
         when (mode) {
             PlayerCardMode.ON_COURT -> MaterialTheme.colorScheme.error
-            PlayerCardMode.BENCH -> if (canSubstitute) Color(0xFF3AB47A) else Color.Transparent
+            PlayerCardMode.BENCH -> if (canSubstitute) SportsColors.Accent else Color.Transparent
         }
 
     OutlinedCard(
@@ -305,12 +311,12 @@ private fun PlayerCard(
                 }
             ),
         colors = CardDefaults.outlinedCardColors(
-            containerColor = Color.White.copy(alpha = 0.03f)
+            containerColor = SportsColors.Text.copy(alpha = 0.03f)
         ),
         border = BorderStroke(
             width = 1.dp,
-            color = if (isSelected) Color.White
-            else Color.White.copy(alpha = 0.08f)
+            color = if (isSelected) SportsColors.Text
+            else SportsColors.Text.copy(alpha = 0.08f)
         )
     ) {
         Row(
@@ -324,7 +330,7 @@ private fun PlayerCard(
                         .width(10.dp)
                         .padding(start = 1.dp)
                         .fillMaxHeight()
-                        .background(Color(0xFF3AB47A))
+                        .background(SportsColors.Accent)
                 )
             }
             Row(
@@ -334,22 +340,38 @@ private fun PlayerCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        SmallNumberBadge(player.number)
-                        Spacer(modifier = Modifier.width(spacing))
-                        Text(
-                            text = formatPlayerName(player.name),
-                            fontFamily = inter,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                        PlayerPhoto(
+                            photoUri = player.photoUri,
+                            playerName = player.name,
+                            modifier = Modifier.size(photoSize)
                         )
                         Spacer(modifier = Modifier.width(spacing))
-                        FoulDots(fouls = pf)
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = formatPlayerName(player.name),
+                                fontFamily = inter,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "#${player.number}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = SportsColors.Accent
+                                )
+                                Spacer(Modifier.width(spacing))
+                                FoulDots(fouls = pf)
+                            }
+                        }
                     }
 
                     Row {
-                        Box(modifier = Modifier.width(numberWidth))
+                        Box(modifier = Modifier.width(photoSize))
                         Spacer(modifier = Modifier.width(spacing))
 
                         val seconds = secondsByPlayer ?: 0
@@ -365,7 +387,7 @@ private fun PlayerCard(
                         Text(
                             text = "MIN",
                             fontFamily = inter,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            color = SportsColors.Muted,
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.width(spacing))
@@ -380,7 +402,7 @@ private fun PlayerCard(
                         Text(
                             text = "PTS",
                             fontFamily = inter,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            color = SportsColors.Muted,
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.width(spacing))
@@ -395,7 +417,7 @@ private fun PlayerCard(
                         Text(
                             text = "REB",
                             fontFamily = inter,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            color = SportsColors.Muted,
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.width(spacing))
@@ -410,23 +432,17 @@ private fun PlayerCard(
                         Text(
                             text = "AST",
                             fontFamily = inter,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            color = SportsColors.Muted,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconButton(
-                        modifier = Modifier.size(24.dp),
+                    TextButton(
                         enabled = canSubstitute,
                         onClick = { onSubstitute(player.id) }
                     ) {
-                        Icon(
-                            imageVector = icon,
-                            modifier = Modifier.size(24.dp),
-                            contentDescription = "Substitute",
-                            tint = iconTint
-                        )
+                        Text(if (mode == PlayerCardMode.ON_COURT) "Swap" else "Add")
                     }
                 }
             }

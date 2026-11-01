@@ -1,6 +1,9 @@
 package com.example.basketballtracker.features.summary.ui
 
 import androidx.lifecycle.ViewModel
+import com.example.basketballtracker.core.data.db.entities.EventEntity
+import com.example.basketballtracker.core.data.db.entities.GameEntity
+import com.example.basketballtracker.features.livegame.data.toDomain
 import androidx.lifecycle.viewModelScope
 import com.example.basketballtracker.core.data.db.AppDatabase
 import com.example.basketballtracker.features.games.data.GamesRepository
@@ -35,7 +38,7 @@ class GameSummaryViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<GameSummaryUiState> =
-        liveRepo.observeLiveEvents(gameId)
+        liveRepo.observeEventEntities(gameId)
             .mapLatest { events ->
                 withContext(Dispatchers.IO) {
                     buildUiState(events)
@@ -47,7 +50,8 @@ class GameSummaryViewModel(
                 initialValue = GameSummaryUiState(isLoading = true)
             )
 
-    private suspend fun buildUiState(events: List<LiveEvent>): GameSummaryUiState {
+    private suspend fun buildUiState(eventEntities: List<EventEntity>): GameSummaryUiState {
+        val events = eventEntities.map { it.toDomain() }
         val game = gamesRepo.getById(gameId)
             ?: return GameSummaryUiState(isLoading = false)
 
@@ -94,6 +98,7 @@ class GameSummaryViewModel(
                 playerId = player.id,
                 playerName = player.name,
                 playerNumber = player.number,
+                photoUri = player.photoUri,
                 isStarter = player.id in starterIds,
                 min = formatMinutes(secondsPlayedById[player.id] ?: 0),
                 pts = b?.pts ?: 0,
@@ -116,6 +121,8 @@ class GameSummaryViewModel(
         }
 
         return GameSummaryUiState(
+            game = game,
+            events = eventEntities,
             isLoading = false,
             opponentName = game.opponentName,
             roundNumber = game.roundNumber,
@@ -216,6 +223,8 @@ private fun formatDate(epoch: Long): String {
 }
 
 data class GameSummaryUiState(
+    val game: GameEntity? = null,
+    val events: List<EventEntity> = emptyList(),
     val isLoading: Boolean = false,
     val opponentName: String = "",
     val roundNumber: Int = 0,
@@ -249,7 +258,8 @@ data class GameSummaryPlayerRowUi(
     val fta: Int,
     val tov: Int,
     val pf: Int,
-    val plusMinus: Int
+    val plusMinus: Int,
+    val photoUri: String? = null
 )
 
 data class TeamTotals(

@@ -8,6 +8,8 @@ import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.games.data.GamesRepository
 import com.example.basketballtracker.features.livegame.data.LiveGameRepository
 import com.example.basketballtracker.features.livegame.domain.*
+import com.example.basketballtracker.core.data.db.entities.EventEntity
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -15,7 +17,10 @@ import kotlinx.coroutines.launch
 data class PendingMadeShot(
     val type: EventType,
     val playerId: Long,
-    val shotMeta: ShotMeta?
+    val shotMeta: ShotMeta?,
+    val period: Int,
+    val clockSecRemaining: Int,
+    val eligibleIds: Set<Long>
 )
 
 data class LiveUiState(
@@ -39,11 +44,35 @@ class LiveGameViewModel(
     private val syncManager: SyncManager,
     gameId: Long,
     players: List<PlayerEntity>,
-    private val quarterLengthSec: Int = 600
+    val quarterLengthSec: Int = 600
 ) : ViewModel() {
 
     private val _pendingMadeShot = MutableStateFlow<PendingMadeShot?>(null)
     val pendingMadeShot: StateFlow<PendingMadeShot?> = _pendingMadeShot.asStateFlow()
+
+    private val _saving = MutableStateFlow(false)
+    val saving = _saving.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null)
+    val error = _error.asStateFlow()
+    private fun commit(block: suspend () -> Unit) {
+        if (_saving.value || _base.value.isEnded) return
+        _saving.value = true
+        _error.value = null
+        viewModelScope.launch {
+            try {
+                block()
+                // Observe the transaction before accepting another action.
+                val latest = repo.getLiveEventsOnce(_base.value.gameId)
+                ui.first { it.events.map { e -> e.id }.toSet() == latest.map { e -> e.id }.toSet() }
+                launch { syncManager.syncPending() }
+            } catch (e: CancellationException) { throw e
+            } catch (_: Exception) { _error.value = "Could not save action. Please try again." }
+            finally { _saving.value = false }
+        }
+    }
+    private fun event(type: EventType, player: Long?, period: Int, seconds: Int) = EventEntity(
+        gameId = _base.value.gameId, playerId = player, type = type.name,
+        period = period, clockSecRemaining = seconds, createdAt = System.currentTimeMillis())
 
     private var lastLiveSyncAt = 0L
 
@@ -92,7 +121,8 @@ class LiveGameViewModel(
         restoreLiveGameState()
 
         viewModelScope.launch {
-            gamesRepo.updateGameStatus(_base.value.gameId, GameStatus.LIVE)
+            if (gamesRepo.getById(_base.value.gameId)?.status != GameStatus.FINISHED)
+                gamesRepo.updateGameStatus(_base.value.gameId, GameStatus.LIVE)
             syncManager.syncPending()
         }
 
@@ -117,6 +147,7 @@ class LiveGameViewModel(
 
             _base.update {
                 it.copy(
+                    isEnded = game.status == GameStatus.FINISHED,
                     opponentName = game.opponentName,
                     roundNumber = game.roundNumber,
                     gameDateEpoch = game.gameDateEpoch,
@@ -201,6 +232,7 @@ class LiveGameViewModel(
     }
 
     fun toggleClock() {
+        if (_base.value.isEnded || _saving.value || _pendingMadeShot.value != null) return
         _base.update {
             it.copy(
                 clock = it.clock.copy(
@@ -226,31 +258,14 @@ class LiveGameViewModel(
     }
 
     fun nextQuarter() {
-        addEvent(
-            type = EventType.PERIOD_END,
-            noPlayer = true,
-            shotMeta = null
-        )
-
-        _base.update { s ->
-            val next = s.clock.period + 1
-
-            s.copy(
-                clock = GameClock(
-                    period = next,
-                    secRemaining = quarterLengthSec,
-                    isRunning = false
-                )
-            )
+        if (_pendingMadeShot.value != null || _base.value.clock.isRunning) return
+        commit {
+            val old = _base.value.clock
+            repo.recordAction(listOf(event(EventType.PERIOD_END, null, old.period, old.secRemaining),
+                event(EventType.PERIOD_START, null, old.period + 1, quarterLengthSec)))
+            _base.update { it.copy(clock = GameClock(old.period + 1, quarterLengthSec, false)) }
+            persistClock()
         }
-
-        persistClock()
-
-        addEvent(
-            type = EventType.PERIOD_START,
-            noPlayer = true,
-            shotMeta = null
-        )
     }
 
     fun addEvent(
@@ -260,6 +275,7 @@ class LiveGameViewModel(
         shotMeta: ShotMeta? = null,
     ) {
         val snap = _base.value
+        if (snap.isEnded || _saving.value || _pendingMadeShot.value != null) return
 
         val pid: Long? = when {
             type.isOpponentEvent() -> null
@@ -272,11 +288,15 @@ class LiveGameViewModel(
             return
         }
 
+        if (type.requiresPlayer() && pid != null && ui.value.events.count { it.playerId == pid && it.type == EventType.PF } >= 5) return
         if ((type == EventType.TWO_MADE || type == EventType.THREE_MADE) && pid != null) {
             _pendingMadeShot.value = PendingMadeShot(
                 type = type,
                 playerId = pid,
-                shotMeta = shotMeta
+                shotMeta = shotMeta,
+                period = snap.clock.period,
+                clockSecRemaining = snap.clock.secRemaining,
+                eligibleIds = computeOnCourtIds(ui.value.events) - pid
             )
             return
         }
@@ -295,7 +315,7 @@ class LiveGameViewModel(
 
         val shouldAttachScore = type.isScoreEvent() || type.isOpponentEvent()
 
-        viewModelScope.launch {
+        commit {
             repo.addEvent(
                 gameId = snap.gameId,
                 playerId = pid,
@@ -312,68 +332,50 @@ class LiveGameViewModel(
 
     fun confirmMadeShot(assistedByPlayerId: Long?) {
         val pending = _pendingMadeShot.value ?: return
-        val snap = _base.value
-
-        val currentEvents = ui.value.events
-        val teamNow = computeTeamScore(currentEvents)
-        val oppNow = computeOppScore(currentEvents)
-
-        val (teamAtEvent, oppAtEvent) = when (pending.type) {
-            EventType.TWO_MADE -> teamNow + 2 to oppNow
-            EventType.THREE_MADE -> teamNow + 3 to oppNow
-            else -> teamNow to oppNow
+        if (assistedByPlayerId != null && assistedByPlayerId !in pending.eligibleIds) return
+        val shot = event(pending.type, pending.playerId, pending.period, pending.clockSecRemaining).copy(
+            assistedByPlayerId = assistedByPlayerId,
+            teamScoreAtEvent = computeTeamScore(ui.value.events) + if (pending.type == EventType.THREE_MADE) 3 else 2,
+            opponentScoreAtEvent = computeOppScore(ui.value.events),
+            shotX = pending.shotMeta?.x, shotY = pending.shotMeta?.y, shotDistance = pending.shotMeta?.distance)
+        commit {
+            repo.recordAction(listOfNotNull(shot, assistedByPlayerId?.let {
+                event(EventType.AST, it, pending.period, pending.clockSecRemaining)
+            }))
+            _pendingMadeShot.value = null
         }
-
-        viewModelScope.launch {
-            repo.addEvent(
-                gameId = snap.gameId,
-                playerId = pending.playerId,
-                type = pending.type,
-                period = snap.clock.period,
-                clockSecRemaining = snap.clock.secRemaining,
-                teamScoreAtEvent = teamAtEvent,
-                opponentScoreAtEvent = oppAtEvent,
-                shotMeta = pending.shotMeta,
-                assistedByPlayerId = assistedByPlayerId
-            )
-
-            if (assistedByPlayerId != null) {
-                repo.addEvent(
-                    gameId = snap.gameId,
-                    playerId = assistedByPlayerId,
-                    type = EventType.AST,
-                    period = snap.clock.period,
-                    clockSecRemaining = snap.clock.secRemaining,
-                    shotMeta = null
-                )
-            }
-        }
-
-        _pendingMadeShot.value = null
     }
 
     fun dismissAssistPicker() {
-        _pendingMadeShot.value = null
+        if (!_saving.value) { _pendingMadeShot.value = null; _error.value = null }
     }
 
-    fun subIn(playerId: Long) {
-        addEvent(EventType.SUB_IN, playerIdOverride = playerId, shotMeta = null)
+    fun substitute(outgoing: Long?, incoming: Long?) {
+        if (_pendingMadeShot.value != null) return
+        commit {
+            val events = repo.getLiveEventsOnce(_base.value.gameId)
+            val court = computeOnCourtIds(events)
+            require(outgoing == null || outgoing in court)
+            require(incoming == null || (incoming !in court && _base.value.players.any { it.id == incoming } &&
+                events.count { it.playerId == incoming && it.type == EventType.PF } < 5))
+            require(court.size - (if (outgoing == null) 0 else 1) + (if (incoming == null) 0 else 1) <= 5)
+            val clock = _base.value.clock
+            repo.recordAction(listOfNotNull(
+                outgoing?.let { event(EventType.SUB_OUT, it, clock.period, clock.secRemaining) },
+                incoming?.let { event(EventType.SUB_IN, it, clock.period, clock.secRemaining) }))
+            _base.update { it.copy(selectedPlayerId = incoming) }
+        }
     }
-
-    fun subOut(playerId: Long) {
-        addEvent(EventType.SUB_OUT, playerIdOverride = playerId, shotMeta = null)
-    }
+    fun subIn(playerId: Long) = substitute(null, playerId)
+    fun subOut(playerId: Long) = substitute(playerId, null)
 
     fun undoLast() {
-        val gameId = _base.value.gameId
-
-        viewModelScope.launch {
-            repo.undoLastReturning(gameId) ?: return@launch
-            syncManager.syncPending()
-        }
+        if (_pendingMadeShot.value != null) return
+        commit { repo.undoLastReturning(_base.value.gameId) }
     }
 
     fun adjustClock(deltaSeconds: Int) {
+        if (_base.value.isEnded || _saving.value || _pendingMadeShot.value != null) return
         _base.update { s ->
             val newSeconds = (s.clock.secRemaining + deltaSeconds)
                 .coerceIn(0, quarterLengthSec)
@@ -389,6 +391,7 @@ class LiveGameViewModel(
     }
 
     fun adjustPeriod(delta: Int) {
+        if (_base.value.isEnded || _saving.value || _pendingMadeShot.value != null) return
         _base.update { s ->
             val newPeriod = (s.clock.period + delta)
                 .coerceIn(1, 10)
@@ -404,6 +407,7 @@ class LiveGameViewModel(
     }
 
     fun endGame() {
+        if (_base.value.isEnded || _saving.value || _pendingMadeShot.value != null) return
         _base.update {
             it.copy(
                 isEnded = true,

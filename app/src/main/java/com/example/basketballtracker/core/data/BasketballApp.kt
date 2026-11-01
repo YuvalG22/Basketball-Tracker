@@ -50,6 +50,6 @@ class BasketballApp: Application() {
     }
 
     val statsRepo by lazy {
-        SeasonStatsRepository(database.playerSeasonStatsDao())
+        SeasonStatsRepository(database.gameDao(), database.playerDao(), database.eventDao())
     }
 }

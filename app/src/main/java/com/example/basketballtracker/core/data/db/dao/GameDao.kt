@@ -3,6 +3,7 @@ package com.example.basketballtracker.core.data.db.dao
 import androidx.room.*
 import com.example.basketballtracker.core.data.db.entities.GameEntity
 import com.example.basketballtracker.core.data.db.entities.GameStatus
+import com.example.basketballtracker.core.data.db.entities.GameSeason
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -12,9 +13,12 @@ interface GameDao {
         games.forEach { game ->
             val localId = getLocalIdByRemoteId(game.remoteId)
             if (localId != null) {
-                update(game.copy(id = localId))
+                // Seasons are local until the server supports them. A refresh must
+                // not reset a current-season game to the legacy import default.
+                val localSeason = getById(localId)?.season ?: GameSeason.LEGACY
+                update(game.copy(id = localId, season = localSeason))
             } else {
-                insert(game)
+                insert(game.copy(season = GameSeason.LEGACY))
             }
         }
     }

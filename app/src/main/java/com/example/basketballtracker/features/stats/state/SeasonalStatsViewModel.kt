@@ -15,11 +15,5 @@ enum class StatsDisplayMode {
 class SeasonStatsViewModel(
     private val repo: SeasonStatsRepository
 ) : ViewModel() {
-    val seasonStats: StateFlow<List<PlayerSeasonStats>> =
-        repo.seasonStats()
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5_000),
-                emptyList()
-            )
+    val data = repo.observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.example.basketballtracker.features.stats.data.SeasonalData())
 }

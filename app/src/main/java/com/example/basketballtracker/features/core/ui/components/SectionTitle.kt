@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.core.ui.components
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -15,17 +16,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
-private val SummaryAccent = Color(0xFF2ECC71)
+private val SummaryAccent = SportsColors.Orange
 
 @Composable
 fun SectionTitle(text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
-                .width(4.dp)
-                .height(22.dp)
-                .background(SummaryAccent, RoundedCornerShape(50))
+                .width(3.dp)
+                .height(16.dp)
+                .background(SummaryAccent, RoundedCornerShape(4.dp))
         )
 
         Spacer(Modifier.width(10.dp))
@@ -33,7 +35,8 @@ fun SectionTitle(text: String) {
         Text(
             text = text,
             color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.labelLarge,
+            letterSpacing = 1.sp,
             fontWeight = FontWeight.Black
         )
     }

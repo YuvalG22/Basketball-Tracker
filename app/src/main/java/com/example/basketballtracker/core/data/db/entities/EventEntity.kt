@@ -24,4 +24,5 @@ data class EventEntity(
     val shotDistance: Float? = null,
     val remoteId: String? = null,
     val syncStatus: String = "PENDING",
+    val actionGroupId: String? = null,
 )

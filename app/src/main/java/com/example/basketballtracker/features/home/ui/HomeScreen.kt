@@ -1,47 +1,29 @@
-package com.example.basketballtracker.features.home.ui
+﻿package com.example.basketballtracker.features.home.ui
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SportsBasketball
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.basketballtracker.core.data.db.entities.GameStatus
-import com.example.basketballtracker.features.livegame.domain.computeOppScore
-import com.example.basketballtracker.features.livegame.domain.computeTeamScore
-import com.example.basketballtracker.ui.theme.inter
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.basketballtracker.core.data.db.entities.GameEntity
+import com.example.basketballtracker.core.data.db.entities.GameSeason
+import com.example.basketballtracker.ui.theme.SportsColors
 import com.example.basketballtracker.utils.formatClock
 import com.example.basketballtracker.utils.formatDate
 
@@ -50,556 +32,208 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onNewGame: () -> Unit,
     onContinue: (Long) -> Unit,
-    onGameSummary: (Long) -> Unit
+    onGameSummary: (Long) -> Unit,
+    onHistory: () -> Unit
 ) {
-    val lastGame by viewModel.lastGame.collectAsState()
-    val lastGameEvents by viewModel.lastGameEvents.collectAsState()
+    val state by viewModel.home.collectAsStateWithLifecycle()
+    HomeContent(state, viewModel.isSyncing, viewModel.syncError, viewModel::manualSync,
+        onNewGame, onContinue, onGameSummary, onHistory)
+}
 
-    val teamScore = remember(lastGame, lastGameEvents) {
-        if (lastGame?.status == GameStatus.LIVE) {
-            computeTeamScore(lastGameEvents)
-        } else {
-            lastGame?.teamScore ?: 0
-        }
-    }
-
-    val opponentScore = remember(lastGame, lastGameEvents) {
-        if (lastGame?.status == GameStatus.LIVE) {
-            computeOppScore(lastGameEvents)
-        } else {
-            lastGame?.opponentScore ?: 0
-        }
-    }
-
-    val lastGameId = lastGame?.id
-    val gameDateEpoch = lastGame?.gameDateEpoch ?: System.currentTimeMillis()
-    val gameDate = formatDate(gameDateEpoch, "MMM d")
-    val lastGameOpponentName = lastGame?.opponentName ?: "Unknown"
-    val lastGameIsHomeGame = lastGame?.isHomeGame ?: false
-
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets.systemBars
-    ) { padding ->
-        Surface(
-            Modifier
-                .fillMaxSize()
-                .padding(0.dp),
-            color = MaterialTheme.colorScheme.background
-        ) {
+@Composable
+fun HomeContent(
+    state: HomeState,
+    isSyncing: Boolean = false,
+    syncError: String? = null,
+    onSync: () -> Unit,
+    onNewGame: () -> Unit,
+    onContinue: (Long) -> Unit,
+    onGameSummary: (Long) -> Unit,
+    onHistory: () -> Unit
+) {
+    Surface(Modifier.fillMaxSize(), color = SportsColors.Background) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val wide = maxWidth >= 840.dp
             Column(
-                Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                    .padding(horizontal = if (wide) 32.dp else 20.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("🏀 Basketball Tracker", style = MaterialTheme.typography.headlineLarge, color = Color.White)
-                Spacer(modifier = Modifier.height(16.dp))
-                lastGame?.let { game ->
-                    LastGameCard(
-                        opponentName = lastGameOpponentName,
-                        isHomeGame = lastGameIsHomeGame,
-                        teamScore = teamScore,
-                        opponentScore = opponentScore,
-                        status = game.status,
-                        gameDate = gameDate,
-                        isPlayoff = game.isPlayoff,
-                        stage = game.playoffStage,
-                        gameNumber = game.playoffGameNumber ?: game.roundNumber,
-                        period = game.currentPeriod,
-                        secRemaining = game.clockSecRemaining,
-                        onClick = {
-                            when (game.status) {
-                                GameStatus.LIVE -> onContinue(game.id)
-                                GameStatus.FINISHED -> onGameSummary(game.id)
-                                else -> Unit
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("AFEKA BASKETBALL", style = MaterialTheme.typography.labelMedium,
+                            color = SportsColors.Accent, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold)
+                        Text("Game day", style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Black, color = SportsColors.Text)
+                    }
+                    TextButton(onClick = onSync, enabled = !isSyncing) {
+                        if (isSyncing) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        else Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (isSyncing) "Syncing…" else "Sync")
+                    }
+                }
+                syncError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                if (state.loading) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                        Text("Loading games…", color = SportsColors.Muted)
+                    }
+                } else {
+                    if (wide) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                            Column(Modifier.weight(1.25f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                GameDayAction(state, onNewGame, onContinue)
+                                OtherLiveGames(state.liveGames.drop(1), onContinue)
+                            }
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                                SeasonOverview(state)
+                                RecentResults(state.recentGames, onGameSummary, onHistory)
                             }
                         }
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3AB47A)),
-                        shape = RoundedCornerShape(8.dp),
-                        onClick = onNewGame,
-                    ) {
-                        Text(
-                            "NEW GAME",
-                            fontFamily = inter,
-                            fontWeight = FontWeight.Black,
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
-                    Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3AB47A)),
-                        shape = RoundedCornerShape(8.dp),
-                        onClick = { viewModel.manualSync() },
-                        enabled = !viewModel.isSyncing
-                    ) {
-                        if (viewModel.isSyncing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.White
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.CloudUpload,
-                                contentDescription = "Sync Now"
-                            )
-                        }
+                    } else {
+                        GameDayAction(state, onNewGame, onContinue)
+                        OtherLiveGames(state.liveGames.drop(1), onContinue)
+                        SeasonOverview(state)
+                        RecentResults(state.recentGames, onGameSummary, onHistory)
                     }
                 }
-//               Spacer(modifier = Modifier.height(16.dp))
-//                BoxWithConstraints(
-//                    modifier = Modifier.fillMaxWidth()
-//                ) {
-//
-//                    val isWideScreen = maxWidth > 700.dp
-//
-//                    if (isWideScreen) {
-//
-//                        Row(
-//                            modifier = Modifier.fillMaxWidth(),
-//                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-//                        ) {
-//
-//                            MenuCard(
-//                                modifier = Modifier.weight(1f),
-//                                onClick = { onPlayers() },
-//                                icon = "👥",
-//                                title = "Roster",
-//                                secondary = "Manage your players"
-//                            )
-//
-//                            MenuCard(
-//                                modifier = Modifier.weight(1f),
-//                                onClick = { onPlayersStats() },
-//                                icon = "📊",
-//                                title = "Stats",
-//                                secondary = "Season averages and team leaders"
-//                            )
-//
-//                            MenuCard(
-//                                modifier = Modifier.weight(1f),
-//                                onClick = { onHistory() },
-//                                icon = "📅",
-//                                title = "History",
-//                                secondary = "View past games and scores"
-//                            )
-//                        }
-//
-//                    } else {
-//                        Column(
-//                            modifier = Modifier
-//                                .fillMaxWidth(),
-//                            verticalArrangement = Arrangement.spacedBy(16.dp)
-//                        ) {
-//                            MenuCard(
-//                                onClick = { onPlayersStats() },
-//                                icon = "📊",
-//                                title = "Stats",
-//                                secondary = "Season averages, leaders, and individual game logs"
-//                            )
-//
-//                            MenuCard(
-//                                onClick = { onHistory() },
-//                                icon = "📅",
-//                                title = "History",
-//                                secondary = "View past games and scores"
-//                            )
-//
-//                            MenuCard(
-//                                onClick = { onPlayers() },
-//                                icon = "👥",
-//                                title = "Roster",
-//                                secondary = "Manage your players"
-//                            )
-//                        }
-//                    }
-//                }
             }
         }
     }
 }
 
 @Composable
-fun LastGameScore(
-    isHomeGame: Boolean,
-    teamScore: Int,
-    opponentScore: Int,
-    isLive: Boolean = false,
-    secRemaining: Int = 0,
-    period: Int = 0,
-) {
-    val homeName = "AFEKA"
-    val awayName = "OPP"
-
-    val leftScore = if (isHomeGame) teamScore else opponentScore
-    val rightScore = if (isHomeGame) opponentScore else teamScore
-
-    val isTie = teamScore == opponentScore
-    val teamWon = teamScore > opponentScore
-
-    val leftIsWinner =
-        !isLive && !isTie && ((isHomeGame && teamWon) || (!isHomeGame && !teamWon))
-
-    val rightIsWinner =
-        !isLive && !isTie && !leftIsWinner
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = if (isLive) "Q$period • ${formatClock(secRemaining)}" else "",
-            color = MaterialTheme.colorScheme.error,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            ScoreBox(
-                score = leftScore,
-                isWinner = leftIsWinner,
-                isLive = isLive
-            )
-
-            Text(
-                text = "-",
-                style = MaterialTheme.typography.displaySmall,
-                color = Color.White.copy(alpha = 0.35f),
-                fontWeight = FontWeight.Bold
-            )
-
-            ScoreBox(
-                score = rightScore,
-                isWinner = rightIsWinner,
-                isLive = isLive
-            )
-        }
-    }
-}
-
-@Composable
-private fun ScoreBox(
-    score: Int,
-    isWinner: Boolean,
-    isLive: Boolean
-) {
-    val background =
-        when {
-            isLive -> Color(0xFF15261E)
-            isWinner -> Color(0xFF2ECC71).copy(alpha = 0.16f)
-            else -> Color.White.copy(alpha = 0.06f)
-        }
-
-    val border =
-        when {
-            isLive -> Color(0xFF2ECC71).copy(alpha = 0.55f)
-            isWinner -> Color(0xFF2ECC71).copy(alpha = 0.75f)
-            else -> Color.White.copy(alpha = 0.12f)
-        }
-
-    val textColor =
-        when {
-            isLive -> Color.White
-            isWinner -> Color.White
-            else -> Color.White.copy(alpha = 0.45f)
-        }
-
-    Box(
-        modifier = Modifier
-            .widthIn(min = 82.dp)
-            .height(68.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(background)
-            .border(
-                width = 1.dp,
-                color = border,
-                shape = RoundedCornerShape(20.dp)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = score.toString(),
-            style = MaterialTheme.typography.displaySmall,
-            color = textColor,
-            fontWeight = FontWeight.Black,
-            fontFamily = inter
-        )
-    }
-}
-
-@Composable
-fun MenuCard(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-    icon: String,
-    title: String,
-    secondary: String
-) {
-    Card(
-        modifier = modifier
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(32.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.Start,
-        ) {
-            Text(
-                icon,
-                style = MaterialTheme.typography.titleLarge,
-            )
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White
-            )
-            Text(
-                secondary,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.5f)
-            )
-        }
-    }
-}
-
-@Composable
-fun LastGameCard(
-    opponentName: String,
-    isHomeGame: Boolean,
-    teamScore: Int,
-    opponentScore: Int,
-    status: String,
-    gameDate: String,
-    isPlayoff: Boolean,
-    stage: String?,
-    gameNumber: Int,
-    period: Int,
-    secRemaining: Int,
-    onClick: () -> Unit
-) {
-    val isLive = status == GameStatus.LIVE
-    val isFinished = status == GameStatus.FINISHED
-
-    val gameLabel =
-        if (isPlayoff) {
-            "${stageFormated(stage ?: "")} • Game $gameNumber"
-        } else {
-            "Round"
-        }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF181818)
-        ),
-        border = BorderStroke(
-            1.dp,
-            if (isLive) Color(0xFF2ECC71).copy(alpha = 0.35f)
-            else Color.White.copy(alpha = 0.10f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                GameStatusBadge(
-                    isLive = isLive,
-                    gameDate = gameDate,
-                    info = gameLabel
-                )
-
-                Text(
-                    text = if (isLive) "Tap to continue" else "Tap for summary",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.45f)
-                )
+private fun GameDayAction(state: HomeState, onNewGame: () -> Unit, onContinue: (Long) -> Unit) {
+    val live = state.liveGames.firstOrNull()
+    Card(colors = CardDefaults.cardColors(containerColor = SportsColors.Text), shape = RoundedCornerShape(20.dp)) {
+        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(if (live == null) Icons.Default.SportsBasketball else Icons.Default.PlayArrow,
+                    contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                Text(if (live == null) "SEASON ${GameSeason.CURRENT}" else "GAME IN PROGRESS",
+                    style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.White)
             }
-
-            Text(
-                text = if (isLive) {
-                    "Q$period • ${formatClock(secRemaining)}"
-                } else {
-                    "FINAL SCORE"
-                },
-                style = MaterialTheme.typography.titleSmall,
-                color = if (isLive) Color(0xFF2ECC71) else Color.White.copy(alpha = 0.45f),
-                fontWeight = FontWeight.Bold,
-                fontFamily = inter
-            )
-
-            ScoreboardRows(
-                opponentName = opponentName,
-                isHomeGame = isHomeGame,
-                teamScore = teamScore,
-                opponentScore = opponentScore,
-                isLive = isLive,
-                isFinished = isFinished
-            )
-        }
-    }
-}
-
-@Composable
-private fun GameStatusBadge(
-    isLive: Boolean,
-    gameDate: String,
-    info: String
-) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(
-                if (isLive) Color(0xFF2ECC71).copy(alpha = 0.14f)
-                else Color.White.copy(alpha = 0.07f)
-            )
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        if (isLive) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Color(0xFF2ECC71))
-            )
-        }
-
-        Text(
-            text = if (isLive) "LIVE • $info" else "LAST GAME • $info",
-            style = MaterialTheme.typography.labelLarge,
-            color = if (isLive) Color(0xFF2ECC71) else Color.White.copy(alpha = 0.65f),
-            fontWeight = FontWeight.Bold,
-            fontFamily = inter
-        )
-    }
-}
-
-@Composable
-private fun ScoreboardRows(
-    opponentName: String,
-    isHomeGame: Boolean,
-    teamScore: Int,
-    opponentScore: Int,
-    isLive: Boolean,
-    isFinished: Boolean
-) {
-    val firstTeamName = if (isHomeGame) "AFEKA" else opponentName
-    val secondTeamName = if (isHomeGame) opponentName else "AFEKA"
-
-    val firstScore = if (isHomeGame) teamScore else opponentScore
-    val secondScore = if (isHomeGame) opponentScore else teamScore
-
-    val firstIsAfeka = isHomeGame
-    val secondIsAfeka = !isHomeGame
-
-    val teamWon = teamScore > opponentScore
-    val isTie = teamScore == opponentScore
-
-    ScoreboardTeamRow(
-        name = firstTeamName,
-        score = firstScore,
-        isAfeka = firstIsAfeka,
-        isWinner = isFinished && !isTie && ((firstIsAfeka && teamWon) || (!firstIsAfeka && !teamWon)),
-        isLive = isLive
-    )
-
-    ScoreboardTeamRow(
-        name = secondTeamName,
-        score = secondScore,
-        isAfeka = secondIsAfeka,
-        isWinner = isFinished && !isTie && ((secondIsAfeka && teamWon) || (!secondIsAfeka && !teamWon)),
-        isLive = isLive
-    )
-}
-
-@Composable
-private fun ScoreboardTeamRow(
-    name: String,
-    score: Int,
-    isAfeka: Boolean,
-    isWinner: Boolean,
-    isLive: Boolean
-) {
-    val alpha = when {
-        isLive -> 1f
-        isWinner -> 1f
-        else -> 0.48f
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                if (isWinner) Color(0xFF2ECC71).copy(alpha = 0.12f)
-                else Color.White.copy(alpha = 0.04f)
-            )
-            .border(
-                width = 1.dp,
-                color = if (isWinner) Color(0xFF2ECC71).copy(alpha = 0.35f)
-                else Color.White.copy(alpha = 0.07f),
-                shape = RoundedCornerShape(18.dp)
-            )
-            .padding(horizontal = 18.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White.copy(alpha = alpha),
-                fontWeight = FontWeight.Bold,
-                fontFamily = inter
-            )
-
-            if (isAfeka) {
-                Text(
-                    text = "Your team",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF2ECC71).copy(alpha = 0.85f),
-                    fontFamily = inter
-                )
+            if (live == null) {
+                Text("Ready for tip-off?", style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold, color = Color.White)
+                Text("Choose your opponent and roster, then start recording the game.",
+                    color = Color(0xFFCEDAF0), style = MaterialTheme.typography.bodyLarge)
+            } else {
+                Text("vs ${live.opponentName}", style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold, color = Color.White)
+                Text(gameDetails(live), color = Color(0xFFCEDAF0))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("${live.teamScore} – ${live.opponentScore}", color = Color.White,
+                            style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Black)
+                        Text("AFEKA · ${live.opponentName}", color = Color(0xFFCEDAF0),
+                            style = MaterialTheme.typography.labelMedium)
+                    }
+                    Text("Q${live.currentPeriod}\n${formatClock(live.clockSecRemaining)}", color = Color.White,
+                        style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+            }
+            Button(onClick = { if (live == null) onNewGame() else onContinue(live.id) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SportsColors.Accent, contentColor = Color.White)) {
+                Icon(if (live == null) Icons.Default.Add else Icons.Default.PlayArrow, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (live == null) "Start new game" else "Resume game", fontWeight = FontWeight.Bold)
+            }
+            if (live != null) {
+                TextButton(onClick = onNewGame, modifier = Modifier.fillMaxWidth()) {
+                    Text("Start a different game", color = Color.White)
+                }
             }
         }
-
-        Text(
-            text = score.toString(),
-            style = MaterialTheme.typography.displaySmall,
-            color = Color.White.copy(alpha = alpha),
-            fontWeight = FontWeight.Black,
-            fontFamily = inter
-        )
     }
 }
 
-fun stageFormated(stage: String): String {
-    return when (stage) {
-        "FINAL" -> "Final"
-        "SEMI_FINAL" -> "Semi Final"
-        "QUARTER_FINAL" -> "Quarter Final"
-        else -> "Round"
+@Composable
+private fun OtherLiveGames(games: List<GameEntity>, onContinue: (Long) -> Unit) {
+    if (games.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Other unfinished games", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        games.forEach { game ->
+            OutlinedCard(onClick = { onContinue(game.id) }, modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(game.opponentName, fontWeight = FontWeight.Bold)
+                        Text(gameDetails(game), style = MaterialTheme.typography.bodySmall, color = SportsColors.Muted)
+                    }
+                    Icon(Icons.Default.PlayArrow, contentDescription = "Resume ${game.opponentName}", tint = SportsColors.Accent)
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun SeasonOverview(state: HomeState) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Season ${GameSeason.CURRENT}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth().background(SportsColors.Surface, RoundedCornerShape(16.dp)).padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween) {
+            SeasonNumber("Played", state.played)
+            SeasonNumber("Won", state.wins)
+            SeasonNumber("Lost", state.losses)
+            if (state.ties > 0) SeasonNumber("Tied", state.ties)
+        }
+        if (state.played == 0) Text("Your season record will appear after your first completed game.",
+            style = MaterialTheme.typography.bodySmall, color = SportsColors.Muted)
+    }
+}
+
+@Composable
+private fun SeasonNumber(label: String, value: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(value.toString(), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = SportsColors.Muted)
+    }
+}
+
+@Composable
+private fun RecentResults(games: List<GameEntity>, onGameSummary: (Long) -> Unit, onHistory: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Text("Recent results", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            TextButton(onClick = onHistory) { Text("All games"); Spacer(Modifier.width(4.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp)) }
+        }
+        if (games.isEmpty()) {
+            Text("No results yet. Finished games and box scores will appear here.", color = SportsColors.Muted)
+        }
+        games.forEach { game ->
+            val won = game.teamScore > game.opponentScore
+            val tied = game.teamScore == game.opponentScore
+            val color = if (tied) SportsColors.Muted else if (won) SportsColors.Green else SportsColors.Red
+            OutlinedCard(onClick = { onGameSummary(game.id) }, modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, SportsColors.Line),
+                colors = CardDefaults.outlinedCardColors(containerColor = SportsColors.Surface)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(if (tied) "TIE" else if (won) "WIN" else "LOSS", color = color,
+                            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        Text(game.opponentName, modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("${game.teamScore} – ${game.opponentScore}", fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium)
+                    }
+                    Text(gameDetails(game), style = MaterialTheme.typography.bodySmall, color = SportsColors.Muted)
+                    Text("View box score", style = MaterialTheme.typography.labelMedium, color = SportsColors.Accent)
+                }
+            }
+        }
+    }
+}
+
+private fun gameDetails(game: GameEntity): String {
+    val round = if (game.isPlayoff) "${game.playoffStage?.lowercase()?.replace('_', ' ') ?: "Playoff"} · Game ${game.playoffGameNumber ?: game.roundNumber}"
+        else "Round ${game.roundNumber}"
+    return "${formatDate(game.gameDateEpoch, "d MMM")} · ${game.season} · ${if (game.isHomeGame) "Home" else "Away"} · $round"
 }

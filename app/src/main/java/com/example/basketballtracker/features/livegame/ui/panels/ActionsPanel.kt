@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui.panels
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -150,6 +152,7 @@ fun HalfCourtClickable(
     onEvent: (EventType, ShotMeta?) -> Unit,
     shots: List<ShotUi> = emptyList(),
 ) {
+    val currentOnEvent by rememberUpdatedState(onEvent)
     var courtSize by remember { mutableStateOf(IntSize.Zero) }
     val haptic = LocalHapticFeedback.current
 
@@ -157,8 +160,8 @@ fun HalfCourtClickable(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(15f / 14f)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF262626)),
+            .clip(RoundedCornerShape(4.dp))
+            .background(SportsColors.Raised),
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -193,18 +196,18 @@ fun HalfCourtClickable(
                             if (longPress) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (isThreePointShot(shotMeta.x, shotMeta.y)) {
-                                    onEvent(EventType.THREE_MADE, shotMeta)
+                                    currentOnEvent(EventType.THREE_MADE, shotMeta)
                                 } else {
-                                    onEvent(EventType.TWO_MADE, shotMeta)
+                                    currentOnEvent(EventType.TWO_MADE, shotMeta)
                                 }
 
                                 waitForUpOrCancellation()
                             } else {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 if (isThreePointShot(shotMeta.x, shotMeta.y)) {
-                                    onEvent(EventType.THREE_MISS, shotMeta)
+                                    currentOnEvent(EventType.THREE_MISS, shotMeta)
                                 } else {
-                                    onEvent(EventType.TWO_MISS, shotMeta)
+                                    currentOnEvent(EventType.TWO_MISS, shotMeta)
                                 }
                             }
                         }
@@ -227,7 +230,7 @@ fun HalfCourtClickable(
 
                     if (shot.made) {
                         drawCircle(
-                            color = Color(0xFF4CAF50),
+                            color = SportsColors.Green,
                             radius = 10f,
                             center = center,
                             style = Stroke(width = 6f)
@@ -236,25 +239,25 @@ fun HalfCourtClickable(
                         val size = 10f
 
                         drawLine(
-                            color = Color.Red,
+                            color = SportsColors.Red,
                             start = Offset(center.x - size, center.y - size),
                             end = Offset(center.x + size, center.y + size),
                             strokeWidth = 6f
                         )
 
                         drawLine(
-                            color = Color.Red,
+                            color = SportsColors.Red,
                             start = Offset(center.x - size, center.y + size),
                             end = Offset(center.x + size, center.y - size),
                             strokeWidth = 6f
                         )
 //                        drawCircle(
-//                            color = Color.Red,
+//                            color = SportsColors.Red,
 //                            radius = 10f,
 //                            center = center
 //                        )
 //                        drawCircle(
-//                            color = Color.White,
+//                            color = SportsColors.Text,
 //                            radius = 10f,
 //                            center = center,
 //                            style = Stroke(width = 2f)
@@ -330,7 +333,7 @@ fun PlayerGameStatsCard(
     val ftPct = playerBox?.ftPct ?: 0
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF262626)),
+        colors = CardDefaults.cardColors(containerColor = SportsColors.Raised),
     ) {
         if (player == null) return@Card
 //        Row(
@@ -341,18 +344,18 @@ fun PlayerGameStatsCard(
 //            Text(
 //                "#${playerNumber}",
 //                style = MaterialTheme.typography.titleSmall,
-//                color = Color.White.copy(alpha = 0.5f),
+//                color = SportsColors.Muted,
 //            )
 //            Text(
 //                playerName,
 //                style = MaterialTheme.typography.titleMedium,
-//                color = Color.White,
+//                color = SportsColors.Text,
 //            )
 //        }
 //        HorizontalDivider(
 //            modifier = Modifier.fillMaxWidth(),
 //            thickness = 1.dp,
-//            color = Color.White.copy(alpha = 0.08f)
+//            color = SportsColors.Text.copy(alpha = 0.08f)
 //        )
 //        Row(
 //            modifier = Modifier
@@ -389,7 +392,7 @@ fun PlayerGameStatsCard(
 //        HorizontalDivider(
 //            modifier = Modifier.fillMaxWidth(),
 //            thickness = 1.dp,
-//            color = Color.White.copy(alpha = 0.08f)
+//            color = SportsColors.Text.copy(alpha = 0.08f)
 //        )
         Row(
             modifier = Modifier
@@ -413,6 +416,7 @@ fun PlayerGameStatsCard(
         }
     }
     Spacer(Modifier.height(8.dp))
+    Text("Pen: tap to miss - hold to score", style = MaterialTheme.typography.bodySmall)
     HalfCourtClickable(
         onEvent = onEvent,
         shots = shots,
@@ -435,7 +439,7 @@ fun StatColumn(
         )
         Text(
             text = title,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            color = SportsColors.Muted,
             style = MaterialTheme.typography.bodySmall
         )
     }
@@ -471,7 +475,7 @@ fun PlayerGameSummaryCard(
     val ftPct = playerBox?.ftPct ?: 0
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF262626)),
+        colors = CardDefaults.cardColors(containerColor = SportsColors.Raised),
     ) {
         if (player == null) return@Card
         Row(
@@ -482,18 +486,18 @@ fun PlayerGameSummaryCard(
             Text(
                 "#${playerNumber}",
                 style = MaterialTheme.typography.titleSmall,
-                color = Color.White.copy(alpha = 0.5f),
+                color = SportsColors.Muted,
             )
             Text(
                 playerName,
                 style = MaterialTheme.typography.titleSmall,
-                color = Color.White,
+                color = SportsColors.Text,
             )
         }
         HorizontalDivider(
             modifier = Modifier.fillMaxWidth(),
             thickness = 1.dp,
-            color = Color.White.copy(alpha = 0.08f)
+            color = SportsColors.Text.copy(alpha = 0.08f)
         )
         Row(
             modifier = Modifier
@@ -505,21 +509,21 @@ fun PlayerGameSummaryCard(
             Text(
                 "vs $opponentName",
                 style = MaterialTheme.typography.titleSmall,
-                color = Color.White.copy(alpha = 0.5f),
+                color = SportsColors.Muted,
             )
             val date = SimpleDateFormat("E, MMM d, yyyy", Locale.ENGLISH)
                 .format(Date(gameDate))
             Text(
                 text = date,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.5f),
+                color = SportsColors.Muted,
             )
         }
     }
     Spacer(Modifier.height(8.dp))
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF262626)),
+        colors = CardDefaults.cardColors(containerColor = SportsColors.Raised),
     ) {
         Row(
             modifier = Modifier
@@ -556,7 +560,7 @@ fun PlayerGameSummaryCard(
         HorizontalDivider(
             modifier = Modifier.fillMaxWidth(),
             thickness = 1.dp,
-            color = Color.White.copy(alpha = 0.08f)
+            color = SportsColors.Text.copy(alpha = 0.08f)
         )
         Row(
             modifier = Modifier
@@ -581,7 +585,7 @@ fun PlayerGameSummaryCard(
         HorizontalDivider(
             modifier = Modifier.fillMaxWidth(),
             thickness = 1.dp,
-            color = Color.White.copy(alpha = 0.08f)
+            color = SportsColors.Text.copy(alpha = 0.08f)
         )
         Row(
             modifier = Modifier
@@ -618,8 +622,8 @@ fun PlayerShotChart(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(15f / 14f)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF262626)),
+            .clip(RoundedCornerShape(4.dp))
+            .background(SportsColors.Raised),
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -643,24 +647,24 @@ fun PlayerShotChart(
 
                     if (shot.made) {
                         drawCircle(
-                            color = Color(0xFF4CAF50),
+                            color = SportsColors.Green,
                             radius = 7f,
                             center = center
                         )
                         drawCircle(
-                            color = Color.White,
+                            color = SportsColors.Text,
                             radius = 7f,
                             center = center,
                             style = Stroke(width = 2f)
                         )
                     } else {
                         drawCircle(
-                            color = Color.Red,
+                            color = SportsColors.Red,
                             radius = 7f,
                             center = center
                         )
                         drawCircle(
-                            color = Color.White,
+                            color = SportsColors.Text,
                             radius = 7f,
                             center = center,
                             style = Stroke(width = 2f)

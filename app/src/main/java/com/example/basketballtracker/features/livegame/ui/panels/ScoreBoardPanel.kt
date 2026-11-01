@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui.panels
 
+import com.example.basketballtracker.ui.theme.SportsColors
 import android.R.attr.alpha
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -159,7 +160,7 @@ fun ScoreBoardPanel(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false },
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(4.dp),
                             tonalElevation = 8.dp,
                             shadowElevation = 12.dp,
                         ) {
@@ -260,7 +261,7 @@ fun ScoreBoard(
         VerticalDivider(
             modifier = Modifier.height(48.dp),
             thickness = 1.dp,
-            color = Color.White.copy(alpha = 0.2f)
+            color = SportsColors.Text.copy(alpha = 0.2f)
         )
         LeftTeamScore(
             if (isHomeGame) "AFEKA" else opponentName.uppercase(LocalLocale.current.platformLocale),
@@ -280,7 +281,7 @@ fun ScoreBoard(
         VerticalDivider(
             modifier = Modifier.height(48.dp),
             thickness = 1.dp,
-            color = Color.White.copy(alpha = 0.2f)
+            color = SportsColors.Text.copy(alpha = 0.2f)
         )
     }
 }
@@ -295,7 +296,7 @@ fun ScoreBoardClock(
 
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(4.dp))
             .clickable { showDialog = true }
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -310,18 +311,18 @@ fun ScoreBoardClock(
             color = if (!clock.isRunning && clock.secRemaining < 600) {
                 MaterialTheme.colorScheme.error
             } else if (clock.isRunning) {
-                Color(0xFF3AB47A)
+                SportsColors.Accent
             } else {
-                Color.White
+                SportsColors.Text
             },
             textAlign = TextAlign.Center,
         )
 
         Text(
-            periodLabel(clock.period),
+            "${periodLabel(clock.period)} | ${if (clock.isRunning) "Running" else "Paused"}",
             style = MaterialTheme.typography.titleSmall,
             textAlign = TextAlign.Center,
-            color = Color.White.copy(alpha = 0.5f),
+            color = SportsColors.Muted,
         )
     }
 
@@ -357,7 +358,7 @@ fun ClockControls(
             Icon(
                 imageVector = if (!clock.isRunning) Icons.Default.PlayCircleOutline else Icons.Default.PauseCircleOutline,
                 contentDescription = "playPause",
-                tint = Color.White,
+                tint = SportsColors.Text,
                 modifier = Modifier.size(48.dp)
             )
         }
@@ -367,9 +368,9 @@ fun ClockControls(
             enabled = !clock.isRunning,
             border = BorderStroke(
                 width = 2.dp,
-                color = Color.White
+                color = SportsColors.Text
             ),
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(4.dp),
         ) {
             Text(
                 "Next Period",
@@ -396,7 +397,7 @@ fun RowScope.RightTeamScore(name: String, score: Int, fouls: Int) {
                 style = MaterialTheme.typography.bodySmall,
                 fontFamily = inter,
                 fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = SportsColors.Muted,
             )
             Text(
                 name,
@@ -427,7 +428,7 @@ fun RowScope.LeftTeamScore(name: String, score: Int, fouls: Int) {
                 style = MaterialTheme.typography.bodySmall,
                 fontFamily = inter,
                 fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                color = SportsColors.Muted,
             )
             Text(
                 name,
@@ -465,14 +466,14 @@ fun RowScope.OppScoreButton(
             .weight(1f)
             .height(30.dp)
             .padding(0.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(4.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
     ) {
         Text(
             text = label,
-            color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
+            color = if (enabled) SportsColors.Text else SportsColors.Muted,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold
         )
@@ -488,11 +489,11 @@ private fun ClockAdjustDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF1A1A1A),
+        containerColor = SportsColors.Surface,
         title = {
             Text(
                 text = "Adjust Game Clock",
-                color = Color.White,
+                color = SportsColors.Text,
                 fontWeight = FontWeight.Black
             )
         },
@@ -506,7 +507,7 @@ private fun ClockAdjustDialog(
                     style = MaterialTheme.typography.displaySmall,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Black,
-                    color = Color.White
+                    color = SportsColors.Text
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -532,13 +533,13 @@ private fun ClockAdjustDialog(
                 HorizontalDivider(
                     Modifier,
                     DividerDefaults.Thickness,
-                    color = Color.White.copy(alpha = 0.1f)
+                    color = SportsColors.Text.copy(alpha = 0.1f)
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         text = "Period correction",
-                        color = Color.White.copy(alpha = 0.65f),
+                        color = SportsColors.Muted,
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -555,7 +556,7 @@ private fun ClockAdjustDialog(
             TextButton(onClick = onDismiss) {
                 Text(
                     "DONE",
-                    color = Color(0xFF3AB47A),
+                    color = SportsColors.Accent,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -578,10 +579,10 @@ private fun ClockAdjustRow(
             modifier = Modifier.weight(1f),
             onClick = onMinus,
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF2D2A2A),
-                contentColor = Color.White
+                containerColor = SportsColors.Raised,
+                contentColor = SportsColors.Text
             ),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(4.dp)
         ) {
             Text("- $label", fontWeight = FontWeight.Bold)
         }
@@ -590,10 +591,10 @@ private fun ClockAdjustRow(
             modifier = Modifier.weight(1f),
             onClick = onPlus,
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF3AB47A),
-                contentColor = Color.Black
+                containerColor = SportsColors.Accent,
+                contentColor = SportsColors.OnAccent
             ),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(4.dp)
         ) {
             Text("+ $label", fontWeight = FontWeight.Black)
         }

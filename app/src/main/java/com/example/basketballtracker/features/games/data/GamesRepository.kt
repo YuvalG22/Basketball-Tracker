@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.basketballtracker.core.data.db.dao.GameDao
 import com.example.basketballtracker.core.data.db.entities.GameEntity
 import com.example.basketballtracker.core.data.db.entities.GameStatus
+import com.example.basketballtracker.core.data.db.entities.GameSeason
 import com.example.basketballtracker.core.data.mapper.toUploadDto
 import com.example.basketballtracker.core.data.remote.games.DeleteGameDto
 import com.example.basketballtracker.core.data.remote.games.GameApi
@@ -25,6 +26,7 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
     ): Long {
 
         val game = GameEntity(
+            season = GameSeason.CURRENT,
             opponentName = opponentName,
             isHomeGame = isHomeGame,
             roundNumber = roundNumber,
