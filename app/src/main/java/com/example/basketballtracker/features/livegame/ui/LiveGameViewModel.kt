@@ -1,8 +1,10 @@
 package com.example.basketballtracker.features.livegame.ui
 
+import com.google.gson.Gson
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.basketballtracker.core.data.db.SyncManager
+import com.example.basketballtracker.core.data.db.SyncPendingChanges
 import com.example.basketballtracker.core.data.db.entities.GameStatus
 import com.example.basketballtracker.core.data.db.entities.PlayerEntity
 import com.example.basketballtracker.features.games.data.GamesRepository
@@ -64,7 +66,7 @@ class LiveGameViewModel(
                 // Observe the transaction before accepting another action.
                 val latest = repo.getLiveEventsOnce(_base.value.gameId)
                 ui.first { it.events.map { e -> e.id }.toSet() == latest.map { e -> e.id }.toSet() }
-                launch { syncManager.syncPending() }
+                viewModelScope.launch { uploadSafely() }
             } catch (e: CancellationException) { throw e
             } catch (_: Exception) { _error.value = "Could not save action. Please try again." }
             finally { _saving.value = false }
@@ -74,6 +76,12 @@ class LiveGameViewModel(
         gameId = _base.value.gameId, playerId = player, type = type.name,
         period = period, clockSecRemaining = seconds, createdAt = System.currentTimeMillis())
 
+    private suspend fun uploadSafely() {
+        try { syncManager.syncPending() }
+        catch (e: CancellationException) { throw e }
+        catch (_: SyncPendingChanges) { /* Next scheduled pass includes these writes. */ }
+        catch (e: Exception) { _error.value = e.message ?: "Saved locally. Cloud sync will retry." }
+    }
     private var lastLiveSyncAt = 0L
 
     private val _base = MutableStateFlow(
@@ -123,9 +131,10 @@ class LiveGameViewModel(
         viewModelScope.launch {
             if (gamesRepo.getById(_base.value.gameId)?.status != GameStatus.FINISHED)
                 gamesRepo.updateGameStatus(_base.value.gameId, GameStatus.LIVE)
-            syncManager.syncPending()
+            uploadSafely()
         }
 
+        observeRemoteGame()
         startClockLoop()
     }
 
@@ -137,7 +146,7 @@ class LiveGameViewModel(
 
             val elapsedSeconds =
                 if (game.isClockRunning && game.lastClockStartedAt != null) {
-                    ((now - game.lastClockStartedAt) / 1000).toInt()
+                    ((now - game.lastClockStartedAt) / 1000).coerceAtLeast(0).toInt()
                 } else {
                     0
                 }
@@ -160,7 +169,12 @@ class LiveGameViewModel(
                 )
             }
 
-            persistClock()
+            if (game.status != GameStatus.FINISHED) {
+                repo.getDraft(game.id)?.let { payload ->
+                    _pendingMadeShot.value = Gson().fromJson(payload, PendingMadeShot::class.java)
+                }
+                persistClock()
+            }
         }
     }
 
@@ -222,9 +236,32 @@ class LiveGameViewModel(
                     if (clock.isRunning) System.currentTimeMillis()
                     else null
             )
+            syncLiveStateThrottled()
         }
 
-        syncLiveStateThrottled()
+    }
+
+    fun updatePlayers(players: List<PlayerEntity>) {
+        _base.update { it.copy(players = players) }
+    }
+
+    private fun observeRemoteGame() {
+        viewModelScope.launch {
+            var lastVersion = -1L
+            gamesRepo.observeGame(_base.value.gameId).filterNotNull().collect { game ->
+                if (game.isDeleted) {
+                    _base.update { it.copy(isEnded = true, clock = it.clock.copy(isRunning = false)) }
+                    _error.value = "This game was deleted on another device. Local actions are kept."
+                } else if (game.syncStatus == "SYNCED" && game.serverVersion > lastVersion) {
+                    lastVersion = game.serverVersion
+                    val elapsed = if (game.isClockRunning && game.lastClockStartedAt != null)
+                        ((System.currentTimeMillis() - game.lastClockStartedAt) / 1000).coerceAtLeast(0).toInt() else 0
+                    val seconds = (game.clockSecRemaining - elapsed).coerceAtLeast(0)
+                    _base.update { it.copy(isEnded = game.status == GameStatus.FINISHED,
+                        clock = GameClock(game.currentPeriod, seconds, game.isClockRunning && seconds > 0)) }
+                }
+            }
+        }
     }
 
     fun selectPlayer(id: Long) {
@@ -290,7 +327,7 @@ class LiveGameViewModel(
 
         if (type.requiresPlayer() && pid != null && ui.value.events.count { it.playerId == pid && it.type == EventType.PF } >= 5) return
         if ((type == EventType.TWO_MADE || type == EventType.THREE_MADE) && pid != null) {
-            _pendingMadeShot.value = PendingMadeShot(
+            val draft = PendingMadeShot(
                 type = type,
                 playerId = pid,
                 shotMeta = shotMeta,
@@ -298,6 +335,15 @@ class LiveGameViewModel(
                 clockSecRemaining = snap.clock.secRemaining,
                 eligibleIds = computeOnCourtIds(ui.value.events) - pid
             )
+            _saving.value = true
+            viewModelScope.launch {
+                try {
+                    repo.saveDraft(snap.gameId, Gson().toJson(draft))
+                    _pendingMadeShot.value = draft
+                } catch (e: CancellationException) { throw e }
+                catch (_: Exception) { _error.value = "Could not save the shot. Please try again." }
+                finally { _saving.value = false }
+            }
             return
         }
 
@@ -347,7 +393,14 @@ class LiveGameViewModel(
     }
 
     fun dismissAssistPicker() {
-        if (!_saving.value) { _pendingMadeShot.value = null; _error.value = null }
+        if (_saving.value) return
+        _saving.value = true
+        viewModelScope.launch {
+            try { repo.clearDraft(_base.value.gameId); _pendingMadeShot.value = null; _error.value = null }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { _error.value = "Could not cancel the shot. Please try again." }
+            finally { _saving.value = false }
+        }
     }
 
     fun substitute(outgoing: Long?, incoming: Long?) {
@@ -406,28 +459,21 @@ class LiveGameViewModel(
         persistClock()
     }
 
-    fun endGame() {
+    fun endGame(onSaved: () -> Unit = {}) {
         if (_base.value.isEnded || _saving.value || _pendingMadeShot.value != null) return
-        _base.update {
-            it.copy(
-                isEnded = true,
-                clock = it.clock.copy(isRunning = false)
-            )
-        }
-
-        val gameId = _base.value.gameId
-        val events = ui.value.events
-
-        val team = computeTeamScore(events)
-        val opp = computeOppScore(events)
-
+        _saving.value = true
+        _base.update { it.copy(clock = it.clock.copy(isRunning = false)) }
+        val snap = _base.value
         viewModelScope.launch {
-            gamesRepo.finishGame(
-                gameId = gameId,
-                teamScore = team,
-                opponentScore = opp
-            )
-            syncManager.syncPending()
+            try {
+                val events = repo.getLiveEventsOnce(snap.gameId)
+                gamesRepo.finishGame(snap.gameId, computeTeamScore(events), computeOppScore(events),
+                    snap.clock.period, snap.clock.secRemaining)
+                _base.update { it.copy(isEnded = true) }
+                onSaved()
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { _error.value = "Could not finish the game. Saved actions are kept. Try again." }
+            finally { _saving.value = false }
         }
     }
 
@@ -459,14 +505,12 @@ class LiveGameViewModel(
         val onCourt = computeOnCourtIds(events)
         val period = snap.clock.period
 
-        onCourt.forEach { pid ->
-            addEventAt(
-                type = EventType.SUB_OUT,
-                playerId = pid,
-                period = period,
-                clockSecRemaining = 0,
-                shotMeta = null
-            )
+        viewModelScope.launch {
+            try {
+                repo.recordAction(onCourt.map { event(EventType.SUB_OUT, it, period, 0) })
+                uploadSafely()
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { _error.value = "Could not save period-end substitutions. Please review the game." }
         }
 
         persistClock()
@@ -480,7 +524,7 @@ class LiveGameViewModel(
         lastLiveSyncAt = now
 
         viewModelScope.launch {
-            syncManager.syncPending()
+            uploadSafely()
         }
     }
 }

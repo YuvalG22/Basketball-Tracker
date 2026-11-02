@@ -1,6 +1,9 @@
 package com.example.basketballtracker.features.games.data
 
 import android.util.Log
+import androidx.room.withTransaction
+import com.example.basketballtracker.core.data.db.AppDatabase
+import com.example.basketballtracker.core.data.db.entities.RosterEntity
 import com.example.basketballtracker.core.data.db.dao.GameDao
 import com.example.basketballtracker.core.data.db.entities.GameEntity
 import com.example.basketballtracker.core.data.db.entities.GameStatus
@@ -11,7 +14,7 @@ import com.example.basketballtracker.core.data.remote.games.GameApi
 import com.example.basketballtracker.core.data.remote.games.GameScoreUpdateDto
 import kotlinx.coroutines.flow.Flow
 
-class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi) {
+class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi, private val onChanged: () -> Unit = {}, private val database: AppDatabase? = null) {
     fun observeLastGameId(): Flow<Long?> = gameDao.observeLastGameId()
 
     suspend fun createGame(
@@ -22,10 +25,14 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
         quarterLengthSec: Int,
         isPlayoff: Boolean,
         playoffStage: String?,
-        playoffGameNumber: Int?
+        playoffGameNumber: Int?,
+        playerIds: List<Long> = emptyList(),
+        syncKey: String = java.util.UUID.randomUUID().toString()
     ): Long {
 
+        gameDao.getBySyncKey(syncKey)?.let { return it.id }
         val game = GameEntity(
+            syncKey = syncKey,
             season = GameSeason.CURRENT,
             opponentName = opponentName,
             isHomeGame = isHomeGame,
@@ -36,25 +43,22 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
             playoffGameNumber = playoffGameNumber,
             createdAt = System.currentTimeMillis(),
             quarterLengthSec = quarterLengthSec,
+            clockSecRemaining = quarterLengthSec,
             quartersCount = 4,
-            syncStatus = "PENDING"
+            syncStatus = "PENDING",
+            status = GameStatus.LIVE
         )
 
-        val localId = gameDao.insert(game)
-
-        try {
-            val response = gameApi.uploadGame(
-                game.copy(id = localId).toUploadDto()
-            )
-
-            gameDao.markSynced(
-                localId = localId,
-                remoteId = response.remoteId
-            )
-
-        } catch (e: Exception) {
-            e.printStackTrace()
+        val save: suspend () -> Long = save@ {
+            val existing = gameDao.getBySyncKey(syncKey)
+            val id = existing?.id ?: gameDao.insert(game)
+            if (existing != null) return@save id
+            database?.rosterDao()?.insertAll(playerIds.map { RosterEntity(id, it) })
+            id
         }
+        val localId = if (database != null) database.withTransaction { save() } else save()
+
+        onChanged()
 
         return localId
     }
@@ -68,47 +72,20 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
 
     suspend fun updateGameResult(gameId: Long, teamScore: Int, opponentScore: Int) {
         gameDao.updateGameResult(gameId, teamScore, opponentScore)
-        val game = gameDao.getById(gameId) ?: return
-        val remoteId = game.remoteId ?: return
-        Log.d("GameRepository", "Updating game $remoteId")
-
-        try {
-            gameApi.updateGameScore(
-                GameScoreUpdateDto(
-                    remoteId = remoteId,
-                    teamScore = teamScore,
-                    opponentScore = opponentScore
-                )
-            )
-            Log.d("GameRepository", "Game score updated successfully")
-        } catch (e: Exception) {
-            Log.d("GameRepository", "Failed to update game score")
-            e.printStackTrace()
-        }
+        onChanged()
     }
 
     suspend fun deleteGame(gameId: Long) {
-        // 1. סימון ב-DB המקומי (המשחק נעלם מיד מה-UI בגלל ה-WHERE isDeleted = 0)
         gameDao.markAsDeleted(gameId)
-
-        // 2. ניסיון מחיקה מהענן
-        val game = gameDao.getById(gameId)
-        val remoteId = game?.remoteId ?: return
-
-        try {
-            gameApi.deleteGameFromCloud(remoteId)
-            // אם הצליח - אפשר למחוק פיזית מהמכשיר
-            gameDao.deleteById(gameId)
-        } catch (e: Exception) {
-            // אם נכשל (אין אינטרנט), המשחק נשאר ב-DB עם isDeleted = 1
-            // וה-syncPending יטפל בו מאוחר יותר
-            e.printStackTrace()
-        }
+        onChanged()
     }
 
     suspend fun updateGameStatus(gameId: Long, status: String) {
         gameDao.updateGameStatus(gameId, status)
+        onChanged()
     }
+
+    private var lastClockRequest = 0L
 
     suspend fun updateLiveState(
         gameId: Long,
@@ -124,18 +101,28 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
             isRunning,
             lastStartedAt
         )
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (!isRunning || now - lastClockRequest >= 5_000) {
+            lastClockRequest = now
+            onChanged()
+        }
     }
 
     suspend fun finishGame(
         gameId: Long,
         teamScore: Int,
-        opponentScore: Int
+        opponentScore: Int,
+        period: Int? = null,
+        seconds: Int? = null
     ) {
         gameDao.finishGame(
             gameId = gameId,
             teamScore = teamScore,
             opponentScore = opponentScore,
-            status = GameStatus.FINISHED
+            status = GameStatus.FINISHED,
+            period = period,
+            seconds = seconds
         )
+        onChanged()
     }
 }

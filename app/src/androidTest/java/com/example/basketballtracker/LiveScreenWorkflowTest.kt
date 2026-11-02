@@ -55,6 +55,7 @@ class LiveScreenWorkflowTest {
             compose.waitUntil(5000) { vm.ui.value.events.size == 5 }
             if (width < 840) compose.onNodeWithText("Roster").assertExists()
             compose.runOnIdle { vm.selectPlayer(1); vm.addEvent(EventType.TWO_MADE, shotMeta = ShotMeta(7f, 3f, 3f)) }
+            compose.waitUntil(5000) { vm.pendingMadeShot.value != null && !vm.saving.value }
             compose.onNodeWithText("Assist?").assertIsDisplayed()
             val pending = vm.pendingMadeShot.value!!
             compose.onNodeWithText("#2  Player 2").performClick()

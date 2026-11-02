@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "games",
-    indices = [Index(value = ["remoteId"], unique = true)]
+    indices = [Index(value = ["remoteId"], unique = true), Index(value = ["syncKey"], unique = true)]
 )
 data class GameEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -33,6 +33,11 @@ data class GameEntity(
     val lastClockStartedAt: Long? = null,
     @ColumnInfo(defaultValue = "'25/26'")
     val season: String = GameSeason.LEGACY,
+    @ColumnInfo(defaultValue = "''") val syncKey: String = java.util.UUID.randomUUID().toString(),
+    @ColumnInfo(defaultValue = "''") val mutationKey: String = java.util.UUID.randomUUID().toString(),
+    val lastAttemptKey: String? = null,
+    @ColumnInfo(defaultValue = "0") val localRevision: Long = 0,
+    @ColumnInfo(defaultValue = "0") val serverVersion: Long = 0,
 )
 
 object GameSeason {

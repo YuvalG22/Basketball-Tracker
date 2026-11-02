@@ -114,7 +114,9 @@ data class LiveEvent(
     val shotY: Float? = null,
     val shotDistance: Float? = null,
     val actionGroupId: String? = null,
-    val shotZone: String? = null
+    val shotZone: String? = null,
+    val sourceOrder: Long = id,
+    val orderKey: String = id.toString().padStart(20, '0')
 )
 
 data class PlayerBox(
@@ -253,7 +255,7 @@ fun computeOppScore(events: List<LiveEvent>): Int {
 
 fun computeOnCourtIds(events: List<LiveEvent>): Set<Long> {
     val onCourt = linkedSetOf<Long>()
-    for (e in events) {
+    for (e in events.sortedWith(compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.sourceOrder }, { it.orderKey }))) {
         val pid = e.playerId ?: continue
         when (e.type) {
             EventType.SUB_IN -> onCourt.add(pid)
@@ -277,7 +279,7 @@ fun computeSecondsPlayedByPlayer(
     )
 
     val sorted = events.sortedWith(
-        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.id })
+        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.sourceOrder }, { it.orderKey })
     )
 
     val inTime = mutableMapOf<Long, Int>()
@@ -322,7 +324,7 @@ fun computePlusMinusByPlayer(
     val onCourt = linkedSetOf<Long>()
 
     val sorted = events.sortedWith(
-        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.id })
+        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.sourceOrder }, { it.orderKey })
     )
 
     fun deltaPoints(type: EventType) = when (type) {
@@ -463,7 +465,7 @@ fun computeSecondsPlayedForPlayer(
     )
 
     val sorted = events.sortedWith(
-        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.id })
+        compareBy<LiveEvent>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.sourceOrder }, { it.orderKey })
     )
 
     var inTime: Int? = null
@@ -542,7 +544,7 @@ fun computeSecondsPlayedForPlayerAfterEnd(
     )
 
     val sorted = events.sortedWith(
-        compareBy<EventEntity>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.id })
+        compareBy<EventEntity>({ it.period }, { -it.clockSecRemaining }, { it.createdAt }, { it.sourceOrder ?: it.id }, { it.remoteId ?: it.id.toString().padStart(20, '0') })
     )
 
     var inTime: Int? = null

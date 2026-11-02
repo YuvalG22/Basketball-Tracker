@@ -44,6 +44,7 @@ fun NewGameScreen(defaultQuarterLengthSec: Int, gamesRepo: GamesRepository,
     }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    val draftKey = rememberSaveable { java.util.UUID.randomUUID().toString() }
     var createdId by rememberSaveable { mutableStateOf<Long?>(null) }
     var rosterSaved by rememberSaveable { mutableStateOf(false) }
     val date = rememberSaveable { System.currentTimeMillis() }
@@ -55,23 +56,9 @@ fun NewGameScreen(defaultQuarterLengthSec: Int, gamesRepo: GamesRepository,
                 try {
                     val id = createdId ?: gamesRepo.createGame(draft.opponent, draft.home,
                         draft.round, date, defaultQuarterLengthSec, draft.playoff,
-                        draft.stage.takeIf { draft.playoff }, draft.gameNumber.takeIf { draft.playoff }
+                        draft.stage.takeIf { draft.playoff }, draft.gameNumber.takeIf { draft.playoff },
+                        draft.playerIds, draftKey
                     ).also { createdId = it }
-                    if (!rosterSaved) {
-                        rosterDao.insertAll(draft.playerIds.map {
-                            RosterEntity(gameId = id, playerId = it, syncStatus = "PENDING")
-                        })
-                        rosterSaved = true
-                    }
-                    draft.playerIds.forEach { pid ->
-                        try {
-                            val remoteGame = gameDao.getById(id)?.remoteId ?: return@forEach
-                            val remotePlayer = playerDao.getPlayerById(pid)?.remoteId ?: return@forEach
-                            val response = rosterApi.uploadRoster(RosterUploadDto(id, pid, remoteGame, remotePlayer))
-                            rosterDao.markSynced(id, pid, response.remoteId)
-                        } catch (e: CancellationException) { throw e
-                        } catch (_: Exception) { /* Pending rows use the existing sync mechanism. */ }
-                    }
                     onStart(id)
                 } catch (e: CancellationException) { throw e
                 } catch (_: Exception) {

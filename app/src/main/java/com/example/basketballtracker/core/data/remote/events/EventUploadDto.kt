@@ -17,4 +17,10 @@ data class EventUploadDto(
     val shotX: Float?,
     val shotY: Float?,
     val shotDistance: Float?,
+    val syncKey: String? = null,
+    val clientRevision: Long = 0,
+    val expectedServerVersion: Long? = null,
+    val mutationKey: String? = null,
+    val actionGroupId: String? = null,
+    val expectedGameVersion: Long? = null,
 )

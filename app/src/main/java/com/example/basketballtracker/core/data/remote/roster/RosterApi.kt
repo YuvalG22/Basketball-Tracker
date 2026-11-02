@@ -2,6 +2,7 @@ package com.example.basketballtracker.core.data.remote.roster
 
 import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
+import retrofit2.http.Query
 import retrofit2.http.GET
 import retrofit2.http.POST
 
@@ -12,7 +13,7 @@ interface RosterApi {
     ): RosterUploadResponse
 
     @GET("roster")
-    suspend fun getRoster(): List<RosterRemoteDto>
+    suspend fun getRoster(@Query("includeDeleted") includeDeleted: Boolean = true): List<RosterRemoteDto>
 }
 
 data class RosterUploadResponse(
@@ -35,5 +36,7 @@ data class RosterRemoteDto(
     val player_remote_id: String?,
 
     @SerializedName("created_at")
-    val created_at: Long?
-)
+    val created_at: Long?,
+    val sync_key: String? = null,
+    val server_version: Long = 0,
+    val is_deleted: Boolean = false,)

@@ -20,7 +20,12 @@ data class GameUploadDto(
     val currentPeriod: Int,
     val clockSecRemaining: Int,
     val isClockRunning: Boolean,
-    val lastClockStartedAt: Long?
+    val lastClockStartedAt: Long?,
+    val syncKey: String? = null,
+    val clientRevision: Long = 0,
+    val expectedServerVersion: Long? = null,
+    val mutationKey: String? = null,
+    val season: String? = null,
 )
 
 data class GameRemoteDto(
@@ -78,5 +83,9 @@ data class GameRemoteDto(
     val is_clock_running: Boolean,
 
     @SerializedName("last_clock_started_at")
-    val last_clock_started_at: Long?
+    val last_clock_started_at: Long?,
+    val sync_key: String? = null,
+    val server_version: Long = 0,
+    val is_deleted: Boolean = false,
+    val season: String? = null,
 )

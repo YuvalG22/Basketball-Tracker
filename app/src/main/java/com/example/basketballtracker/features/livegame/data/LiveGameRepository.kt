@@ -18,8 +18,13 @@ class LiveGameRepository(
     private val gameDao: GameDao,
     private val playerDao: PlayerDao,
     private val eventApi: EventApi,
+    private val onChanged: () -> Unit = {},
 
     ) {
+    suspend fun getDraft(gameId: Long) = eventDao.getDraft(gameId)
+    suspend fun saveDraft(gameId: Long, payload: String) = eventDao.saveDraft(gameId, payload)
+    suspend fun clearDraft(gameId: Long) = eventDao.clearDraft(gameId)
+
     fun observeEventEntities(gameId: Long): Flow<List<EventEntity>> = eventDao.observeEvents(gameId)
 
     fun observeLiveEvents(gameId: Long): Flow<List<LiveEvent>> =
@@ -56,12 +61,13 @@ class LiveGameRepository(
     }
 
     suspend fun recordAction(events: List<EventEntity>) {
-        val group = java.util.UUID.randomUUID().toString()
-        eventDao.insertAll(events.map { it.copy(actionGroupId = group) })
+        eventDao.recordAction(events)
+        onChanged()
     }
 
     suspend fun deleteEventsByGame(gameId: Long) {
-        eventDao.deleteByGameId(gameId)
+        eventDao.getEvents(gameId).forEach { eventDao.markPendingDelete(it.id) }
+        onChanged()
     }
 
     suspend fun getLiveEventsOnce(gameId: Long): List<LiveEvent> =
@@ -70,17 +76,22 @@ class LiveGameRepository(
 
     suspend fun undoLast(gameId: Long) {
         val lastId = eventDao.getLastEventId(gameId) ?: return
-        eventDao.deleteById(lastId)
+        eventDao.markPendingDelete(lastId)
+        onChanged()
     }
 
     suspend fun undoLastReturning(gameId: Long): LiveEvent? {
-        return eventDao.undoAction(gameId)?.toDomain()
+        val result = eventDao.undoAction(gameId)?.toDomain()
+        onChanged()
+        return result
     }
 }
 
 internal fun EventEntity.toDomain() = LiveEvent(
     id = id,
     actionGroupId = actionGroupId,
+    sourceOrder = sourceOrder ?: id,
+    orderKey = remoteId ?: id.toString().padStart(20, '0'),
     gameId = gameId,
     playerId = playerId,
     assistedByPlayerId = assistedByPlayerId,

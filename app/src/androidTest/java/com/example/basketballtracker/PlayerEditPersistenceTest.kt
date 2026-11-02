@@ -32,7 +32,7 @@ class PlayerEditPersistenceTest {
             dao.upsertPlayersFromCloud(listOf(original))
 
             assertEquals(original.copy(id = id, name = "Alex Updated", number = 23,
-                photoUri = "content://photos/2", syncStatus = "PENDING"), dao.getPlayerById(id))
+                photoUri = "content://photos/2", syncStatus = "PENDING", localRevision = 1, mutationKey = dao.getPlayerById(id)!!.mutationKey), dao.getPlayerById(id))
             assertEquals(1, dao.countPlayers())
             assertEquals(listOf(id), db.rosterDao().observeRosterPlayerIds(10).first())
             assertEquals(listOf(event.copy(id = eventId)), db.eventDao().observeEvents(10).first())

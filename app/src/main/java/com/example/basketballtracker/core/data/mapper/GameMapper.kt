@@ -23,7 +23,12 @@ fun GameEntity.toUploadDto(): GameUploadDto {
         currentPeriod = currentPeriod,
         clockSecRemaining = clockSecRemaining,
         isClockRunning = isClockRunning,
-        lastClockStartedAt = lastClockStartedAt
+        lastClockStartedAt = lastClockStartedAt,
+        syncKey = syncKey,
+        clientRevision = localRevision,
+        expectedServerVersion = serverVersion,
+        mutationKey = mutationKey,
+        season = season,
     )
 }
 

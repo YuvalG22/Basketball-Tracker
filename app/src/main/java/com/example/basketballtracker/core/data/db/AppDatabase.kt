@@ -8,8 +8,8 @@ import com.example.basketballtracker.core.data.db.dao.*
 import com.example.basketballtracker.core.data.db.entities.*
 
 @Database(
-    entities = [PlayerEntity::class, GameEntity::class, RosterEntity::class, EventEntity::class, PlayerSeasonStatsEntity::class],
-    version = 22,
+    entities = [PlayerEntity::class, GameEntity::class, RosterEntity::class, EventEntity::class, PlayerSeasonStatsEntity::class, PendingActionEntity::class],
+    version = 23,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -45,7 +45,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_18_19,
                     MIGRATION_19_20,
                     MIGRATION_20_21,
-                    MIGRATION_21_22
+                    MIGRATION_21_22,
+                    MIGRATION_22_23
                 )
                 .build()
         }

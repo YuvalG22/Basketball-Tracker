@@ -1,6 +1,7 @@
 package com.example.basketballtracker.core.data
 
 import android.app.Application
+import com.example.basketballtracker.core.data.db.SyncScheduler
 import androidx.room.Room
 import com.example.basketballtracker.core.data.db.AppDatabase
 import com.example.basketballtracker.core.data.db.MIGRATION_10_11
@@ -19,6 +20,12 @@ import com.example.basketballtracker.features.stats.data.SeasonStatsRepository
 import kotlin.getValue
 
 class BasketballApp: Application() {
+    override fun onCreate() {
+        super.onCreate()
+        SyncScheduler.initialize(this)
+    }
+    fun requestSync() = SyncScheduler.request(this)
+
     val database by lazy { AppDatabase.getDatabase(this) }
 
     val syncManager by lazy {
@@ -33,11 +40,12 @@ class BasketballApp: Application() {
             rosterApi = RetrofitClient.rosterApi,
             eventApi = RetrofitClient.eventApi,
             statsApi = RetrofitClient.statsApi,
+            database = database,
         )
     }
 
     val gamesRepo by lazy {
-        GamesRepository(database.gameDao(), RetrofitClient.gameApi)
+        GamesRepository(database.gameDao(), RetrofitClient.gameApi, ::requestSync, database)
     }
 
     val liveRepo by lazy {
@@ -45,7 +53,8 @@ class BasketballApp: Application() {
             database.eventDao(),
             database.gameDao(),
             database.playerDao(),
-            RetrofitClient.eventApi
+            RetrofitClient.eventApi,
+            ::requestSync
         )
     }
 

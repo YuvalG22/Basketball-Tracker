@@ -203,3 +203,26 @@ val MIGRATION_21_22 = object : Migration(21, 22) {
         db.execSQL("ALTER TABLE events ADD COLUMN actionGroupId TEXT DEFAULT NULL")
     }
 }
+
+val MIGRATION_22_23 = object : Migration(22, 23) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS pending_actions (gameId INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(gameId))")
+        listOf("games", "players", "events").forEach { table ->
+            db.execSQL("ALTER TABLE $table ADD COLUMN syncKey TEXT NOT NULL DEFAULT ''")
+            db.execSQL("UPDATE $table SET syncKey = lower(hex(randomblob(16)))")
+            db.execSQL("ALTER TABLE $table ADD COLUMN localRevision INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE $table ADD COLUMN serverVersion INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("CREATE UNIQUE INDEX index_${table}_syncKey ON $table(syncKey)")
+        }
+        listOf("games", "players").forEach { table ->
+            db.execSQL("ALTER TABLE $table ADD COLUMN mutationKey TEXT NOT NULL DEFAULT ''")
+            db.execSQL("UPDATE $table SET mutationKey = lower(hex(randomblob(16)))")
+            db.execSQL("ALTER TABLE $table ADD COLUMN lastAttemptKey TEXT")
+        }
+        db.execSQL("ALTER TABLE events ADD COLUMN sourceOrder INTEGER")
+        db.execSQL("UPDATE events SET sourceOrder = id")
+        db.execSQL("ALTER TABLE players ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+        // Backfill local season labels to legacy server rows before the first download.
+        db.execSQL("UPDATE games SET syncStatus = 'PENDING', localRevision = localRevision + 1 WHERE isDeleted = 0 AND syncStatus = 'SYNCED'")
+    }
+}

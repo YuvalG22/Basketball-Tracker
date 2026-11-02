@@ -2,6 +2,8 @@ package com.example.basketballtracker.app.navigation
 
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.flow.combine
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -56,7 +58,8 @@ fun AppNavGraph(
     syncManager: SyncManager,
     modifier: Modifier = Modifier
 ) {
-    val playersRepo = remember { PlayersRepository(db.playerDao()) }
+    val application = LocalContext.current.applicationContext as BasketballApp
+    val playersRepo = remember { PlayersRepository(db.playerDao(), application::requestSync) }
     NavHost(navController = nav, startDestination = Routes.HOME, modifier = modifier) {
 
         composable(Routes.HOME) {
@@ -97,18 +100,14 @@ fun AppNavGraph(
             arguments = listOf(navArgument("gameId") { type = NavType.LongType })
         ) { backStackEntry ->
             val gameId = backStackEntry.arguments!!.getLong("gameId")
-            val rosterPlayers by produceState<List<PlayerEntity>>(
-                initialValue = emptyList(),
-                key1 = gameId
-            ) {
-                value = withContext(Dispatchers.IO) {
-                    val ids = db.rosterDao().observeRosterPlayerIds(gameId).first()
-                    if (ids.isEmpty()) emptyList()
-                    else db.playerDao().getPlayersByIds(ids)
-                }
+            val liveGame by db.gameDao().observeGame(gameId).collectAsStateWithLifecycle(initialValue = null)
+            val rosterPlayers by produceState<List<PlayerEntity>>(emptyList(), gameId) {
+                combine(db.rosterDao().observeRosterPlayerIds(gameId), db.playerDao().observeAllPlayers()) { ids, all ->
+                    all.filter { it.id in ids }
+                }.collect { value = it }
             }
 
-            if (rosterPlayers.isEmpty()) {
+            if (rosterPlayers.isEmpty() || liveGame == null) {
                 // אפשר להציג Loading קצר
                 CircularProgressIndicator()
                 return@composable
@@ -129,17 +128,19 @@ fun AppNavGraph(
                             syncManager = app.syncManager,
                             gameId = gameId,
                             players = rosterPlayers,
-                            quarterLengthSec = quarterLengthDefault
+                            quarterLengthSec = liveGame!!.quarterLengthSec
                         ) as T
                     }
                 }
             )
 
+            LaunchedEffect(rosterPlayers) { vm.updatePlayers(rosterPlayers) }
             LiveGameTabletScreen(vm = vm, onEndGameNavigate = {
-                vm.endGame()
+                vm.endGame {
                 nav.navigate(Routes.HOME) {
                     popUpTo(Routes.HOME) { inclusive = false }
                     launchSingleTop = true
+                }
                 }
             })
         }

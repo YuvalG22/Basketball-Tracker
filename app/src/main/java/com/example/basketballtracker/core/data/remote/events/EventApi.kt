@@ -3,11 +3,20 @@ package com.example.basketballtracker.core.data.remote.events
 import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
 import retrofit2.http.DELETE
+import retrofit2.http.Query
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface EventApi {
+    @POST("events/acknowledgements")
+    suspend fun acknowledgements(@Body keys: List<String>): List<EventAcknowledgement>
+
+    @POST("events/batch")
+    suspend fun uploadEvents(@Body events: List<EventUploadDto>): List<EventUploadResponse>
+    @POST("events/delete")
+    suspend fun deleteEvents(@Body events: List<EventDeleteDto>): EventDeleteResponse
+
 
     @POST("events")
     suspend fun uploadEvent(
@@ -15,7 +24,7 @@ interface EventApi {
     ): EventUploadResponse
 
     @GET("events")
-    suspend fun getEvents(): List<EventRemoteDto>
+    suspend fun getEvents(@Query("includeDeleted") includeDeleted: Boolean = true): List<EventRemoteDto>
 
     @DELETE("events/{remoteId}")
     suspend fun deleteEvent(
@@ -24,7 +33,11 @@ interface EventApi {
 }
 
 data class EventUploadResponse(
-    val remoteId: String
+    val remoteId: String,
+    val serverVersion: Long = 0,
+    val gameServerVersion: Long? = null,
+    val clientRevision: Long = 0,
+    val isDeleted: Boolean = false
 )
 
 data class EventRemoteDto(
@@ -76,6 +89,13 @@ data class EventRemoteDto(
     val assisted_by_player_id: Long?,
 
     @SerializedName("assisted_by_player_remote_id")
-    val assisted_by_player_remote_id: String?
+    val assisted_by_player_remote_id: String?,
+    val action_group_id: String? = null,
+    val sync_key: String? = null,
+    val server_version: Long = 0,
+    val is_deleted: Boolean = false,)
+ data class EventDeleteDto(val syncKey: String, val remoteId: String?, val gameRemoteId: String? = null, val expectedGameVersion: Long? = null)
 
-)
+data class EventDeleteResponse(val success: Boolean, val gameVersions: Map<String, Long> = emptyMap())
+
+data class EventAcknowledgement(val syncKey: String, val remoteId: String, val gameRemoteId: String, val gameServerVersion: Long?, val isDeleted: Boolean)

@@ -8,6 +8,10 @@ fun PlayerEntity.toUploadDto(): PlayerUploadDto {
         localId = id,
         name = name,
         number = number,
-        createdAt = System.currentTimeMillis()
+        createdAt = System.currentTimeMillis(),
+        syncKey = syncKey,
+        clientRevision = localRevision,
+        expectedServerVersion = serverVersion,
+        mutationKey = mutationKey,
     )
 }

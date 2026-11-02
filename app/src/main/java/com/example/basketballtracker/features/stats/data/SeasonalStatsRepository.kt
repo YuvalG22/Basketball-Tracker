@@ -41,7 +41,7 @@ private val recordedStatTypes = setOf(
     "REB_DEF", "REB_OFF", "AST", "STL", "BLK", "TOV", "PF"
 )
 class SeasonStatsRepository(private val gameDao: GameDao, private val playerDao: PlayerDao, private val eventDao: EventDao) {
-    fun observe(): Flow<SeasonalData> = combine(gameDao.observeAllGames(), playerDao.observePlayers(), eventDao.getAllEvents()) { games, players, events ->
+    fun observe(): Flow<SeasonalData> = combine(gameDao.observeAllGames(), playerDao.observeAllPlayers(), eventDao.getAllEvents()) { games, players, events ->
         SeasonalData((games.filterNot { it.isDeleted }.map { it.season } + GameSeason.CURRENT).distinct().sortedDescending(),
             games.filter { !it.isDeleted && it.status == GameStatus.FINISHED }, events.filter { it.syncStatus != "PENDING_DELETE" }, players)
     }

@@ -71,12 +71,11 @@ class HomeViewModel(
         syncError = null
         viewModelScope.launch {
             try {
-                syncManager.syncPending()
-                syncManager.fetchAllFromCloud()
+                syncManager.synchronize()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                syncError = "Couldn't sync. Please try again."
+                syncError = e.message ?: "Couldn't sync. Please try again."
             } finally {
                 isSyncing = false
             }

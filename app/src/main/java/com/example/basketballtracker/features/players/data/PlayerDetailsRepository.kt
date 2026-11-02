@@ -29,7 +29,7 @@ class PlayerDetailsRepository(
             eventDao.observeEventsByPlayer(playerId)
         ) { player, games, events ->
 
-            val gamesById = games.associateBy { it.id }
+            val gamesById = games.filterNot { it.isDeleted }.associateBy { it.id }
 
             val statsPerGame = events
                 .groupBy { it.gameId }

@@ -1,10 +1,13 @@
 package com.example.basketballtracker.core.data.db
 
 import android.content.Context
+import kotlinx.coroutines.CancellationException
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.example.basketballtracker.core.data.BasketballApp
+import com.example.basketballtracker.core.data.remote.stats.SyncBackendUpgradeRequired
 
 class SyncWorker(
     appContext: Context,
@@ -19,13 +22,15 @@ class SyncWorker(
             val app = applicationContext as BasketballApp
             val repository = app.syncManager
 
-            // 1. קודם מעלים מה שנוצר במכשיר
-            repository.syncPending()
-
-            // 2. אחר כך מושכים עדכונים מהענן
-            repository.fetchAllFromCloud()
+            repository.synchronize()
 
             Result.success()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: SyncBackendUpgradeRequired) {
+            Log.e("SyncWorker", "Backend update required: ${e.endpoint}; protocol=${e.reportedVersion ?: "unavailable"}", e)
+            // Recheck on the next scheduled/manual sync; rapid retries cannot add a missing route.
+            Result.failure(workDataOf("syncError" to e.message))
         } catch (e: Exception) {
             Log.e("SyncWorker", "Sync failed", e)
             // אם נכשל (למשל אין אינטרנט), אנדרואיד ינסה שוב מאוחר יותר

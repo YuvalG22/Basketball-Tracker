@@ -8,7 +8,7 @@ import com.example.basketballtracker.core.data.remote.RetrofitClient.playerApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.toList
 
-class PlayersRepository(private val playerDao: PlayerDao) {
+class PlayersRepository(private val playerDao: PlayerDao, private val onChanged: () -> Unit = {}) {
     fun observePlayers(): Flow<List<PlayerEntity>> = playerDao.observePlayers()
 
     suspend fun addPlayer(name: String, number: Int, photoUri: String? = null): Long {
@@ -22,28 +22,18 @@ class PlayersRepository(private val playerDao: PlayerDao) {
 
         val localId = playerDao.insert(player)
 
-        try {
-            val response = playerApi.uploadPlayer(
-                player.copy(id = localId).toUploadDto()
-            )
-
-            playerDao.markSynced(
-                localId = localId,
-                remoteId = response.remoteId
-            )
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        onChanged()
 
         return localId
     }
 
     suspend fun updatePlayer(id: Long, name: String, number: Int, photoUri: String?) {
         playerDao.updateDetailsById(id, name, number, photoUri)
+        onChanged()
     }
 
     suspend fun deletePlayer(id: Long) {
-        playerDao.deleteById(id)
+        playerDao.markDeleted(id)
+        onChanged()
     }
 }

@@ -2,6 +2,7 @@ package com.example.basketballtracker.core.data.remote.games
 
 import retrofit2.http.Body
 import retrofit2.http.DELETE
+import retrofit2.http.Query
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -19,13 +20,13 @@ interface GameApi {
     suspend fun updateGame(
         @Path("remoteId") remoteId: String,
         @Body body: GameUploadDto
-    )
+    ): GameUploadResponse
 
     @PATCH("games/score")
     suspend fun updateGameScore(@Body body: GameScoreUpdateDto)
 
     @GET("games")
-    suspend fun getGames(): List<GameRemoteDto>
+    suspend fun getGames(@Query("includeDeleted") includeDeleted: Boolean = true): List<GameRemoteDto>
 
     @DELETE("games/{remoteId}")
     suspend fun deleteGameFromCloud(
@@ -34,7 +35,10 @@ interface GameApi {
 }
 
 data class GameUploadResponse(
-    val remoteId: String
+    val remoteId: String,
+    val serverVersion: Long = 0,
+    val clientRevision: Long = 0,
+    val isDeleted: Boolean = false
 )
 
 data class DeleteGameDto(

@@ -20,16 +20,34 @@ class NewGameSetupInteractionTest {
     @get:Rule val compose = createComposeRule()
     private val players = (1..6).map { PlayerEntity(id = it.toLong(), name = "Player $it", number = it) }
 
-    private fun rosterNode(text: String): SemanticsNodeInteraction {
-        compose.onNodeWithTag("setup-roster").performScrollToNode(hasText(text))
-        return compose.onNodeWithText(text)
+    private var focusManager: androidx.compose.ui.focus.FocusManager? = null
+    private var keyboard: androidx.compose.ui.platform.SoftwareKeyboardController? = null
+
+    @Composable
+    private fun ObserveInput() {
+        val focus = androidx.compose.ui.platform.LocalFocusManager.current
+        val input = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+        SideEffect { focusManager = focus; keyboard = input }
+    }
+
+    private fun hideKeyboard() {
+        compose.runOnIdle { focusManager?.clearFocus(force = true); keyboard?.hide() }
+        compose.waitForIdle()
+    }
+
+    private fun rosterNode(text: String, substring: Boolean = false): SemanticsNodeInteraction {
+        if (text != "Search name or jersey number") hideKeyboard()
+        compose.onNodeWithTag("setup-roster").performScrollToNode(hasText(text, substring = substring))
+        val node = compose.onNodeWithText(text, substring = substring)
+        compose.waitUntil(5000) { runCatching { node.assertIsDisplayed(); true }.getOrDefault(false) }
+        return node
     }
 
     @Test fun searchBulkSelectionAndBackPreserveSetup() {
         var submitted: NewGameDraft? = null
         val restoration = StateRestorationTester(compose)
         restoration.setContent {
-            BasketballTrackerTheme {
+            BasketballTrackerTheme { ObserveInput();
                 Box(Modifier.width(390.dp)) {
                     NewGameSetupContent(players, onBack = {}, onSubmit = { submitted = it })
                 }
@@ -54,7 +72,7 @@ class NewGameSetupInteractionTest {
     }
 
     @Test fun playoffRequiresPositiveGameNumber() {
-        compose.setContent { BasketballTrackerTheme { NewGameSetupContent(players, onBack = {}, onSubmit = {}) } }
+        compose.setContent { BasketballTrackerTheme { ObserveInput(); NewGameSetupContent(players, onBack = {}, onSubmit = {}) } }
         compose.onNodeWithText("Opponent").performTextInput("Eagles")
         compose.onNodeWithText("Opponent").performImeAction()
         compose.onNodeWithTag("setup-details").performScrollToNode(hasTestTag("choice-Playoff"))
@@ -70,7 +88,7 @@ class NewGameSetupInteractionTest {
         var saving by mutableStateOf(false)
         var error by mutableStateOf<String?>(null)
         var submissions = 0
-        compose.setContent { BasketballTrackerTheme {
+        compose.setContent { BasketballTrackerTheme { ObserveInput();
             NewGameSetupContent(players, saving = saving, error = error, onBack = {}, onSubmit = { submissions++; saving = true })
         } }
         compose.onNodeWithText("Opponent").performTextInput("Eagles")
@@ -87,15 +105,16 @@ class NewGameSetupInteractionTest {
 
     @Test fun loadingEmptyAndSearchEmptyAreDistinct() {
         var roster by mutableStateOf<List<PlayerEntity>?>(null)
-        compose.setContent { BasketballTrackerTheme { NewGameSetupContent(roster, onBack = {}, onSubmit = {}) } }
+        compose.setContent { BasketballTrackerTheme { ObserveInput(); NewGameSetupContent(roster, onBack = {}, onSubmit = {}) } }
         compose.onNodeWithText("Opponent").performTextInput("Eagles")
         compose.onNodeWithText("Opponent").performImeAction()
         compose.onNodeWithText("Continue to roster").performClick()
-        compose.onNodeWithText("Loading players\u2026").performScrollTo().assertIsDisplayed()
+        rosterNode("Loading players\u2026").assertIsDisplayed()
         compose.runOnIdle { roster = emptyList() }
-        compose.onNodeWithText("No players yet.", substring = true).performScrollTo().assertIsDisplayed()
+        rosterNode("No players yet.", substring = true).assertIsDisplayed()
         compose.runOnIdle { roster = players }
         rosterNode("Search name or jersey number").performTextInput("missing")
+        hideKeyboard()
         compose.onNodeWithTag("setup-roster").performScrollToNode(hasText("No players match your search."))
         compose.onNodeWithText("No players match your search.").assertIsDisplayed()
     }
