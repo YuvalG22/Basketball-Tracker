@@ -2,6 +2,9 @@ package com.example.basketballtracker.app.navigation
 
 object Routes {
     const val HOME = "home"
+    const val SCHEDULE = "schedule"
+    const val SCHEDULE_ROSTER = "schedule/{gameId}/roster"
+    fun scheduleRoster(gameId: Long) = "schedule/$gameId/roster"
     const val NEW_GAME = "new_game"
     const val LIVE = "live/{gameId}"
     const val PLAYERS = "players"

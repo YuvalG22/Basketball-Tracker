@@ -43,7 +43,7 @@ data class HistoryState(
 )
 
 internal fun buildHistoryState(games: List<GameEntity>, season: String?): HistoryState {
-    val activeGames = games.filterNot { it.isDeleted }
+    val activeGames = games.filterNot { it.isDeleted || it.status == com.example.basketballtracker.core.data.db.entities.GameStatus.SCHEDULED }
     return HistoryState(
         selectedSeason = season,
         seasons = (activeGames.map { it.season } + GameSeason.CURRENT + listOfNotNull(season))

@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.players.ui
 
+import com.example.basketballtracker.utils.englishTeamName
 import com.example.basketballtracker.ui.theme.SportsColors
 import com.example.basketballtracker.features.core.ui.components.StatStrip
 import com.example.basketballtracker.features.core.ui.components.StatPairs
@@ -222,7 +223,7 @@ fun PlayerGameCard(game: PlayerGameStats, onClick: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("vs ${game.game.opponentName}", fontWeight = FontWeight.Bold,
+                    Text("vs ${englishTeamName(game.game.opponentName)}", fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium, color = SportsColors.Text)
                     Text(date, style = MaterialTheme.typography.bodySmall, color = SportsColors.Muted)
                 }
@@ -325,7 +326,7 @@ fun GameStatsBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "vs ${game.game.opponentName}",
+                    text = "vs ${englishTeamName(game.game.opponentName)}",
                     color = SportsColors.Text,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold

@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.summary.ui
 
+import com.example.basketballtracker.utils.englishTeamName
 import androidx.lifecycle.ViewModel
 import com.example.basketballtracker.core.data.db.entities.EventEntity
 import com.example.basketballtracker.core.data.db.entities.GameEntity
@@ -124,7 +125,7 @@ class GameSummaryViewModel(
             game = game,
             events = eventEntities,
             isLoading = false,
-            opponentName = game.opponentName,
+            opponentName = englishTeamName(game.opponentName),
             roundNumber = game.roundNumber,
             dateText = formatDate(game.gameDateEpoch),
             teamScore = game.teamScore,

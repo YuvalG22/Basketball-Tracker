@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.history.ui
 
+import com.example.basketballtracker.utils.englishTeamName
 import com.example.basketballtracker.ui.theme.SportsColors
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -140,7 +141,7 @@ fun GamesHistoryScreen(
                                 onDeleteClick = {
                                     deleteGameId = game.id
                                     deleteGameTitle =
-                                        "vs ${game.opponentName} (Round ${game.roundNumber})"
+                                        "vs ${englishTeamName(game.opponentName)} (Round ${game.roundNumber})"
                                 }
                             )
                         }
@@ -244,7 +245,7 @@ fun GameHistoryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TeamScoreBlock(
-                    teamName = if (isHome) "Afeka" else game.opponentName,
+                    teamName = if (isHome) "Afeka" else englishTeamName(game.opponentName),
                     score = if (isHome) game.teamScore else game.opponentScore,
                     isWinner = isWin && isHome || !isWin && !isHome,
                     modifier = Modifier.weight(1f)
@@ -259,7 +260,7 @@ fun GameHistoryCard(
                 )
 
                 TeamScoreBlock(
-                    teamName = if (isHome) game.opponentName else "Afeka",
+                    teamName = if (isHome) englishTeamName(game.opponentName) else "Afeka",
                     score = if (isHome) game.opponentScore else game.teamScore,
                     isWinner = !isWin && isHome || isWin && !isHome,
                     modifier = Modifier.weight(1f)

@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.newgame.ui
 
+import com.example.basketballtracker.utils.englishTeamName
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -72,12 +73,13 @@ fun NewGameScreen(defaultQuarterLengthSec: Int, gamesRepo: GamesRepository,
 @Composable
 fun NewGameSetupContent(players: List<PlayerEntity>?, saving: Boolean = false,
     error: String? = null, setupLocked: Boolean = false,
-    onBack: () -> Unit, onSubmit: (NewGameDraft) -> Unit) {
-    var step by rememberSaveable { mutableIntStateOf(0) }
-    var opponent by rememberSaveable { mutableStateOf("") }
-    var home by rememberSaveable { mutableStateOf(false) }
+    onBack: () -> Unit, scheduledGame: com.example.basketballtracker.core.data.db.entities.GameEntity? = null,
+    onSubmit: (NewGameDraft) -> Unit) {
+    var step by rememberSaveable { mutableIntStateOf(if (scheduledGame == null) 0 else 1) }
+    var opponent by rememberSaveable { mutableStateOf(scheduledGame?.let { englishTeamName(it.opponentName) } ?: "") }
+    var home by rememberSaveable { mutableStateOf(scheduledGame?.isHomeGame ?: false) }
     var playoff by rememberSaveable { mutableStateOf(false) }
-    var round by rememberSaveable { mutableStateOf("") }
+    var round by rememberSaveable { mutableStateOf(scheduledGame?.roundNumber?.toString() ?: "") }
     var stage by rememberSaveable { mutableStateOf("SEMI_FINAL") }
     var gameNumber by rememberSaveable { mutableStateOf("1") }
     var selected by rememberSaveable { mutableStateOf(emptyList<Long>()) }
@@ -87,7 +89,7 @@ fun NewGameSetupContent(players: List<PlayerEntity>?, saving: Boolean = false,
     val detailsValid = opponent.isNotBlank() && (!playoff || (gameNumber.toIntOrNull() ?: 0) > 0)
     val locked = saving || setupLocked
     val focusManager = LocalFocusManager.current
-    val back = { if (!saving) { if (step == 1 && !setupLocked) step = 0 else onBack() } }
+    val back = { if (!saving) { if (step == 1 && !setupLocked && scheduledGame == null) step = 0 else onBack() } }
     BackHandler { back() }
     Scaffold(modifier = Modifier.fillMaxSize().imePadding(), bottomBar = {
         Surface(tonalElevation = 3.dp) {
@@ -115,14 +117,14 @@ fun NewGameSetupContent(players: List<PlayerEntity>?, saving: Boolean = false,
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 24.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = back, enabled = !saving) { Text(if (step == 1 && !setupLocked) "Back to details" else "Back") }
+                TextButton(onClick = back, enabled = !saving) { Text(if (step == 1 && !setupLocked && scheduledGame == null) "Back to details" else "Back") }
                 Spacer(Modifier.weight(1f))
-                Text("STEP ${step + 1} OF 2", style = MaterialTheme.typography.labelMedium)
+                Text(if (scheduledGame == null) "STEP ${step + 1} OF 2" else "SELECT ROSTER", style = MaterialTheme.typography.labelMedium)
             }
-            Text("New game", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+            Text(if (scheduledGame == null) "New game" else "Scheduled game", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
             Text(if (step == 0) "Set the matchup. Then choose your team." else "Choose the players taking the court.",
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(Modifier.padding(vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (scheduledGame == null) Row(Modifier.padding(vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 listOf("1  Game details", "2  Select roster").forEachIndexed { index, title ->
                     Surface(Modifier.weight(1f), shape = RoundedCornerShape(12.dp),
                         color = if (step == index) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface) {
@@ -157,7 +159,8 @@ fun NewGameSetupContent(players: List<PlayerEntity>?, saving: Boolean = false,
                     SetupCard("Your matchup") {
                         Text(opponent.trim(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("${if (home) "Home" else "Away"} · ${if (playoff) "${stage.lowercase().replace('_', ' ')} · Game $gameNumber" else "Season${if (round.isNotBlank()) " · Round $round" else ""}"}")
-                        TextButton(onClick = { step = 0 }, enabled = !locked) { Text("Edit details") }
+                        scheduledGame?.let { Text(com.example.basketballtracker.features.schedule.ui.fixtureDate(it.gameDateEpoch) + " · " + it.season) }
+                        if (scheduledGame == null) TextButton(onClick = { step = 0 }, enabled = !locked) { Text("Edit details") }
                     }
                 }
                 BoxWithConstraints(Modifier.weight(1f)) {

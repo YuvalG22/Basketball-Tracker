@@ -65,6 +65,28 @@ class GamesRepository(private val gameDao: GameDao, private val gameApi: GameApi
 
     suspend fun getById(id: Long): GameEntity? = gameDao.getById(id)
 
+    suspend fun startScheduledGame(id: Long, playerIds: List<Long>, quarterLengthSec: Int): Long {
+        val db = checkNotNull(database)
+        db.withTransaction {
+            val game = checkNotNull(gameDao.getById(id)) { "Game unavailable" }
+            check(!game.isDeleted) { "Game unavailable" }
+            if (game.status == GameStatus.LIVE) return@withTransaction
+            check(game.status == GameStatus.SCHEDULED) { "Game already finished" }
+            val ids = playerIds.distinct()
+            require(ids.size >= 5 && ids.all { db.playerDao().getPlayerById(it)?.isDeleted == false }) {
+                "Select at least five available players"
+            }
+            require(quarterLengthSec > 0)
+            db.rosterDao().insertAll(ids.map { RosterEntity(id, it) })
+            gameDao.update(game.copy(status = GameStatus.LIVE, quarterLengthSec = quarterLengthSec,
+                quartersCount = 4, currentPeriod = 1, clockSecRemaining = quarterLengthSec,
+                isClockRunning = false, lastClockStartedAt = null, syncStatus = "PENDING",
+                localRevision = game.localRevision + 1, mutationKey = java.util.UUID.randomUUID().toString()))
+        }
+        onChanged()
+        return id
+    }
+
     fun observeGames(): Flow<List<GameEntity>> =
         gameDao.observeAllGames()
 

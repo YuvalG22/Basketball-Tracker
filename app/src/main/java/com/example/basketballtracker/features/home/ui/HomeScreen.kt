@@ -1,5 +1,6 @@
 ﻿package com.example.basketballtracker.features.home.ui
 
+import com.example.basketballtracker.utils.englishTeamName
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -33,11 +34,12 @@ fun HomeScreen(
     onNewGame: () -> Unit,
     onContinue: (Long) -> Unit,
     onGameSummary: (Long) -> Unit,
-    onHistory: () -> Unit
+    onHistory: () -> Unit,
+    onSchedule: () -> Unit = {}
 ) {
     val state by viewModel.home.collectAsStateWithLifecycle()
     HomeContent(state, viewModel.isSyncing, viewModel.syncError, viewModel::manualSync,
-        onNewGame, onContinue, onGameSummary, onHistory)
+        onNewGame, onContinue, onGameSummary, onHistory, onSchedule)
 }
 
 @Composable
@@ -49,7 +51,8 @@ fun HomeContent(
     onNewGame: () -> Unit,
     onContinue: (Long) -> Unit,
     onGameSummary: (Long) -> Unit,
-    onHistory: () -> Unit
+    onHistory: () -> Unit,
+    onSchedule: () -> Unit = {}
 ) {
     Surface(Modifier.fillMaxSize(), color = SportsColors.Background) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -74,6 +77,7 @@ fun HomeContent(
                         Text(if (isSyncing) "Syncing…" else "Sync")
                     }
                 }
+                OutlinedButton(onClick = onSchedule, modifier = Modifier.fillMaxWidth()) { Text("Team schedule") }
                 syncError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 if (state.loading) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -121,7 +125,7 @@ private fun GameDayAction(state: HomeState, onNewGame: () -> Unit, onContinue: (
                 Text("Choose your opponent and roster, then start recording the game.",
                     color = Color(0xFFCEDAF0), style = MaterialTheme.typography.bodyLarge)
             } else {
-                Text("vs ${live.opponentName}", style = MaterialTheme.typography.headlineMedium,
+                Text("vs ${englishTeamName(live.opponentName)}", style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold, color = Color.White)
                 Text(gameDetails(live), color = Color(0xFFCEDAF0))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp),
@@ -129,7 +133,7 @@ private fun GameDayAction(state: HomeState, onNewGame: () -> Unit, onContinue: (
                     Column(Modifier.weight(1f)) {
                         Text("${live.teamScore} – ${live.opponentScore}", color = Color.White,
                             style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Black)
-                        Text("AFEKA · ${live.opponentName}", color = Color(0xFFCEDAF0),
+                        Text("AFEKA · ${englishTeamName(live.opponentName)}", color = Color(0xFFCEDAF0),
                             style = MaterialTheme.typography.labelMedium)
                     }
                     Text("Q${live.currentPeriod}\n${formatClock(live.clockSecRemaining)}", color = Color.White,
@@ -162,10 +166,10 @@ private fun OtherLiveGames(games: List<GameEntity>, onContinue: (Long) -> Unit) 
             OutlinedCard(onClick = { onContinue(game.id) }, modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(game.opponentName, fontWeight = FontWeight.Bold)
+                        Text(englishTeamName(game.opponentName), fontWeight = FontWeight.Bold)
                         Text(gameDetails(game), style = MaterialTheme.typography.bodySmall, color = SportsColors.Muted)
                     }
-                    Icon(Icons.Default.PlayArrow, contentDescription = "Resume ${game.opponentName}", tint = SportsColors.Accent)
+                    Icon(Icons.Default.PlayArrow, contentDescription = "Resume ${englishTeamName(game.opponentName)}", tint = SportsColors.Accent)
                 }
             }
         }
@@ -219,7 +223,7 @@ private fun RecentResults(games: List<GameEntity>, onGameSummary: (Long) -> Unit
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(if (tied) "TIE" else if (won) "WIN" else "LOSS", color = color,
                             style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                        Text(game.opponentName, modifier = Modifier.weight(1f),
+                        Text(englishTeamName(game.opponentName), modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text("${game.teamScore} – ${game.opponentScore}", fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium)

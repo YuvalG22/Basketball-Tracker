@@ -1,5 +1,6 @@
 package com.example.basketballtracker.features.livegame.ui
 
+import com.example.basketballtracker.utils.englishTeamName
 import com.google.gson.Gson
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -114,7 +115,7 @@ class LiveGameViewModel(
                 events = events,
                 secondsPlayedById = seconds,
                 plusMinusById = computePlusMinusByPlayer(events),
-                opponentName = game?.opponentName ?: base.opponentName,
+                opponentName = game?.let { englishTeamName(it.opponentName) } ?: base.opponentName,
                 roundNumber = game?.roundNumber ?: base.roundNumber,
                 gameDateEpoch = game?.gameDateEpoch ?: base.gameDateEpoch,
                 isHomeGame = game?.isHomeGame ?: base.isHomeGame
@@ -157,7 +158,7 @@ class LiveGameViewModel(
             _base.update {
                 it.copy(
                     isEnded = game.status == GameStatus.FINISHED,
-                    opponentName = game.opponentName,
+                    opponentName = englishTeamName(game.opponentName),
                     roundNumber = game.roundNumber,
                     gameDateEpoch = game.gameDateEpoch,
                     isHomeGame = game.isHomeGame,

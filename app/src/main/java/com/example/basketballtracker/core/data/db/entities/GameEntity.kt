@@ -46,6 +46,7 @@ object GameSeason {
 }
 
 object GameStatus {
+    const val SCHEDULED = "SCHEDULED"
     const val LIVE = "LIVE"
     const val FINISHED = "FINISHED"
 }

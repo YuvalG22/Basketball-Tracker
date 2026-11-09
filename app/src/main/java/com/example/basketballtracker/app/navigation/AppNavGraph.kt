@@ -74,10 +74,26 @@ fun AppNavGraph(
                 onNewGame = { nav.navigate(Routes.NEW_GAME) },
                 onContinue = { gameId -> nav.navigate(Routes.live(gameId)) },
                 onGameSummary = { gameId -> nav.navigate(Routes.summary(gameId)) },
+                onSchedule = { nav.navigate(Routes.SCHEDULE) },
                 onHistory = { nav.navigate(Routes.HISTORY) { launchSingleTop = true } }
             )
         }
 
+        composable(Routes.SCHEDULE) {
+            com.example.basketballtracker.features.schedule.ui.ScheduleScreen(gamesRepo,
+                onSelectRoster = { nav.navigate(Routes.scheduleRoster(it)) },
+                onResume = { nav.navigate(Routes.live(it)) },
+                onSummary = { nav.navigate(Routes.summary(it)) }, onBack = { nav.popBackStack() })
+        }
+        composable(Routes.SCHEDULE_ROSTER,
+            arguments = listOf(navArgument("gameId") { type = NavType.LongType })) { entry ->
+            val id = entry.arguments!!.getLong("gameId")
+            com.example.basketballtracker.features.schedule.ui.ScheduledRosterScreen(
+                id, gamesRepo, playersRepo, quarterLengthDefault,
+                onStart = { nav.navigate(Routes.live(it)) {
+                    popUpTo(Routes.SCHEDULE) { inclusive = false }
+                } }, onBack = { nav.popBackStack() })
+        }
         composable(Routes.NEW_GAME) {
             NewGameScreen(
                 defaultQuarterLengthSec = quarterLengthDefault,
